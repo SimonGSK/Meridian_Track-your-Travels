@@ -20,6 +20,16 @@ describe('countries', () => {
     }
   })
 
+  it('has ISO alpha-2 codes for flags, including Kosovo', () => {
+    const byName = (name: string) => countries.find((c) => c.properties.name === name)!
+    expect(byName('Denmark').properties.isoAlpha2).toBe('DK')
+    expect(byName('Kosovo').properties.isoAlpha2).toBe('XK')
+    expect(byName('Somaliland').properties.isoAlpha2).toBeNull()
+    for (const { properties } of countries) {
+      if (properties.isoCode !== null) expect(properties.isoAlpha2).toMatch(/^[A-Z]{2}$/)
+    }
+  })
+
   it('leaves out Antarctica', () => {
     expect(countries.find((c) => c.properties.name === 'Antarctica')).toBeUndefined()
   })

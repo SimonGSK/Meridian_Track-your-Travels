@@ -3,6 +3,7 @@ import Globe, { type GlobeMethods } from 'react-globe.gl'
 import { MeshPhongMaterial } from 'three'
 import type { CountryFeature } from './countries'
 import CountryPanel from './CountryPanel'
+import FlagCorner from './FlagCorner'
 import Tooltip from './Tooltip'
 import { useCountryLayer, useCountryPointer, useSmoothAutoRotate } from './globe/hooks'
 import { INITIAL_VIEW, flightAltitude, flightDuration } from './globe/interaction'
@@ -97,6 +98,7 @@ export default function App() {
       </header>
 
       <Tooltip text={hovered?.properties.name ?? null} />
+      <FlagCorner country={hovered} />
 
       {selected && <CountryPanel country={selected} onClose={() => selectCountry(null)} />}
     </div>

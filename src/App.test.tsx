@@ -24,6 +24,7 @@ const { PLACES, globe, layer } = vi.hoisted(() => {
       100: { lat: 56.17, lng: 9.55 }, // Denmark
       200: { lat: 46.6, lng: 2.4 }, // France
       300: { lat: 30, lng: -40 }, // Atlantic Ocean
+      400: { lat: 9.56, lng: 44.06 }, // Somaliland, which has no flag
       // anything else: outer space
     } as Record<number, { lat: number; lng: number }>,
     globe: {
@@ -67,6 +68,7 @@ const click = (x: number) => {
 const tooltip = () => screen.queryByRole('tooltip')
 const panelHeading = () => screen.queryByRole('heading', { level: 2 })
 const raised = () => screen.getByRole('list', { name: 'raised countries' })
+const flag = () => screen.queryByRole('img', { name: /^Flag of/ })
 
 /** Countries currently recolored on the merged mesh, replayed from paint() calls */
 function painted() {
@@ -107,6 +109,21 @@ describe('App', () => {
       expect(surface()).toHaveStyle({ cursor: 'pointer' })
     })
 
+    it("shows the country's flag", async () => {
+      render(<App />)
+      expect(flag()).not.toBeInTheDocument()
+      hover(100)
+      await waitFor(() => expect(flag()).toHaveAccessibleName('Flag of Denmark'))
+      expect(flag()).toHaveAttribute('src', expect.stringMatching(/dk\.svg/))
+    })
+
+    it('shows no flag for places without one', async () => {
+      render(<App />)
+      hover(400)
+      await waitFor(() => expect(tooltip()).toHaveTextContent('Somaliland'))
+      expect(flag()).not.toBeInTheDocument()
+    })
+
     it('follows the pointer from country to country', async () => {
       render(<App />)
       hover(100)
@@ -114,6 +131,7 @@ describe('App', () => {
       hover(200)
       await waitFor(() => expect(tooltip()).toHaveTextContent('France'))
       expect(painted()).toEqual({ France: COLORS.hover })
+      expect(flag()).toHaveAccessibleName('Flag of France')
     })
 
     it('shows nothing over the ocean or when leaving the globe', async () => {
@@ -123,6 +141,7 @@ describe('App', () => {
       hover(300)
       await waitFor(() => expect(tooltip()).not.toBeInTheDocument())
       expect(painted()).toEqual({})
+      expect(flag()).not.toBeInTheDocument()
 
       hover(100)
       await waitFor(() => expect(tooltip()).toBeVisible())

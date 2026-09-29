@@ -2,6 +2,7 @@ import { feature, mesh } from 'topojson-client'
 import type { Topology, GeometryCollection } from 'topojson-specification'
 import type { Feature, MultiLineString, MultiPolygon, Polygon } from 'geojson'
 import { geoArea, geoBounds, geoCentroid, geoContains } from 'd3-geo'
+import { numericToAlpha2 } from 'i18n-iso-countries'
 import worldData from 'world-atlas/countries-50m.json'
 
 export type CountryFeature = Feature<
@@ -14,6 +15,8 @@ export type CountryFeature = Feature<
      * territories with their country (Ashmore and Cartier Is. with Australia).
      */
     isoCode: string | null
+    /** ISO 3166-1 alpha-2 code, e.g. "DK", used for flags. "XK" for Kosovo, null where none exists. */
+    isoAlpha2: string | null
     /** [lng, lat] center of the largest landmass, used to fly the camera to the country */
     centroid: [number, number]
   }
@@ -24,6 +27,9 @@ type Bounds = [[west: number, south: number], [east: number, north: number]]
 const topology = worldData as unknown as Topology<{
   countries: GeometryCollection<{ name: string }>
 }>
+
+// Commonly used codes for places without an official one
+const UNOFFICIAL_ALPHA2: Record<string, string> = { Kosovo: 'XK' }
 
 // Antarctica clutters the south pole and isn't a country
 const isShown = (name: string) => name !== 'Antarctica'
@@ -36,6 +42,8 @@ export const countries: CountryFeature[] = feature(topology, topology.objects.co
     properties: {
       name: f.properties.name,
       isoCode: f.id === undefined ? null : String(f.id),
+      isoAlpha2:
+        (f.id === undefined ? UNOFFICIAL_ALPHA2[f.properties.name] : numericToAlpha2(f.id)) ?? null,
       centroid: geoCentroid(largestPart(f.geometry as Polygon | MultiPolygon)),
     },
   })) as CountryFeature[]

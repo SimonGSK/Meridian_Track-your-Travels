@@ -41,6 +41,28 @@ test.describe('mouse', () => {
     await expect(panel(page).getByRole('heading', { level: 2 })).toHaveText(name)
   })
 
+  test('hovering a country shows its flag in the corner', async ({ page }) => {
+    await openGlobe(page)
+    const { x, y } = center(page)
+    const flag = page.getByRole('img', { name: /^Flag of/ })
+
+    await page.mouse.move(x, y)
+    await expect(tooltip(page)).toBeVisible()
+    const name = (await tooltip(page).textContent())!.trim()
+    await expect(flag).toHaveAccessibleName(`Flag of ${name}`)
+    await expect(flag).toBeInViewport()
+    // The SVG actually loaded
+    await expect.poll(() => flag.evaluate((img) => (img as { naturalWidth: number }).naturalWidth)).toBeGreaterThan(0)
+
+    const box = (await flag.boundingBox())!
+    const viewport = page.viewportSize()!
+    expect(box.x).toBeGreaterThan(viewport.width / 2)
+    expect(box.y).toBeGreaterThan(viewport.height / 2)
+
+    await page.mouse.move(8, 8) // outer space
+    await expect(flag).toBeHidden()
+  })
+
   test('the panel closes with the close button and with Escape', async ({ page }) => {
     await openGlobe(page)
     const { x, y } = center(page)

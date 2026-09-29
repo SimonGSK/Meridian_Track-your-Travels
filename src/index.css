@@ -57,6 +57,36 @@ body,
   font-family: system-ui, sans-serif;
 }
 
+.flag {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  width: 160px;
+  margin: 0;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(8px);
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
+}
+
+.flag-visible {
+  opacity: 1;
+  transform: none;
+}
+
+.flag img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: 8px;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.12),
+    0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
 .panel {
   position: absolute;
   top: 24px;
@@ -115,6 +145,11 @@ body,
 }
 
 @media (max-width: 600px) {
+  .flag {
+    right: 16px;
+    bottom: 16px;
+    width: 96px;
+  }
   .title {
     left: 16px;
     top: 16px;
