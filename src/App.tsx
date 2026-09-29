@@ -67,6 +67,7 @@ export default function App() {
       <div
         className="globe"
         data-testid="globe"
+        aria-busy={!globe}
         style={{ cursor: hovered ? 'pointer' : 'grab' }}
         {...pointerHandlers}
       >
