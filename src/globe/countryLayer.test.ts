@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { LineSegments, Mesh, Vector3 } from 'three'
+import { BufferAttribute, Color, LineSegments, Mesh, Vector3 } from 'three'
 import { geoContains } from 'd3-geo'
 import type { Position } from 'geojson'
 import { borders, countries } from '../countries'
 import { antimeridianShift, createCapGeometry, createCountryLayer } from './countryLayer'
+import { COLORS } from './style'
 
 const RADIUS = 100
 
@@ -70,10 +71,39 @@ describe('createCapGeometry', () => {
 })
 
 describe('createCountryLayer', () => {
+  const layer = createCountryLayer(countries, borders, RADIUS)
+  const land = layer.object.children.find((c): c is Mesh => c instanceof Mesh)!
+  const colors = land.geometry.getAttribute('color') as BufferAttribute
+  const colorAt = (i: number) => new Color(colors.getX(i), colors.getY(i), colors.getZ(i)).getHexString()
+  const allColors = () => Array.from({ length: colors.count }, (_, i) => colorAt(i))
+  const hex = (color: string) => new Color(color).getHexString()
+
   it('draws all countries as one mesh and one set of lines', () => {
-    const layer = createCountryLayer(countries, borders, RADIUS)
-    expect(layer.children).toHaveLength(2)
-    expect(layer.children.filter((c) => c instanceof Mesh)).toHaveLength(1)
-    expect(layer.children.filter((c) => c instanceof LineSegments)).toHaveLength(1)
+    expect(layer.object.children).toHaveLength(2)
+    expect(layer.object.children.filter((c) => c instanceof Mesh)).toHaveLength(1)
+    expect(layer.object.children.filter((c) => c instanceof LineSegments)).toHaveLength(1)
+  })
+
+  it('starts with every country in the land color', () => {
+    expect(new Set(allColors())).toEqual(new Set([hex(COLORS.land)]))
+  })
+
+  it("paints only the given country's part of the mesh, and restores it", () => {
+    const denmark = countries.find((c) => c.properties.name === 'Denmark')!
+    layer.paint(denmark, COLORS.hover)
+    const painted = allColors().filter((c) => c === hex(COLORS.hover)).length
+    expect(painted).toBeGreaterThan(0)
+    expect(painted).toBeLessThan(colors.count / 100) // a small country, not the world
+
+    layer.paint(denmark, null)
+    expect(new Set(allColors())).toEqual(new Set([hex(COLORS.land)]))
+  })
+
+  it('queues both countries for upload when switching hover in one frame', () => {
+    const [a, b] = countries
+    colors.clearUpdateRanges()
+    layer.paint(a, null)
+    layer.paint(b, COLORS.hover)
+    expect(colors.updateRanges).toHaveLength(2)
   })
 })

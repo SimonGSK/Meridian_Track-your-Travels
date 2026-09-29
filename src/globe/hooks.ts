@@ -2,27 +2,39 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { PointerEvent } from 'react'
 import type { GlobeMethods } from 'react-globe.gl'
 import { borders, countries, findCountryAt, type CountryFeature } from '../countries'
-import { createCountryLayer, disposeLayer } from './countryLayer'
+import { createCountryLayer, type CountryLayer } from './countryLayer'
 import { approach, isClick, type Point } from './interaction'
 import { screenToLatLng } from './picking'
+import { COLORS } from './style'
 
 export const SPIN_SPEED = 0.4
 export const RESUME_DELAY_MS = 2500
 /** Fraction of the remaining speed difference covered each frame */
 const SPIN_EASING = 0.04
 
-/** Adds the merged country mesh to the globe's scene. */
-export function useCountryLayer(globe: GlobeMethods | null) {
+/** Adds the merged country mesh to the globe's scene and colors the hovered country. */
+export function useCountryLayer(globe: GlobeMethods | null, hovered: CountryFeature | null) {
+  const layer = useRef<CountryLayer | null>(null)
+
   useEffect(() => {
     if (!globe) return
     const scene = globe.scene()
-    const layer = createCountryLayer(countries, borders, globe.getGlobeRadius())
-    scene.add(layer)
+    const created = createCountryLayer(countries, borders, globe.getGlobeRadius())
+    scene.add(created.object)
+    layer.current = created
     return () => {
-      scene.remove(layer)
-      disposeLayer(layer)
+      scene.remove(created.object)
+      created.dispose()
+      layer.current = null
     }
   }, [globe])
+
+  useEffect(() => {
+    const current = layer.current
+    if (!current || !hovered) return
+    current.paint(hovered, COLORS.hover)
+    return () => current.paint(hovered, null)
+  }, [globe, hovered])
 }
 
 /**

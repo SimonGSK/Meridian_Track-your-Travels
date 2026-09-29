@@ -4,10 +4,11 @@ import { useEffect, useImperativeHandle, useRef, type Ref } from 'react'
 import type { GlobeProps } from 'react-globe.gl'
 import App from './App'
 import { countries } from './countries'
+import { COLORS } from './globe/style'
 
 // WebGL doesn't exist in jsdom, so the globe is replaced by a stand-in that
 // exposes what the app passes to it. Screen positions map to places by x.
-const { PLACES, globe } = vi.hoisted(() => {
+const { PLACES, globe, layer } = vi.hoisted(() => {
   const listeners = new Map<string, Set<() => void>>()
   const controls = {
     autoRotate: false,
@@ -31,11 +32,12 @@ const { PLACES, globe } = vi.hoisted(() => {
       scene: () => ({ add: vi.fn(), remove: vi.fn() }),
       getGlobeRadius: () => 100,
     },
+    layer: { object: {}, paint: vi.fn(), dispose: vi.fn() },
   }
 })
 
 vi.mock('react-globe.gl', () => ({
-  default: function FakeGlobe({ ref, onGlobeReady, polygonsData, polygonCapColor }: GlobeProps & { ref: Ref<unknown> }) {
+  default: function FakeGlobe({ ref, onGlobeReady, polygonsData }: GlobeProps & { ref: Ref<unknown> }) {
     useImperativeHandle(ref, () => globe)
     // Like the real globe, fires once after mounting
     const onReady = useRef(onGlobeReady)
@@ -44,9 +46,7 @@ vi.mock('react-globe.gl', () => ({
     return (
       <ul aria-label="raised countries">
         {raised.map((c) => (
-          <li key={c.properties.name} data-color={(polygonCapColor as (d: object) => string)(c)}>
-            {c.properties.name}
-          </li>
+          <li key={c.properties.name}>{c.properties.name}</li>
         ))}
       </ul>
     )
@@ -55,7 +55,7 @@ vi.mock('react-globe.gl', () => ({
 vi.mock('./globe/picking', () => ({
   screenToLatLng: (_: unknown, x: number) => PLACES[x] ?? null,
 }))
-vi.mock('./globe/countryLayer', () => ({ createCountryLayer: () => ({}), disposeLayer: () => {} }))
+vi.mock('./globe/countryLayer', () => ({ createCountryLayer: () => layer }))
 
 const at = (x: number) => ({ clientX: x, clientY: 0 })
 const surface = () => screen.getByTestId('globe')
@@ -68,11 +68,22 @@ const tooltip = () => screen.queryByRole('tooltip')
 const panelHeading = () => screen.queryByRole('heading', { level: 2 })
 const raised = () => screen.getByRole('list', { name: 'raised countries' })
 
+/** Countries currently recolored on the merged mesh, replayed from paint() calls */
+function painted() {
+  const colors: Record<string, string> = {}
+  for (const [country, color] of layer.paint.mock.calls) {
+    if (color) colors[country.properties.name] = color
+    else delete colors[country.properties.name]
+  }
+  return colors
+}
+
 const denmark = countries.find((c) => c.properties.name === 'Denmark')!
 
 describe('App', () => {
   beforeEach(() => {
     globe.pointOfView.mockClear()
+    layer.paint.mockClear()
   })
 
   it('shows the title and how to use the globe', () => {
@@ -87,11 +98,12 @@ describe('App', () => {
   })
 
   describe('hovering', () => {
-    it('shows the country name and raises it', async () => {
+    it('shows the country name and colors it without raising it', async () => {
       render(<App />)
       hover(100)
       await waitFor(() => expect(tooltip()).toHaveTextContent('Denmark'))
-      expect(raised()).toHaveTextContent('Denmark')
+      expect(painted()).toEqual({ Denmark: COLORS.hover })
+      expect(raised()).toBeEmptyDOMElement()
       expect(surface()).toHaveStyle({ cursor: 'pointer' })
     })
 
@@ -101,7 +113,7 @@ describe('App', () => {
       await waitFor(() => expect(tooltip()).toHaveTextContent('Denmark'))
       hover(200)
       await waitFor(() => expect(tooltip()).toHaveTextContent('France'))
-      expect(raised()).not.toHaveTextContent('Denmark')
+      expect(painted()).toEqual({ France: COLORS.hover })
     })
 
     it('shows nothing over the ocean or when leaving the globe', async () => {
@@ -110,6 +122,7 @@ describe('App', () => {
       await waitFor(() => expect(tooltip()).toBeVisible())
       hover(300)
       await waitFor(() => expect(tooltip()).not.toBeInTheDocument())
+      expect(painted()).toEqual({})
 
       hover(100)
       await waitFor(() => expect(tooltip()).toBeVisible())
@@ -143,14 +156,13 @@ describe('App', () => {
       )
     })
 
-    it('highlights the selected country in its own color', () => {
+    it('raises only the selected country, not the hovered one', async () => {
       render(<App />)
       click(100)
       hover(200)
-      const colors = Object.fromEntries(
-        [...raised().querySelectorAll('li')].map((li) => [li.textContent, li.dataset.color]),
-      )
-      expect(colors.Denmark).not.toBe(colors.France)
+      await waitFor(() => expect(painted()).toEqual({ France: COLORS.hover }))
+      expect(raised()).toHaveTextContent('Denmark')
+      expect(raised()).not.toHaveTextContent('France')
     })
 
     it('switches to another country', () => {

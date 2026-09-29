@@ -1,4 +1,14 @@
-import { Group, LineBasicMaterial, LineSegments, MathUtils, Mesh, MeshLambertMaterial } from 'three'
+import {
+  BufferAttribute,
+  Color,
+  Group,
+  LineBasicMaterial,
+  LineSegments,
+  MathUtils,
+  Mesh,
+  MeshLambertMaterial,
+  type ColorRepresentation,
+} from 'three'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import ConicPolygonGeometry from 'three-conic-polygon-geometry'
 import GeoJsonGeometry from 'three-geojson-geometry'
@@ -9,32 +19,51 @@ import { COLORS, LAND_ALTITUDE } from './style'
 
 const CURVATURE_RESOLUTION = 5
 
+export type CountryLayer = {
+  object: Group
+  /** Recolor one country, or pass null to restore the normal land color. */
+  paint(country: CountryFeature, color: ColorRepresentation | null): void
+  dispose(): void
+}
+
 /**
  * All countries as one mesh plus one set of border lines.
  *
  * Drawing each country separately (the default polygon layer) costs thousands
- * of draw calls per frame; merging them keeps rotation smooth. Hover and
- * selection are drawn on top by the globe's own (tiny) polygon layer.
+ * of draw calls per frame; merging them keeps rotation smooth. Each country
+ * keeps its own range of vertex colors so it can be highlighted in place.
  */
 export function createCountryLayer(
   countries: CountryFeature[],
   borders: MultiLineString,
   globeRadius: number,
-): Group {
+): CountryLayer {
   const top = globeRadius * (1 + LAND_ALTITUDE)
 
+  // Which vertices of the merged mesh belong to which country
+  const ranges = new Map<CountryFeature, { start: number; count: number }>()
+  let vertexCount = 0
   const parts = countries.flatMap((country) => {
     const { geometry } = country
     const polygons = geometry.type === 'Polygon' ? [geometry.coordinates] : geometry.coordinates
-    return polygons.map((rings) => createCapGeometry(rings, globeRadius, top))
+    const countryParts = polygons.map((rings) => createCapGeometry(rings, globeRadius, top))
+    const count = countryParts.reduce((sum, part) => sum + part.attributes.position.count, 0)
+    ranges.set(country, { start: vertexCount, count })
+    vertexCount += count
+    return countryParts
   })
   const landGeometry = mergeGeometries(parts, false)
   parts.forEach((p) => p.dispose())
 
+  const landColor = new Color(COLORS.land)
+  const colors = new BufferAttribute(new Float32Array(vertexCount * 3), 3)
+  for (let i = 0; i < vertexCount; i++) colors.setXYZ(i, landColor.r, landColor.g, landColor.b)
+  landGeometry.setAttribute('color', colors)
+
   const land = new Mesh(
     landGeometry,
     new MeshLambertMaterial({
-      color: COLORS.land,
+      vertexColors: true,
       // Push the land back in the depth buffer so borders never flicker through it
       polygonOffset: true,
       polygonOffsetFactor: 1,
@@ -47,10 +76,31 @@ export function createCountryLayer(
     new LineBasicMaterial({ color: COLORS.border, transparent: true, opacity: 0.8 }),
   )
 
-  const layer = new Group()
-  layer.name = 'countries'
-  layer.add(land, lines)
-  return layer
+  const object = new Group()
+  object.name = 'countries'
+  object.add(land, lines)
+
+  const paintColor = new Color()
+  return {
+    object,
+    paint(country, color) {
+      const range = ranges.get(country)
+      if (!range) return
+      paintColor.set(color ?? landColor)
+      for (let i = range.start; i < range.start + range.count; i++) {
+        colors.setXYZ(i, paintColor.r, paintColor.g, paintColor.b)
+      }
+      // Only re-upload this country's colors to the GPU (three.js clears the ranges after uploading)
+      colors.addUpdateRange(range.start * 3, range.count * 3)
+      colors.needsUpdate = true
+    },
+    dispose() {
+      landGeometry.dispose()
+      land.material.dispose()
+      lines.geometry.dispose()
+      lines.material.dispose()
+    },
+  }
 }
 
 const wrapLng = (lng: number) => ((((lng + 180) % 360) + 360) % 360) - 180
@@ -79,13 +129,4 @@ export function createCapGeometry(rings: Position[][], globeRadius: number, radi
   const geometry = new ConicPolygonGeometry(shifted, globeRadius, radius, false, true, false, CURVATURE_RESOLUTION)
   if (shift) geometry.rotateY(MathUtils.degToRad(-shift))
   return geometry
-}
-
-export function disposeLayer(layer: Group) {
-  layer.traverse((obj) => {
-    if (obj instanceof Mesh || obj instanceof LineSegments) {
-      obj.geometry.dispose()
-      obj.material.dispose()
-    }
-  })
 }

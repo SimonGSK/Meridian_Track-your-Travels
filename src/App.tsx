@@ -6,10 +6,11 @@ import CountryPanel from './CountryPanel'
 import Tooltip from './Tooltip'
 import { useCountryLayer, useCountryPointer, useSmoothAutoRotate } from './globe/hooks'
 import { INITIAL_VIEW, flightAltitude, flightDuration } from './globe/interaction'
-import { COLORS, HOVER_ALTITUDE, SELECTED_ALTITUDE } from './globe/style'
+import { COLORS, SELECTED_ALTITUDE } from './globe/style'
 
 const RENDERER_CONFIG = { antialias: true, alpha: true, powerPreference: 'high-performance' } as const
 
+const selectedColor = () => COLORS.selected
 const sideColor = () => COLORS.side
 const strokeColor = () => COLORS.border
 
@@ -43,7 +44,7 @@ export default function App() {
     [globe],
   )
 
-  useCountryLayer(globe)
+  useCountryLayer(globe, hovered)
   useSmoothAutoRotate(globe, !selected && !hovered)
   const pointerHandlers = useCountryPointer(globe, { onHover: setHovered, onClick: selectCountry })
 
@@ -53,14 +54,9 @@ export default function App() {
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [selectCountry])
 
-  // Only hovered/selected countries go through the globe's polygon layer,
-  // drawn raised on top of the flat merged country mesh.
-  const raised = useMemo(
-    () => [...new Set([selected, hovered])].filter((c): c is CountryFeature => c !== null),
-    [selected, hovered],
-  )
-  const capColor = useCallback((c: object) => (c === selected ? COLORS.selected : COLORS.hover), [selected])
-  const altitude = useCallback((c: object) => (c === selected ? SELECTED_ALTITUDE : HOVER_ALTITUDE), [selected])
+  // Hover is painted flat on the merged country mesh; only the selected
+  // country goes through the globe's polygon layer, slightly raised.
+  const raised = useMemo(() => (selected ? [selected] : []), [selected])
 
   return (
     <div className="app">
@@ -83,8 +79,8 @@ export default function App() {
           // Picking happens in useCountryPointer, far cheaper than raycasting every mesh
           enablePointerInteraction={false}
           polygonsData={raised}
-          polygonAltitude={altitude}
-          polygonCapColor={capColor}
+          polygonAltitude={SELECTED_ALTITUDE}
+          polygonCapColor={selectedColor}
           polygonSideColor={sideColor}
           polygonStrokeColor={strokeColor}
           polygonsTransitionDuration={300}
