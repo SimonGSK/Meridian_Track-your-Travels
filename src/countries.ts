@@ -1,16 +1,20 @@
 import { feature, mesh } from 'topojson-client'
 import type { Topology, GeometryCollection } from 'topojson-specification'
 import type { Feature, MultiLineString, MultiPolygon, Polygon } from 'geojson'
-import { geoBounds, geoCentroid, geoContains } from 'd3-geo'
+import { geoArea, geoBounds, geoCentroid, geoContains } from 'd3-geo'
 import worldData from 'world-atlas/countries-50m.json'
 
 export type CountryFeature = Feature<
   Polygon | MultiPolygon,
   {
-    /** ISO 3166-1 numeric code, e.g. "208" for Denmark */
-    id: string
     name: string
-    /** [lng, lat] visual center, used to fly the camera to the country */
+    /**
+     * ISO 3166-1 numeric code, e.g. "208" for Denmark. Null for disputed
+     * areas without one (Kosovo, Somaliland, ...), and shared by some
+     * territories with their country (Ashmore and Cartier Is. with Australia).
+     */
+    isoCode: string | null
+    /** [lng, lat] center of the largest landmass, used to fly the camera to the country */
     centroid: [number, number]
   }
 >
@@ -30,11 +34,21 @@ export const countries: CountryFeature[] = feature(topology, topology.objects.co
   .map((f) => ({
     ...f,
     properties: {
-      id: String(f.id),
       name: f.properties.name,
-      centroid: geoCentroid(f) as [number, number],
+      isoCode: f.id === undefined ? null : String(f.id),
+      centroid: geoCentroid(largestPart(f.geometry as Polygon | MultiPolygon)),
     },
   })) as CountryFeature[]
+
+/**
+ * The biggest piece of a country, so e.g. France's overseas territories
+ * don't drag its center into Spain.
+ */
+function largestPart(geometry: Polygon | MultiPolygon): Polygon {
+  if (geometry.type === 'Polygon') return geometry
+  const parts = geometry.coordinates.map((coordinates) => ({ type: 'Polygon' as const, coordinates }))
+  return parts.reduce((a, b) => (geoArea(b) > geoArea(a) ? b : a))
+}
 
 /** Every border and coastline exactly once, so shared borders aren't drawn twice. */
 export const borders: MultiLineString = mesh(

@@ -7,7 +7,7 @@ type Props = {
 
 // Placeholder panel — the info shown per country is still to be decided.
 export default function CountryPanel({ country, onClose }: Props) {
-  const { name, id } = country.properties
+  const { name, isoCode } = country.properties
 
   return (
     <aside className="panel">
@@ -15,7 +15,7 @@ export default function CountryPanel({ country, onClose }: Props) {
         ×
       </button>
       <h2>{name}</h2>
-      <p className="panel-meta">ISO numeric code: {id}</p>
+      {isoCode && <p className="panel-meta">ISO numeric code: {isoCode}</p>}
       <p className="panel-placeholder">Country info coming soon.</p>
     </aside>
   )
