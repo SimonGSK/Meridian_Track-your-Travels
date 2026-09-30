@@ -4,7 +4,8 @@ An interactive 3D globe: spin it, hover a country to see its name and flag, clic
 
 The menu on the left (a tab bar on phones) has:
 
-- **Visited**: keep track of where you've been, out of the world's 197 countries (territories are counted separately). Search to add places (old names like "Swaziland" work too), or click a country and press "Mark as visited". They're colored on the globe.
+- **Explore**: tips on using the globe, and settings to show or hide visited countries and the markers around small islands.
+- **Visited**: keep track of where you've been, out of the world's 197 countries, with the count and percentage for each continent (territories are counted separately). Your places are listed by continent. Search to add places (old names like "Swaziland" work too), or click a country and press "Mark as visited". They're colored on the globe.
 - **Games**, at three difficulties:
   - *Find the country*: click the named country on the globe.
   - *Letter hunt*: click every country starting with a letter.
@@ -17,7 +18,7 @@ The menu on the left (a tab bar on phones) has:
 
 The globe spins on its own until you touch it, and again once it's been left alone for 30 seconds. Tiny countries and islands get a ring marker, and clicks just beside a small island still count.
 
-Visited places, best scores, the difficulty and the design are saved in your browser (`localStorage`). Nothing is sent anywhere.
+Visited places, best scores, the difficulty, the design and the settings are saved in your browser (`localStorage`). Nothing is sent anywhere.
 
 Built with React, TypeScript and Vite, using [react-globe.gl](https://github.com/vasturiano/react-globe.gl) (three.js) for the globe, [world-atlas](https://github.com/topojson/world-atlas) (Natural Earth 1:50m) for country shapes and [flag-icons](https://github.com/lipis/flag-icons) for flags (bundled locally, so no requests go to third parties).
 
@@ -62,10 +63,12 @@ src/
   flags.ts             country → flag image URL
   data/
     names.ts           display names, alternative spellings, countries vs territories
+    continents.ts      each place's continent
     westernSahara.ts   shows all of Western Sahara (see below)
     extra-countries.json  Tuvalu and Gibraltar, from the 1:10m map
   storage.ts           state saved in the browser
   nav/                 the menu and the side panel
+  explore/             tips and settings
   visited/             visited countries list
   design/              design picker
   games/               game rules (games.ts, letterGame.ts), what the globe shows (globeView.ts),
@@ -101,6 +104,7 @@ Each place has:
 - `mapName`: the name in the map data.
 - `aliases`: every other name it goes by, from ISO and a curated list of former and common names ("Swaziland", "East Timor", "Ivory Coast").
 - `kind`: `"country"` or `"territory"`.
+- `continent`: from flag-icons' country data, with the Caribbean islands it places in South America (Aruba, Curaçao, Bonaire, Trinidad and Tobago) counted as North America, as usual. Russia and Cyprus are in Europe; Türkiye, Georgia, Armenia and Azerbaijan in Asia.
 - `isoCode` and `isoAlpha2`: ISO 3166-1 codes (`"208"`, `"DK"`). A few disputed areas have none (`null`); Kosovo uses the widely adopted `"XK"`.
 - `centroid`, `extent` and `areaKm2`: center and size of the main landmass, and the area.
 - `tiny`: under 2,500 km², so it gets a marker.
