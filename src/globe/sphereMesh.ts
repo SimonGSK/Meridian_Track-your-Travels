@@ -6,8 +6,8 @@ export type Vec3 = [number, number, number]
 
 const DEG = Math.PI / 180
 
-/** Longest triangle edge; short enough that flat triangles hug the sphere (sag ≈ 0.015% of the radius). */
-export const MAX_EDGE = 2 * DEG
+/** Longest triangle edge; short enough that flat triangles hug the sphere (sag ≈ 0.03% of the radius). */
+export const MAX_EDGE = 3 * DEG
 
 export function toUnitVector([lng, lat]: Position): Vec3 {
   const phi = (90 - lat) * DEG
