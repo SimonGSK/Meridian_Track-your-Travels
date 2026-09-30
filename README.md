@@ -4,11 +4,20 @@ An interactive 3D globe: spin it, hover a country to see its name and flag, clic
 
 The menu on the left (a tab bar on phones) has:
 
-- **Visited**: keep track of the countries you've been to. Search to add them, or click a country and press "Mark as visited". They're colored on the globe.
-- **Games**: *Find the country* (click the named country on the globe), *Flag quiz* and *Name that country* (a country lights up; pick its name). Ten rounds each, with your best score saved.
+- **Visited**: keep track of where you've been, out of the world's 197 countries (territories are counted separately). Search to add places (old names like "Swaziland" work too), or click a country and press "Mark as visited". They're colored on the globe.
+- **Games**, at three difficulties:
+  - *Find the country*: click the named country on the globe.
+  - *Letter hunt*: click every country starting with a letter.
+  - *Flag quiz*: which country has this flag?
+  - *Name that country*: a country lights up on the globe; which one is it?
+  - *Shape quiz*: name the country from its outline.
+
+  Easy asks about big countries with four answers to pick from. Medium (all but the smallest) and Hard (all 197) have you type answers, with suggestions; any known spelling counts ("East Timor", "Burma"), and the answer shows the name used today.
 - **Design**: switch the globe between Classic, Political (neighbors always in different colors), Night, Vintage and Minimal.
 
-Visited countries, best scores and the chosen design are saved in your browser (`localStorage`). Nothing is sent anywhere.
+The globe spins on its own until you touch it, and again once it's been left alone for 30 seconds. Tiny countries and islands get a ring marker, and clicks just beside a small island still count.
+
+Visited places, best scores, the difficulty and the design are saved in your browser (`localStorage`). Nothing is sent anywhere.
 
 Built with React, TypeScript and Vite, using [react-globe.gl](https://github.com/vasturiano/react-globe.gl) (three.js) for the globe, [world-atlas](https://github.com/topojson/world-atlas) (Natural Earth 1:50m) for country shapes and [flag-icons](https://github.com/lipis/flag-icons) for flags (bundled locally, so no requests go to third parties).
 
@@ -31,7 +40,9 @@ Then open http://localhost:5173.
 | `npm run lint` | Lint with Oxlint |
 | `npm test` | Unit and component tests (Vitest) |
 | `npm run test:watch` | Same, re-running on changes |
+| `npm run test:coverage` | Unit and component tests with a coverage report |
 | `npm run test:e2e` | End-to-end tests against the real WebGL globe (Playwright) |
+| `npm run data:extra` | Regenerate `src/data/extra-countries.json` (places too small for the 1:50m map) |
 
 The first time you run the end-to-end tests, install the browser:
 
@@ -47,34 +58,59 @@ src/
   CountryPanel.tsx     panel shown for the selected country
   FlagCorner.tsx       hovered country's flag, bottom-right
   Tooltip.tsx          country name that follows the mouse
-  countries.ts         country shapes, borders, codes, map colors, and point → country lookup
+  countries.ts         every place: shape, names, codes, size, map color; lookup by point or name
   flags.ts             country → flag image URL
+  data/
+    names.ts           display names, alternative spellings, countries vs territories
+    westernSahara.ts   shows all of Western Sahara (see below)
+    extra-countries.json  Tuvalu and Gibraltar, from the 1:10m map
   storage.ts           state saved in the browser
   nav/                 the menu and the side panel
   visited/             visited countries list
   design/              design picker
-  games/               game rules (games.ts), state and best scores, and the panel
+  games/               game rules (games.ts, letterGame.ts), what the globe shows (globeView.ts),
+                       state and best scores (useGame.ts), the panel, answer box and outlines
   globe/
-    countryLayer.ts    all countries merged into one mesh + one border line set
+    sphereMesh.ts      triangulating countries on the sphere
+    countryLayer.ts    all countries merged into one mesh, plus borders and markers; the raised country
     colors.ts          which color each country gets (game answers > hover > visited > land)
     themes.ts          the designs
-    hooks.ts           adding the layer, pointer picking, smooth auto-rotate
+    hooks.ts           the layers, pointer picking, depth precision, idle spin
     interaction.ts     click-vs-drag, flight duration/altitude, easing
     picking.ts         screen position → lat/lng on the globe
     style.ts           heights
 e2e/                   Playwright tests
+scripts/               data extraction
 ```
 
 A few choices keep the globe smooth:
 
-- **One mesh for all countries.** The globe library's polygon layer draws each country piece separately (~1,500 meshes, 7,500+ draw calls per frame). Instead, every country is merged into a single mesh. Each country keeps its own range of vertex colors, so hover recolors it in place, flat on the globe. Only the selected country goes through the polygon layer, slightly raised.
-- **No mesh raycasting.** Hover and click intersect a ray with the globe's sphere, then look up which country contains that lat/lng, which takes about 0.1 ms.
-- **Antimeridian workaround.** Russia's mainland crosses 180°, which sends the triangulation down a path that takes seconds. It's built rotated away from 180° and rotated back.
-- **Eased auto-rotate.** The idle spin eases in and out, pauses while hovering a country, stops when you grab the globe, and resumes shortly after you let go.
+- **One mesh for all countries.** The globe library's polygon layer draws each country piece separately (~1,500 meshes, 7,500+ draw calls per frame). Instead, every country is merged into a single mesh. Each country keeps its own range of vertex colors, so hover and game answers recolor it in place. The selected country is drawn separately, slightly raised with walls.
+- **Our own triangulation.** Each polygon is projected with a gnomonic projection centered on it (great circles become straight lines), triangulated with earcut so it follows the coast exactly, then subdivided until no edge is longer than 3° so the flat triangles hug the sphere. This works across the antimeridian and around the poles, builds the whole world in ~60 ms, and avoids the gaps the globe library's triangulation left in countries like Greenland.
+- **Depth precision.** The camera's near plane moves out as you zoom out, so the land never flickers against the ocean below it.
+- **No mesh raycasting.** Hover and click intersect a ray with the globe's sphere, then look up which country contains that lat/lng (about 0.1 ms), forgiving a few pixels near markers and coasts.
+- **Eased auto-rotate.** The idle spin eases in and out, stops on any interaction, and resumes after 30 seconds untouched.
 
 ## Country data
 
-Each country has a `name`, an `isoCode` (ISO 3166-1 numeric, e.g. `"208"` for Denmark), an `isoAlpha2` code (e.g. `"DK"`, used for flags), a `centroid` (center of its largest landmass), an `extent` (its size in degrees, for zooming to fit) and a `mapColor` (0–4, never shared with a neighbor). A few disputed areas have no ISO codes (`null`). Kosovo uses the widely adopted `"XK"`. Somaliland, N. Cyprus, Siachen Glacier and the Indian Ocean Territories have no flag. Antarctica is left out.
+The map has 243 places: the 197 countries (the 193 UN members, the observer states Vatican City and Palestine, and Kosovo and Taiwan) and 46 territories and other areas, such as Greenland, Puerto Rico, Hong Kong, Western Sahara and Antarctica.
+
+Each place has:
+
+- `name`: the display name, e.g. "Eswatini". The map data (Natural Earth) abbreviates names ("Dem. Rep. Congo") and writes "eSwatini", the styling the kingdom itself uses; we show full current English short names.
+- `mapName`: the name in the map data.
+- `aliases`: every other name it goes by, from ISO and a curated list of former and common names ("Swaziland", "East Timor", "Ivory Coast").
+- `kind`: `"country"` or `"territory"`.
+- `isoCode` and `isoAlpha2`: ISO 3166-1 codes (`"208"`, `"DK"`). A few disputed areas have none (`null`); Kosovo uses the widely adopted `"XK"`.
+- `centroid`, `extent` and `areaKm2`: center and size of the main landmass, and the area.
+- `tiny`: under 2,500 km², so it gets a marker.
+- `mapColor`: 0–4, never shared with a neighbor.
+
+Some corrections to the map data:
+
+- **Western Sahara.** Natural Earth draws only the inland strip east of the Moroccan sand wall as Western Sahara and counts the coast as Morocco. We show the whole territory, bordering Morocco along 27°40′N, as the UN and most maps do.
+- **Tuvalu and Gibraltar** are too small for the 1:50m map and are copied from the 1:10m map.
+- **The Maldives** are in the map but are a few tiny atolls, so like other small places they get a marker.
 
 ## Commit messages
 
