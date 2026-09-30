@@ -1,9 +1,21 @@
 import { describe, expect, it } from 'vitest'
 import { countries } from '../countries'
 import { flagUrl } from '../flags'
-import { OPTION_COUNT, ROUNDS, answer, currentRound, gamePool, newGame, next, shuffle } from './games'
+import {
+  OPTION_COUNT,
+  ROUNDS,
+  answer,
+  answerMode,
+  currentRound,
+  gamePool,
+  newRoundGame,
+  next,
+  shuffle,
+  type Difficulty,
+} from './games'
 
 const byName = (name: string) => countries.find((c) => c.properties.name === name)!
+const names = (list: { properties: { name: string } }[]) => list.map((c) => c.properties.name)
 
 /** Deterministic pseudo-random numbers */
 function seeded(seed = 1) {
@@ -14,79 +26,99 @@ function seeded(seed = 1) {
 }
 
 describe('gamePool', () => {
-  it('leaves out countries too small to click and places without ISO codes', () => {
-    const pool = gamePool('find').map((c) => c.properties.name)
-    expect(pool).toContain('Denmark')
-    expect(pool).toContain('Brazil')
-    expect(pool).not.toContain('Luxembourg')
-    expect(pool).not.toContain('Vatican')
-    expect(pool).not.toContain('Somaliland')
-    expect(pool.length).toBeGreaterThan(150)
+  it('only asks about countries, never territories', () => {
+    for (const d of ['easy', 'medium', 'hard'] as Difficulty[]) {
+      expect(gamePool('find', d).every((c) => c.properties.kind === 'country')).toBe(true)
+    }
+    expect(names(gamePool('find', 'hard'))).not.toContain('Greenland')
+    expect(names(gamePool('find', 'hard'))).not.toContain('Antarctica')
+  })
+
+  it('grows with difficulty: big countries, then all but the tiniest, then all 197', () => {
+    const [easy, medium, hard] = (['easy', 'medium', 'hard'] as const).map((d) => names(gamePool('find', d)))
+    expect(easy.length).toBeLessThan(medium.length)
+    expect(medium.length).toBeLessThan(hard.length)
+    expect(hard).toHaveLength(197)
+    expect(easy).toContain('Brazil')
+    expect(easy).not.toContain('Denmark')
+    expect(medium).toContain('Denmark')
+    expect(medium).not.toContain('Grenada')
+    expect(hard).toContain('Grenada')
+    expect(hard).toContain('Tuvalu')
   })
 
   it('only asks about flags that exist', () => {
-    const pool = gamePool('flags')
-    expect(pool.every((c) => flagUrl(c))).toBe(true)
-    expect(pool.map((c) => c.properties.name)).toContain('Luxembourg')
+    expect(gamePool('flags', 'hard').every((c) => flagUrl(c))).toBe(true)
+  })
+})
+
+describe('answerMode', () => {
+  it('picks from four answers on easy, and types them on medium and hard', () => {
+    expect(answerMode('flags', 'easy')).toBe('choices')
+    expect(answerMode('shape', 'medium')).toBe('typing')
+    expect(answerMode('name', 'hard')).toBe('typing')
+  })
+
+  it('always answers "find" and the letter hunt on the globe', () => {
+    for (const d of ['easy', 'medium', 'hard'] as Difficulty[]) {
+      expect(answerMode('find', d)).toBe('globe')
+      expect(answerMode('letter', d)).toBe('globe')
+    }
   })
 })
 
 describe('shuffle', () => {
-  it('keeps every item exactly once', () => {
+  it('keeps every item exactly once, without changing the original', () => {
     const items = [1, 2, 3, 4, 5, 6]
     expect(shuffle(items, seeded()).sort()).toEqual(items)
-  })
-
-  it('does not change the original', () => {
-    const items = [1, 2, 3]
-    shuffle(items, seeded())
-    expect(items).toEqual([1, 2, 3])
+    expect(items).toEqual([1, 2, 3, 4, 5, 6])
   })
 })
 
-describe('newGame', () => {
-  it(`has ${ROUNDS} rounds about different countries`, () => {
-    const game = newGame('find', seeded())
+describe('newRoundGame', () => {
+  it(`has ${ROUNDS} rounds about different countries from the pool`, () => {
+    const game = newRoundGame('find', 'medium', seeded())
     expect(game.rounds).toHaveLength(ROUNDS)
     expect(new Set(game.rounds.map((r) => r.target)).size).toBe(ROUNDS)
-    expect(game).toMatchObject({ index: 0, score: 0, answer: null, finished: false })
+    const pool = gamePool('find', 'medium')
+    for (const round of game.rounds) expect(pool).toContain(round.target)
+    expect(game).toMatchObject({ kind: 'rounds', difficulty: 'medium', index: 0, score: 0, answer: null, finished: false })
   })
 
-  it('has no answer choices when you answer on the globe', () => {
-    expect(newGame('find', seeded()).rounds.every((r) => r.options.length === 0)).toBe(true)
-  })
-
-  it.each(['flags', 'name'] as const)('gives %s rounds distinct choices including the answer', (id) => {
-    for (const round of newGame(id, seeded()).rounds) {
+  it('gives easy rounds four distinct choices including the answer', () => {
+    for (const round of newRoundGame('shape', 'easy', seeded()).rounds) {
       expect(round.options).toHaveLength(OPTION_COUNT)
       expect(new Set(round.options).size).toBe(OPTION_COUNT)
       expect(round.options).toContain(round.target)
     }
   })
 
-  it('puts the answer in different positions', () => {
-    const positions = new Set(
-      newGame('flags', seeded(7)).rounds.map((r) => r.options.indexOf(r.target)),
-    )
-    expect(positions.size).toBeGreaterThan(1)
+  it('has no choices when answers are typed or clicked', () => {
+    expect(newRoundGame('flags', 'hard', seeded()).rounds.every((r) => r.options.length === 0)).toBe(true)
+    expect(newRoundGame('find', 'easy', seeded()).rounds.every((r) => r.options.length === 0)).toBe(true)
   })
 
   it('differs between games', () => {
-    const a = newGame('find', seeded(1)).rounds.map((r) => r.target)
-    const b = newGame('find', seeded(2)).rounds.map((r) => r.target)
+    const a = newRoundGame('find', 'hard', seeded(1)).rounds.map((r) => r.target)
+    const b = newRoundGame('find', 'hard', seeded(2)).rounds.map((r) => r.target)
     expect(a).not.toEqual(b)
   })
 })
 
-describe('playing', () => {
+describe('playing rounds', () => {
   const pool = ['Denmark', 'France', 'Brazil', 'Japan', 'Kenya'].map(byName)
-  const start = () => newGame('find', seeded(), pool.slice(0, 2))
+  const start = () => newRoundGame('find', 'medium', seeded(), pool.slice(0, 2))
 
   it('scores a correct answer', () => {
     const game = start()
     const after = answer(game, currentRound(game).target)
-    expect(after.answer).toEqual({ picked: currentRound(game).target, correct: true })
+    expect(after.answer).toEqual({ picked: currentRound(game).target, correct: true, alias: null })
     expect(after.score).toBe(1)
+  })
+
+  it('remembers an alternative name that was typed', () => {
+    const game = newRoundGame('shape', 'hard', seeded(), [byName('Eswatini')])
+    expect(answer(game, byName('Eswatini'), 'Swaziland').answer).toMatchObject({ correct: true, alias: 'Swaziland' })
   })
 
   it('does not score a wrong answer', () => {
@@ -105,8 +137,7 @@ describe('playing', () => {
   it('only moves on once the round is answered', () => {
     const game = start()
     expect(next(game)).toBe(game)
-    const second = next(answer(game, currentRound(game).target))
-    expect(second).toMatchObject({ index: 1, answer: null, score: 1 })
+    expect(next(answer(game, currentRound(game).target))).toMatchObject({ index: 1, answer: null, score: 1 })
   })
 
   it('finishes after the last round', () => {

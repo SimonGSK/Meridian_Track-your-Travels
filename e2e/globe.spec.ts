@@ -208,6 +208,36 @@ test.describe('games', () => {
     await expect(page.locator('.option.correct')).toHaveCount(1)
   })
 
+  test('letter hunt: clicking the globe checks the letter', async ({ page }) => {
+    await openGlobe(page)
+    await page.getByRole('button', { name: 'Games' }).click()
+    await page.getByRole('button', { name: /Letter hunt/ }).click()
+    await expect(page.getByText(/^Found 0 of \d+$/)).toBeVisible()
+
+    const box = (await page.locator('.globe canvas').boundingBox())!
+    await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2)
+    await expect(feedback(page)).toHaveText(/✓|doesn't start with|territory/)
+
+    await page.getByRole('button', { name: 'Give up and show the rest' }).click()
+    await expect(page.getByRole('button', { name: 'Play again' })).toBeVisible()
+  })
+
+  test('shape quiz on medium: type an answer', async ({ page }) => {
+    await openGlobe(page)
+    await page.getByRole('button', { name: 'Games' }).click()
+    await page.getByRole('radio', { name: 'Medium' }).check()
+    await page.getByRole('button', { name: /Shape quiz/ }).click()
+    await expect(page.getByRole('img', { name: 'The outline to identify' })).toBeVisible()
+
+    const input = page.getByRole('combobox', { name: 'Your answer' })
+    await expect(input).toBeFocused()
+    await input.fill('Swaziland')
+    await expect(page.getByRole('option', { name: /Eswatini/ })).toBeVisible()
+    await input.press('Enter')
+    await expect(feedback(page)).toHaveText(/Correct|The answer is/)
+    await expect(page.getByRole('button', { name: 'Next' })).toBeFocused()
+  })
+
   test('name that country: can be played to the end', async ({ page }) => {
     test.slow() // ten rounds, each with a camera flight
     await openGlobe(page)

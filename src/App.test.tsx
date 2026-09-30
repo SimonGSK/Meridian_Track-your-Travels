@@ -67,13 +67,35 @@ vi.mock('./globe/countryLayer', () => ({
   }),
 }))
 // Games ask about a small, known set of countries in a fixed order
+// Games ask about a small, known set of countries in a fixed order
+const { lastRoundGame } = vi.hoisted(() => ({
+  lastRoundGame: { current: null as import('./games/games').RoundGameState | null },
+}))
 vi.mock('./games/games', async (importOriginal) => {
   const actual = await importOriginal<typeof import('./games/games')>()
   const { countries } = await import('./countries')
   const pool = ['Denmark', 'France', 'Brazil', 'Japan', 'Kenya'].map(
     (name) => countries.find((c) => c.properties.name === name)!,
   )
-  return { ...actual, newGame: (id: import('./games/games').GameId) => actual.newGame(id, () => 0.5, pool) }
+  return {
+    ...actual,
+    newRoundGame: (id: import('./games/games').RoundGameId, difficulty: import('./games/games').Difficulty) =>
+      (lastRoundGame.current = actual.newRoundGame(id, difficulty, () => 0.5, pool)),
+  }
+})
+// The letter hunt is for "D": Denmark (on the fake globe) and Djibouti (not)
+vi.mock('./games/letterGame', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('./games/letterGame')>()
+  const { countries } = await import('./countries')
+  const byName = (name: string) => countries.find((c) => c.properties.name === name)!
+  return {
+    ...actual,
+    newLetterGame: (difficulty: import('./games/games').Difficulty) => ({
+      ...actual.newLetterGame(difficulty),
+      letter: 'D',
+      targets: [byName('Denmark'), byName('Djibouti')],
+    }),
+  }
 })
 const PLACE_OF: Record<string, number> = { Denmark: 100, France: 200, Brazil: 500, Japan: 600, Kenya: 700 }
 
@@ -459,6 +481,54 @@ describe('App', () => {
         expect(feedback()).toHaveTextContent('Correct!')
         expect(painted()).toEqual({ [name]: DEFAULT_THEME.correct })
       })
+    })
+
+    describe('difficulty', () => {
+      const chooseDifficulty = async (label: string) => {
+        await userEvent.click(screen.getByRole('radio', { name: label }))
+      }
+
+      it('asks for typed answers on medium, accepting old names', async () => {
+        render(<App />)
+        await userEvent.click(screen.getByRole('button', { name: 'Games' }))
+        await chooseDifficulty('Medium')
+        await userEvent.click(screen.getByRole('button', { name: /Shape quiz/ }))
+        const target = lastRoundGame.current!.rounds[0].target.properties.name
+        await userEvent.type(screen.getByRole('combobox'), `${target}{Enter}`)
+        expect(feedback()).toHaveTextContent('Correct!')
+        expect(painted()).toEqual({ [target]: DEFAULT_THEME.correct })
+        const [lng, lat] = byName(target).properties.centroid
+        expect(lastFlight()?.[0]).toMatchObject({ lat, lng })
+      })
+
+      it('remembers the difficulty', async () => {
+        const first = render(<App />)
+        await userEvent.click(screen.getByRole('button', { name: 'Games' }))
+        await chooseDifficulty('Hard')
+        first.unmount()
+        render(<App />)
+        await userEvent.click(screen.getByRole('button', { name: 'Games' }))
+        expect(screen.getByRole('radio', { name: 'Hard' })).toBeChecked()
+      })
+    })
+
+    describe('letter hunt', () => {
+      it('colors countries found and wrong clicks, and shows what was missed', async () => {
+        await startGame(/Letter hunt/)
+        expect(screen.getByText('Found 0 of 2')).toBeInTheDocument()
+
+        click(PLACE_OF.Denmark)
+        expect(screen.getByText('Found 1 of 2')).toBeInTheDocument()
+        click(PLACE_OF.France)
+        expect(feedback()).toHaveTextContent("France doesn't start with D.")
+        expect(painted()).toEqual({ Denmark: DEFAULT_THEME.correct, France: DEFAULT_THEME.wrong })
+        expect(countryPanel()).not.toBeInTheDocument()
+
+        await userEvent.click(screen.getByRole('button', { name: 'Give up and show the rest' }))
+        expect(screen.getByText(/Missed/)).toHaveTextContent('Djibouti')
+        expect(painted()).toEqual({ Denmark: DEFAULT_THEME.correct, Djibouti: DEFAULT_THEME.selected })
+      })
+
     })
 
     it('ends the game when the panel is closed', async () => {

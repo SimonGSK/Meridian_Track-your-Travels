@@ -5,7 +5,8 @@ import type { CountryFeature } from './countries'
 import CountryPanel from './CountryPanel'
 import DesignPanel from './design/DesignPanel'
 import GamesPanel from './games/GamesPanel'
-import { currentRound, type GameId } from './games/games'
+import type { GameId } from './games/games'
+import { flightTarget, gameHighlights, globeAnswers, isPlaying, overviewKey, showsGame } from './games/globeView'
 import { useGame } from './games/useGame'
 import { useTheme } from './design/useTheme'
 import FlagCorner from './FlagCorner'
@@ -27,7 +28,6 @@ import { countryColor } from './globe/colors'
 
 const RENDERER_CONFIG = { antialias: true, alpha: true, powerPreference: 'high-performance' } as const
 
-const NO_HIGHLIGHTS: ReadonlyMap<CountryFeature, string> = new Map()
 const NO_VISITS: ReadonlySet<string> = new Set()
 
 function useWindowSize() {
@@ -47,10 +47,10 @@ export default function App() {
   const [selected, setSelected] = useState<CountryFeature | null>(null)
   const [view, setView] = useState<ViewId | null>(null)
   const { visited, add: addVisited, remove: removeVisited, toggle: toggleVisited } = useVisited()
-  const { game, best, previousBest, start: startGame, pick, advance, quit: quitGame } = useGame()
-  const playing = !!game && !game.finished
-  // In "find" you answer by clicking the globe (until you have); the other games use answer buttons
-  const globeIsAnswer = playing && game.id === 'find' && !game.answer
+  const { game, difficulty, setDifficulty, best, previousBest, start: startGame, pick, advance, quit: quitGame } =
+    useGame()
+  const playing = isPlaying(game)
+  const globeIsAnswer = globeAnswers(game)
   const { width, height } = useWindowSize()
   const [theme, setTheme] = useTheme()
 
@@ -80,23 +80,11 @@ export default function App() {
     [flyTo],
   )
 
-  // During a game: show the answer (and in "name that country" the question) on the globe
-  const highlights = useMemo(() => {
-    if (!playing) return NO_HIGHLIGHTS
-    const { target } = currentRound(game)
-    const colors = new Map<CountryFeature, string>()
-    if (game.answer) {
-      if (!game.answer.correct) colors.set(game.answer.picked, theme.wrong)
-      colors.set(target, theme.correct)
-    } else if (game.id === 'name') {
-      colors.set(target, theme.selected)
-    }
-    return colors
-  }, [playing, game, theme])
+  const highlights = useMemo(() => gameHighlights(game, theme), [game, theme])
 
   // Games get a clean globe: no visited colors, and hover only where the globe is the answer
   const colorHovered = !playing || globeIsAnswer ? hovered : null
-  const colorVisited = playing ? NO_VISITS : visited
+  const colorVisited = showsGame(game) ? NO_VISITS : visited
   const colorOf = useCallback(
     (country: CountryFeature) =>
       countryColor(country, { theme, hovered: colorHovered, visited: colorVisited, highlights }),
@@ -116,17 +104,16 @@ export default function App() {
   )
   const pointerHandlers = useCountryPointer(globe, { onHover: setHovered, onClick: onGlobeClick })
 
-  // Fly to the country being asked about ("name that country"), or to the answer once given
-  const flightTarget = playing && (game.answer || game.id === 'name') ? currentRound(game).target : null
+  const gameFlight = flightTarget(game)
   useEffect(() => {
-    if (flightTarget) flyTo(flightTarget, { fit: true })
-  }, [flightTarget, flyTo])
+    if (gameFlight) flyTo(gameFlight, { fit: true })
+  }, [gameFlight, flyTo])
 
-  // Each "find" round starts from an overview, so you search rather than stay zoomed in on the last answer
-  const findRound = playing && game.id === 'find' && !game.answer ? game.index : null
+  // Searching the globe starts from an overview, not zoomed in on the last answer
+  const overview = overviewKey(game)
   useEffect(() => {
-    if (findRound !== null) globe?.pointOfView({ altitude: INITIAL_VIEW.altitude }, 800)
-  }, [findRound, globe])
+    if (overview !== null) globe?.pointOfView({ altitude: INITIAL_VIEW.altitude }, 800)
+  }, [overview, globe])
 
   const playGame = (id: GameId) => {
     selectCountry(null)
@@ -205,6 +192,8 @@ export default function App() {
           {view === 'games' && (
             <GamesPanel
               game={game}
+              difficulty={difficulty}
+              onDifficulty={setDifficulty}
               best={best}
               previousBest={previousBest}
               onStart={playGame}
