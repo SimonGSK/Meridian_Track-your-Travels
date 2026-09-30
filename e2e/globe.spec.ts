@@ -149,6 +149,29 @@ test.describe('visited', () => {
   })
 })
 
+test.describe('design', () => {
+  test('switching design repaints the globe and is remembered', async ({ page }) => {
+    await openGlobe(page)
+    const { x, y } = center(page)
+    const globeArea = { x: x - 150, y: y - 150, width: 300, height: 300 }
+    // Hold the pointer still over the globe so the spin pauses between shots
+    await page.mouse.move(x, y)
+    await expect(tooltip(page)).toBeVisible()
+
+    const before = await page.screenshot({ clip: globeArea })
+    await page.getByRole('button', { name: 'Design' }).click()
+    await page.getByRole('button', { name: /Night/ }).click()
+    await expect(page.getByRole('button', { name: /Night/ })).toHaveAttribute('aria-pressed', 'true')
+    await page.getByRole('button', { name: 'Close panel' }).click()
+    await page.mouse.move(x, y)
+    await expect.poll(async () => (await page.screenshot({ clip: globeArea })).equals(before)).toBe(false)
+
+    await page.reload()
+    await page.getByRole('button', { name: 'Design' }).click()
+    await expect(page.getByRole('button', { name: /Night/ })).toHaveAttribute('aria-pressed', 'true')
+  })
+})
+
 test.describe('touch', { tag: '@touch' }, () => {
   test('tapping a country opens its panel', async ({ page }) => {
     await openGlobe(page)

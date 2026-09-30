@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { borders, countries, findCountryAt } from './countries'
+import { neighbors } from 'topojson-client'
+import type { GeometryCollection, Topology } from 'topojson-specification'
+import worldData from 'world-atlas/countries-50m.json'
+import { MAP_COLOR_COUNT, borders, countries, findCountryAt } from './countries'
 
 const nameAt = (lat: number, lng: number) => findCountryAt(lat, lng)?.properties.name ?? null
 
@@ -39,6 +42,25 @@ describe('countries', () => {
       const country = countries.find((c) => c.properties.name === name)!
       const [lng, lat] = country.properties.centroid
       expect(nameAt(lat, lng)).toBe(name)
+    }
+  })
+
+  it('gives neighboring countries different map colors', () => {
+    const topology = worldData as unknown as Topology<{ countries: GeometryCollection<{ name: string }> }>
+    const geometries = topology.objects.countries.geometries
+    const colorOf = new Map(countries.map((c) => [c.properties.name, c.properties.mapColor]))
+    const clashes: string[] = []
+    neighbors(geometries).forEach((adjacent, i) => {
+      for (const j of adjacent) {
+        const nameOf = (k: number) => (geometries[k].properties as { name: string }).name
+        const [a, b] = [nameOf(i), nameOf(j)]
+        if (colorOf.has(a) && colorOf.get(a) === colorOf.get(b)) clashes.push(`${a}/${b}`)
+      }
+    })
+    expect(clashes).toEqual([])
+    for (const c of countries) {
+      expect(c.properties.mapColor).toBeGreaterThanOrEqual(0)
+      expect(c.properties.mapColor).toBeLessThan(MAP_COLOR_COUNT)
     }
   })
 

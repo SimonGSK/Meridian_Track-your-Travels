@@ -1,5 +1,5 @@
 import type { CountryFeature } from '../countries'
-import type { Theme } from './themes'
+import { landColor, type Theme } from './themes'
 
 export type ColorState = {
   theme: Theme
@@ -13,5 +13,8 @@ export type ColorState = {
 /** The color a country is drawn in. Hover wins, then highlights, then visited. */
 export function countryColor(country: CountryFeature, { theme, hovered, visited, highlights }: ColorState) {
   if (country === hovered) return theme.hover
-  return highlights.get(country) ?? (visited.has(country.properties.name) ? theme.visited : theme.land)
+  const highlight = highlights.get(country)
+  if (highlight) return highlight
+  if (visited.has(country.properties.name)) return theme.visited
+  return landColor(theme, country.properties.mapColor)
 }

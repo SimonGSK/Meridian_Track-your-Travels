@@ -1,4 +1,4 @@
-import { feature, mesh } from 'topojson-client'
+import { feature, mesh, neighbors } from 'topojson-client'
 import type { Topology, GeometryCollection } from 'topojson-specification'
 import type { Feature, MultiLineString, MultiPolygon, Polygon } from 'geojson'
 import { geoArea, geoBounds, geoCentroid, geoContains } from 'd3-geo'
@@ -19,6 +19,8 @@ export type CountryFeature = Feature<
     isoAlpha2: string | null
     /** [lng, lat] center of the largest landmass, used to fly the camera to the country */
     centroid: [number, number]
+    /** 0–4, never shared with a neighboring country, for multi-colored map designs */
+    mapColor: number
   }
 >
 
@@ -35,9 +37,13 @@ const UNOFFICIAL_ALPHA2: Record<string, string> = { Kosovo: 'XK' }
 const isShown = (name: string) => name !== 'Antarctica'
 const nameOf = (geometry: { properties?: object }) => (geometry.properties as { name: string }).name
 
+export const MAP_COLOR_COUNT = 5
+const mapColors = assignMapColors(topology.objects.countries.geometries)
+
 export const countries: CountryFeature[] = feature(topology, topology.objects.countries)
-  .features.filter((f) => isShown(f.properties.name))
-  .map((f) => ({
+  .features.map((f, i) => ({ f, mapColor: mapColors[i] }))
+  .filter(({ f }) => isShown(f.properties.name))
+  .map(({ f, mapColor }) => ({
     ...f,
     properties: {
       name: f.properties.name,
@@ -45,8 +51,29 @@ export const countries: CountryFeature[] = feature(topology, topology.objects.co
       isoAlpha2:
         (f.id === undefined ? UNOFFICIAL_ALPHA2[f.properties.name] : numericToAlpha2(f.id)) ?? null,
       centroid: geoCentroid(largestPart(f.geometry as Polygon | MultiPolygon)),
+      mapColor,
     },
   })) as CountryFeature[]
+
+/**
+ * Colors countries so that no two neighbors match, like a political map.
+ * Greedy, most-connected countries first, picking the least used allowed
+ * color to keep the colors balanced. Five colors are enough for this data.
+ */
+function assignMapColors(geometries: GeometryCollection['geometries']) {
+  const adjacent = neighbors(geometries)
+  const colors = new Array<number>(geometries.length).fill(-1)
+  const used = new Array<number>(MAP_COLOR_COUNT).fill(0)
+  const order = geometries.map((_, i) => i).sort((a, b) => adjacent[b].length - adjacent[a].length)
+  for (const i of order) {
+    const taken = new Set(adjacent[i].map((j) => colors[j]))
+    const allowed = used.map((_, c) => c).filter((c) => !taken.has(c))
+    const color = allowed.sort((a, b) => used[a] - used[b])[0] ?? 0
+    colors[i] = color
+    used[color]++
+  }
+  return colors
+}
 
 /**
  * The biggest piece of a country, so e.g. France's overseas territories

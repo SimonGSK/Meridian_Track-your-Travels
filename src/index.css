@@ -49,6 +49,8 @@ body,
   top: 24px;
   left: calc(var(--rail-width) + 24px);
   pointer-events: none;
+  /* Stays readable over the light globe designs */
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.7);
 }
 
 .title h1 {
@@ -114,6 +116,7 @@ body,
 
 .panel {
   position: absolute;
+  z-index: 2;
   top: 24px;
   right: 24px;
   width: min(340px, calc(100% - 48px));
@@ -434,6 +437,56 @@ body,
   color: #fff;
 }
 
+/* Design */
+
+.theme-list {
+  display: grid;
+  gap: 10px;
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.theme-option {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface-raised);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
+}
+
+.theme-option:hover {
+  background: var(--surface-hover);
+}
+
+.theme-option[aria-pressed='true'] {
+  border-color: var(--accent);
+  background: rgba(95, 179, 255, 0.12);
+}
+
+.theme-option strong {
+  display: block;
+  margin-bottom: 2px;
+}
+
+.theme-option .muted {
+  font-size: 13px;
+}
+
+.theme-preview {
+  flex: none;
+  width: 56px;
+  height: 56px;
+}
+
 @keyframes slide-from-left {
   from {
     opacity: 0;
@@ -445,6 +498,16 @@ body,
   from {
     opacity: 0;
     transform: translateX(20px);
+  }
+}
+
+/* Room for both the side panel and the country panel on mid-size screens */
+@media (max-width: 860px) {
+  :root {
+    --side-panel-width: 300px;
+  }
+  .panel {
+    width: 300px;
   }
 }
 

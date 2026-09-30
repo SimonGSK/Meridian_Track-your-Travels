@@ -3,6 +3,8 @@ import Globe, { type GlobeMethods } from 'react-globe.gl'
 import { MeshPhongMaterial } from 'three'
 import type { CountryFeature } from './countries'
 import CountryPanel from './CountryPanel'
+import DesignPanel from './design/DesignPanel'
+import { useTheme } from './design/useTheme'
 import FlagCorner from './FlagCorner'
 import NavRail from './nav/NavRail'
 import { VIEWS, type ViewId } from './nav/views'
@@ -14,7 +16,6 @@ import { useCountryLayer, useCountryPointer, useSmoothAutoRotate } from './globe
 import { INITIAL_VIEW, flightAltitude, flightDuration } from './globe/interaction'
 import { countryColor } from './globe/colors'
 import { SELECTED_ALTITUDE } from './globe/style'
-import { DEFAULT_THEME } from './globe/themes'
 
 const RENDERER_CONFIG = { antialias: true, alpha: true, powerPreference: 'high-performance' } as const
 
@@ -38,7 +39,7 @@ export default function App() {
   const [view, setView] = useState<ViewId | null>(null)
   const { visited, add: addVisited, remove: removeVisited, toggle: toggleVisited } = useVisited()
   const { width, height } = useWindowSize()
-  const theme = DEFAULT_THEME
+  const [theme, setTheme] = useTheme()
 
   const globeMaterial = useMemo(
     () => new MeshPhongMaterial({ color: theme.ocean, shininess: theme.oceanShininess }),
@@ -144,7 +145,8 @@ export default function App() {
           {view === 'visited' && (
             <VisitedPanel visited={visited} onAdd={addVisited} onRemove={removeVisited} onShow={showCountry} />
           )}
-          {view !== 'visited' && <p className="muted">Coming soon.</p>}
+          {view === 'design' && <DesignPanel theme={theme} onChange={setTheme} />}
+          {view === 'games' && <p className="muted">Coming soon.</p>}
         </SidePanel>
       )}
 

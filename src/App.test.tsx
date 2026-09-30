@@ -5,7 +5,7 @@ import { useEffect, useImperativeHandle, useRef, type Ref } from 'react'
 import type { GlobeProps } from 'react-globe.gl'
 import App from './App'
 import { countries } from './countries'
-import { DEFAULT_THEME } from './globe/themes'
+import { DEFAULT_THEME, NIGHT, POLITICAL } from './globe/themes'
 
 // WebGL doesn't exist in jsdom, so the globe is replaced by a stand-in that
 // exposes what the app passes to it. Screen positions map to places by x.
@@ -86,6 +86,7 @@ describe('App', () => {
   beforeEach(() => {
     globe.pointOfView.mockClear()
     layer.paint.mockClear()
+    layer.setBorders.mockClear()
   })
 
   it('shows the title and how to use the globe', () => {
@@ -288,6 +289,42 @@ describe('App', () => {
 
       render(<App />)
       expect(painted()).toEqual({ Denmark: DEFAULT_THEME.visited })
+    })
+  })
+
+  describe('design', () => {
+    const lastColors = () => {
+      const colors: Record<string, string> = {}
+      for (const [country, color] of layer.paint.mock.calls) colors[country.properties.name] = color
+      return colors
+    }
+
+    it('repaints the globe in the chosen design', async () => {
+      render(<App />)
+      await userEvent.click(screen.getByRole('button', { name: 'Design' }))
+      await userEvent.click(screen.getByRole('button', { name: /Night/ }))
+      expect(new Set(Object.values(lastColors()))).toEqual(new Set([NIGHT.land]))
+      expect(layer.setBorders).toHaveBeenLastCalledWith(NIGHT.border, NIGHT.borderOpacity)
+    })
+
+    it('colors neighbors differently in the political design', async () => {
+      render(<App />)
+      await userEvent.click(screen.getByRole('button', { name: 'Design' }))
+      await userEvent.click(screen.getByRole('button', { name: /Political/ }))
+      const colors = lastColors()
+      expect(colors.Denmark).not.toBe(colors.Germany)
+      expect(new Set(Object.values(colors))).toEqual(new Set(POLITICAL.land))
+    })
+
+    it('keeps the chosen design after a reload', async () => {
+      const first = render(<App />)
+      await userEvent.click(screen.getByRole('button', { name: 'Design' }))
+      await userEvent.click(screen.getByRole('button', { name: /Night/ }))
+      first.unmount()
+      layer.paint.mockClear()
+
+      render(<App />)
+      expect(new Set(Object.values(lastColors()))).toEqual(new Set([NIGHT.land]))
     })
   })
 })
