@@ -4,21 +4,23 @@ An interactive 3D globe: spin it, hover a country to see its name and flag, clic
 
 The menu on the left (a tab bar on phones) has:
 
-- **Explore**: tips on using the globe, and settings to show or hide visited countries and the markers around small islands.
+- **Explore**: tips on using the globe, and settings to show or hide visited countries, visited states and the markers around small islands.
 - **Visited**: keep track of where you've been, out of the world's 197 countries, with the count and percentage for each continent (territories are counted separately). Your places are listed by continent. Search to add places (old names like "Swaziland" work too), or click a country and press "Mark as visited". They're colored on the globe.
-- **Games**, at three difficulties:
-  - *Find the country*: click the named country on the globe.
+
+  For the USA, Canada, Australia and Brazil you can also mark the states, provinces and territories you've visited: click the country (on the globe or in the list) and tick them in its panel, or click them on the globe. They're drawn over the country in a darker shade.
+- **Games**: pick a game, then a difficulty.
+  - *Find the country*: click the named country on the globe, with three tries (3, 2 or 1 points).
   - *Letter hunt*: click every country starting with a letter.
   - *Flag quiz*: which country has this flag?
   - *Name that country*: a country lights up on the globe; which one is it?
   - *Shape quiz*: name the country from its outline.
 
-  Easy asks about big countries with four answers to pick from. Medium (all but the smallest) and Hard (all 197) have you type answers, with suggestions; any known spelling counts ("East Timor", "Burma"), and the answer shows the name used today.
+  Easy asks about big countries, with four answers to pick from. Medium (all but the smallest) and Hard (all 197) have you type answers, with suggestions; any known spelling counts ("East Timor", "Burma"), and the answer shows the name used today.
 - **Design**: switch the globe between Classic, Political (neighbors always in different colors), Night, Vintage and Minimal.
 
 The globe spins on its own until you touch it, and again once it's been left alone for 30 seconds. Tiny countries and islands get a ring marker, and clicks just beside a small island still count.
 
-Visited places, best scores, the difficulty, the design and the settings are saved in your browser (`localStorage`). Nothing is sent anywhere.
+Visited places and states, best scores, the design and the settings are saved in your browser (`localStorage`). Nothing is sent anywhere.
 
 Built with React, TypeScript and Vite, using [react-globe.gl](https://github.com/vasturiano/react-globe.gl) (three.js) for the globe, [world-atlas](https://github.com/topojson/world-atlas) (Natural Earth 1:50m) for country shapes and [flag-icons](https://github.com/lipis/flag-icons) for flags (bundled locally, so no requests go to third parties).
 
@@ -44,6 +46,7 @@ Then open http://localhost:5173.
 | `npm run test:coverage` | Unit and component tests with a coverage report |
 | `npm run test:e2e` | End-to-end tests against the real WebGL globe (Playwright) |
 | `npm run data:extra` | Regenerate `src/data/extra-countries.json` (places too small for the 1:50m map) |
+| `npm run data:regions` | Regenerate `src/data/regions.json` (states and provinces) |
 
 The first time you run the end-to-end tests, install the browser:
 
@@ -66,16 +69,18 @@ src/
     continents.ts      each place's continent
     westernSahara.ts   shows all of Western Sahara (see below)
     extra-countries.json  Tuvalu and Gibraltar, from the 1:10m map
+    regions.ts         states and provinces: names, lookup, loading (shapes in regions.json)
   storage.ts           state saved in the browser
   nav/                 the menu and the side panel
   explore/             tips and settings
-  visited/             visited countries list
+  visited/             visited countries and states
   design/              design picker
   games/               game rules (games.ts, letterGame.ts), what the globe shows (globeView.ts),
                        state and best scores (useGame.ts), the panel, answer box and outlines
   globe/
     sphereMesh.ts      triangulating countries on the sphere
     countryLayer.ts    all countries merged into one mesh, plus borders and markers; the raised country
+    regionLayer.ts     states and provinces drawn over their country
     colors.ts          which color each country gets (game answers > hover > visited > land)
     themes.ts          the designs
     hooks.ts           the layers, pointer picking, depth precision, idle spin
@@ -115,6 +120,8 @@ Some corrections to the map data:
 - **Western Sahara.** Natural Earth draws only the inland strip east of the Moroccan sand wall as Western Sahara and counts the coast as Morocco. We show the whole territory, bordering Morocco along 27°40′N, as the UN and most maps do.
 - **Tuvalu and Gibraltar** are too small for the 1:50m map and are copied from the 1:10m map.
 - **The Maldives** are in the map but are a few tiny atolls, so like other small places they get a marker.
+
+States and provinces come from Natural Earth's 1:50m states and provinces, which covers the USA (50 states and D.C.), Canada, Australia and Brazil. They're copied out of [sane-topojson](https://github.com/etpinard/sane-topojson) (MIT) and load in the background after the globe. More countries would need Natural Earth's much larger 1:10m dataset.
 
 ## Commit messages
 
