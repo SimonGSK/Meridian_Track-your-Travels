@@ -5,16 +5,24 @@ import { borders, countries, findCountryAt, type CountryFeature } from '../count
 import { createCountryLayer, type CountryLayer } from './countryLayer'
 import { approach, isClick, type Point } from './interaction'
 import { screenToLatLng } from './picking'
-import { COLORS } from './style'
+import type { Theme } from './themes'
 
 export const SPIN_SPEED = 0.4
 export const RESUME_DELAY_MS = 2500
 /** Fraction of the remaining speed difference covered each frame */
 const SPIN_EASING = 0.04
 
-/** Adds the merged country mesh to the globe's scene and colors the hovered country. */
-export function useCountryLayer(globe: GlobeMethods | null, hovered: CountryFeature | null) {
+/**
+ * Adds the merged country mesh to the globe's scene and keeps every country
+ * painted in `colorOf(country)`, repainting only the ones that changed.
+ */
+export function useCountryLayer(
+  globe: GlobeMethods | null,
+  theme: Theme,
+  colorOf: (country: CountryFeature) => string,
+) {
   const layer = useRef<CountryLayer | null>(null)
+  const painted = useRef(new Map<CountryFeature, string>())
 
   useEffect(() => {
     if (!globe) return
@@ -22,6 +30,7 @@ export function useCountryLayer(globe: GlobeMethods | null, hovered: CountryFeat
     const created = createCountryLayer(countries, borders, globe.getGlobeRadius())
     scene.add(created.object)
     layer.current = created
+    painted.current = new Map()
     return () => {
       scene.remove(created.object)
       created.dispose()
@@ -30,11 +39,19 @@ export function useCountryLayer(globe: GlobeMethods | null, hovered: CountryFeat
   }, [globe])
 
   useEffect(() => {
+    layer.current?.setBorders(theme.border, theme.borderOpacity)
+  }, [globe, theme])
+
+  useEffect(() => {
     const current = layer.current
-    if (!current || !hovered) return
-    current.paint(hovered, COLORS.hover)
-    return () => current.paint(hovered, null)
-  }, [globe, hovered])
+    if (!current) return
+    for (const country of countries) {
+      const color = colorOf(country)
+      if (painted.current.get(country) === color) continue
+      current.paint(country, color)
+      painted.current.set(country, color)
+    }
+  }, [globe, colorOf])
 }
 
 /**

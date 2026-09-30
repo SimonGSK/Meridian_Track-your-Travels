@@ -4,7 +4,7 @@ import { useEffect, useImperativeHandle, useRef, type Ref } from 'react'
 import type { GlobeProps } from 'react-globe.gl'
 import App from './App'
 import { countries } from './countries'
-import { COLORS } from './globe/style'
+import { DEFAULT_THEME } from './globe/themes'
 
 // WebGL doesn't exist in jsdom, so the globe is replaced by a stand-in that
 // exposes what the app passes to it. Screen positions map to places by x.
@@ -33,7 +33,7 @@ const { PLACES, globe, layer } = vi.hoisted(() => {
       scene: () => ({ add: vi.fn(), remove: vi.fn() }),
       getGlobeRadius: () => 100,
     },
-    layer: { object: {}, paint: vi.fn(), dispose: vi.fn() },
+    layer: { object: {}, paint: vi.fn(), setBorders: vi.fn(), dispose: vi.fn() },
   }
 })
 
@@ -70,14 +70,11 @@ const panelHeading = () => screen.queryByRole('heading', { level: 2 })
 const raised = () => screen.getByRole('list', { name: 'raised countries' })
 const flag = () => screen.queryByRole('img', { name: /^Flag of/ })
 
-/** Countries currently recolored on the merged mesh, replayed from paint() calls */
+/** Countries currently not in the plain land color, replayed from paint() calls */
 function painted() {
   const colors: Record<string, string> = {}
-  for (const [country, color] of layer.paint.mock.calls) {
-    if (color) colors[country.properties.name] = color
-    else delete colors[country.properties.name]
-  }
-  return colors
+  for (const [country, color] of layer.paint.mock.calls) colors[country.properties.name] = color
+  return Object.fromEntries(Object.entries(colors).filter(([, color]) => color !== DEFAULT_THEME.land))
 }
 
 const denmark = countries.find((c) => c.properties.name === 'Denmark')!
@@ -104,7 +101,7 @@ describe('App', () => {
       render(<App />)
       hover(100)
       await waitFor(() => expect(tooltip()).toHaveTextContent('Denmark'))
-      expect(painted()).toEqual({ Denmark: COLORS.hover })
+      expect(painted()).toEqual({ Denmark: DEFAULT_THEME.hover })
       expect(raised()).toBeEmptyDOMElement()
       expect(surface()).toHaveStyle({ cursor: 'pointer' })
     })
@@ -130,7 +127,7 @@ describe('App', () => {
       await waitFor(() => expect(tooltip()).toHaveTextContent('Denmark'))
       hover(200)
       await waitFor(() => expect(tooltip()).toHaveTextContent('France'))
-      expect(painted()).toEqual({ France: COLORS.hover })
+      expect(painted()).toEqual({ France: DEFAULT_THEME.hover })
       expect(flag()).toHaveAccessibleName('Flag of France')
     })
 
@@ -179,7 +176,7 @@ describe('App', () => {
       render(<App />)
       click(100)
       hover(200)
-      await waitFor(() => expect(painted()).toEqual({ France: COLORS.hover }))
+      await waitFor(() => expect(painted()).toEqual({ France: DEFAULT_THEME.hover }))
       expect(raised()).toHaveTextContent('Denmark')
       expect(raised()).not.toHaveTextContent('France')
     })

@@ -7,13 +7,14 @@ import FlagCorner from './FlagCorner'
 import Tooltip from './Tooltip'
 import { useCountryLayer, useCountryPointer, useSmoothAutoRotate } from './globe/hooks'
 import { INITIAL_VIEW, flightAltitude, flightDuration } from './globe/interaction'
-import { COLORS, SELECTED_ALTITUDE } from './globe/style'
+import { countryColor } from './globe/colors'
+import { SELECTED_ALTITUDE } from './globe/style'
+import { DEFAULT_THEME } from './globe/themes'
 
 const RENDERER_CONFIG = { antialias: true, alpha: true, powerPreference: 'high-performance' } as const
 
-const selectedColor = () => COLORS.selected
-const sideColor = () => COLORS.side
-const strokeColor = () => COLORS.border
+const NO_VISITS: ReadonlySet<string> = new Set()
+const NO_HIGHLIGHTS: ReadonlyMap<CountryFeature, string> = new Map()
 
 function useWindowSize() {
   const [size, setSize] = useState({ width: window.innerWidth, height: window.innerHeight })
@@ -31,8 +32,13 @@ export default function App() {
   const [hovered, setHovered] = useState<CountryFeature | null>(null)
   const [selected, setSelected] = useState<CountryFeature | null>(null)
   const { width, height } = useWindowSize()
+  const theme = DEFAULT_THEME
 
-  const globeMaterial = useMemo(() => new MeshPhongMaterial({ color: COLORS.ocean, shininess: 12 }), [])
+  const globeMaterial = useMemo(
+    () => new MeshPhongMaterial({ color: theme.ocean, shininess: theme.oceanShininess }),
+    [theme],
+  )
+  useEffect(() => () => globeMaterial.dispose(), [globeMaterial])
 
   const selectCountry = useCallback(
     (country: CountryFeature | null) => {
@@ -45,7 +51,12 @@ export default function App() {
     [globe],
   )
 
-  useCountryLayer(globe, hovered)
+  const colorOf = useCallback(
+    (country: CountryFeature) =>
+      countryColor(country, { theme, hovered, visited: NO_VISITS, highlights: NO_HIGHLIGHTS }),
+    [theme, hovered],
+  )
+  useCountryLayer(globe, theme, colorOf)
   useSmoothAutoRotate(globe, !selected && !hovered)
   const pointerHandlers = useCountryPointer(globe, { onHover: setHovered, onClick: selectCountry })
 
@@ -58,6 +69,9 @@ export default function App() {
   // Hover is painted flat on the merged country mesh; only the selected
   // country goes through the globe's polygon layer, slightly raised.
   const raised = useMemo(() => (selected ? [selected] : []), [selected])
+  const selectedColor = useCallback(() => theme.selected, [theme])
+  const sideColor = useCallback(() => theme.selectedSide, [theme])
+  const strokeColor = useCallback(() => theme.border, [theme])
 
   return (
     <div className="app">
@@ -73,9 +87,9 @@ export default function App() {
           width={width}
           height={height}
           rendererConfig={RENDERER_CONFIG}
-          backgroundColor={COLORS.background}
+          backgroundColor={theme.background}
           globeMaterial={globeMaterial}
-          atmosphereColor={COLORS.atmosphere}
+          atmosphereColor={theme.atmosphere}
           atmosphereAltitude={0.18}
           // Picking happens in useCountryPointer, far cheaper than raycasting every mesh
           enablePointerInteraction={false}

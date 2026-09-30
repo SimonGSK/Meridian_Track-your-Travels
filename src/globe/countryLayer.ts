@@ -15,14 +15,15 @@ import GeoJsonGeometry from 'three-geojson-geometry'
 import type { MultiLineString, Position } from 'geojson'
 import { geoBounds } from 'd3-geo'
 import type { CountryFeature } from '../countries'
-import { COLORS, LAND_ALTITUDE } from './style'
+import { LAND_ALTITUDE } from './style'
 
 const CURVATURE_RESOLUTION = 5
 
 export type CountryLayer = {
   object: Group
-  /** Recolor one country, or pass null to restore the normal land color. */
-  paint(country: CountryFeature, color: ColorRepresentation | null): void
+  /** Recolor one country */
+  paint(country: CountryFeature, color: ColorRepresentation): void
+  setBorders(color: ColorRepresentation, opacity: number): void
   dispose(): void
 }
 
@@ -55,9 +56,8 @@ export function createCountryLayer(
   const landGeometry = mergeGeometries(parts, false)
   parts.forEach((p) => p.dispose())
 
-  const landColor = new Color(COLORS.land)
-  const colors = new BufferAttribute(new Float32Array(vertexCount * 3), 3)
-  for (let i = 0; i < vertexCount; i++) colors.setXYZ(i, landColor.r, landColor.g, landColor.b)
+  // Starts out white; the caller paints each country
+  const colors = new BufferAttribute(new Float32Array(vertexCount * 3).fill(1), 3)
   landGeometry.setAttribute('color', colors)
 
   const land = new Mesh(
@@ -73,7 +73,7 @@ export function createCountryLayer(
 
   const lines = new LineSegments(
     new GeoJsonGeometry(borders, top, CURVATURE_RESOLUTION),
-    new LineBasicMaterial({ color: COLORS.border, transparent: true, opacity: 0.8 }),
+    new LineBasicMaterial({ transparent: true }),
   )
 
   const object = new Group()
@@ -86,13 +86,17 @@ export function createCountryLayer(
     paint(country, color) {
       const range = ranges.get(country)
       if (!range) return
-      paintColor.set(color ?? landColor)
+      paintColor.set(color)
       for (let i = range.start; i < range.start + range.count; i++) {
         colors.setXYZ(i, paintColor.r, paintColor.g, paintColor.b)
       }
       // Only re-upload this country's colors to the GPU (three.js clears the ranges after uploading)
       colors.addUpdateRange(range.start * 3, range.count * 3)
       colors.needsUpdate = true
+    },
+    setBorders(color, opacity) {
+      lines.material.color.set(color)
+      lines.material.opacity = opacity
     },
     dispose() {
       landGeometry.dispose()

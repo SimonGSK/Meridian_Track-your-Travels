@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { BufferAttribute, Color, LineSegments, Mesh, Vector3 } from 'three'
+import { BufferAttribute, BufferGeometry, Color, LineBasicMaterial, LineSegments, Mesh, Vector3 } from 'three'
 import { geoContains } from 'd3-geo'
 import type { Position } from 'geojson'
 import { borders, countries } from '../countries'
 import { antimeridianShift, createCapGeometry, createCountryLayer } from './countryLayer'
-import { COLORS } from './style'
+
+const LAND = '#48a078'
+const HOVER = '#ffc850'
 
 const RADIUS = 100
 
@@ -84,26 +86,35 @@ describe('createCountryLayer', () => {
     expect(layer.object.children.filter((c) => c instanceof LineSegments)).toHaveLength(1)
   })
 
-  it('starts with every country in the land color', () => {
-    expect(new Set(allColors())).toEqual(new Set([hex(COLORS.land)]))
+  for (const country of countries) layer.paint(country, LAND)
+
+  it('paints every country', () => {
+    expect(new Set(allColors())).toEqual(new Set([hex(LAND)]))
   })
 
-  it("paints only the given country's part of the mesh, and restores it", () => {
+  it("paints only the given country's part of the mesh", () => {
     const denmark = countries.find((c) => c.properties.name === 'Denmark')!
-    layer.paint(denmark, COLORS.hover)
-    const painted = allColors().filter((c) => c === hex(COLORS.hover)).length
+    layer.paint(denmark, HOVER)
+    const painted = allColors().filter((c) => c === hex(HOVER)).length
     expect(painted).toBeGreaterThan(0)
     expect(painted).toBeLessThan(colors.count / 100) // a small country, not the world
 
-    layer.paint(denmark, null)
-    expect(new Set(allColors())).toEqual(new Set([hex(COLORS.land)]))
+    layer.paint(denmark, LAND)
+    expect(new Set(allColors())).toEqual(new Set([hex(LAND)]))
   })
 
   it('queues both countries for upload when switching hover in one frame', () => {
     const [a, b] = countries
     colors.clearUpdateRanges()
-    layer.paint(a, null)
-    layer.paint(b, COLORS.hover)
+    layer.paint(a, LAND)
+    layer.paint(b, HOVER)
     expect(colors.updateRanges).toHaveLength(2)
+  })
+
+  it('recolors the borders', () => {
+    const lines = layer.object.children.find((c): c is LineSegments<BufferGeometry, LineBasicMaterial> => c instanceof LineSegments)!
+    layer.setBorders('#ff0000', 0.5)
+    expect(lines.material.color.getHexString()).toBe('ff0000')
+    expect(lines.material.opacity).toBe(0.5)
   })
 })
