@@ -1,11 +1,13 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { PointerEvent } from 'react'
 import type { GlobeMethods } from 'react-globe.gl'
 import type { PerspectiveCamera } from 'three'
 import { geoDistance } from 'd3-geo'
 import { borders, countries, findCountryNear, type CountryFeature } from '../countries'
+import { loadRegions, type RegionFeature } from '../data/regions'
 import { createCountryLayer, createRaisedCountry, type CountryLayer } from './countryLayer'
-import { approach, isClick, type Point } from './interaction'
+import { createRegionLayer, type RegionLayer } from './regionLayer'
+import { approach, isClick, type LatLng, type Point } from './interaction'
 import { screenToLatLng } from './picking'
 import { LAND_ALTITUDE, SELECTED_ALTITUDE } from './style'
 import type { Theme } from './themes'
@@ -196,8 +198,9 @@ export function useSmoothAutoRotate(globe: GlobeMethods | null, allowed: boolean
 }
 
 type PointerOptions = {
-  onHover: (country: CountryFeature | null) => void
-  onClick: (country: CountryFeature | null) => void
+  /** `position` is the point on the globe under the pointer, if any */
+  onHover: (country: CountryFeature | null, position: LatLng | null) => void
+  onClick: (country: CountryFeature | null, position: LatLng | null) => void
   /** Whether tiny places' markers are shown, and so can be pointed at */
   markers?: boolean
 }
@@ -213,27 +216,35 @@ export function useCountryPointer(globe: GlobeMethods | null, { onHover, onClick
   const frame = useRef(0)
 
   const countryAt = useCallback(
-    ({ x, y }: Point) => {
+    ({ x, y }: Point): [CountryFeature | null, LatLng | null] => {
       const pos = globe && screenToLatLng(globe, x, y)
-      if (!pos) return null
+      if (!pos) return [null, null]
       // How far one pixel is on the globe here, to turn pixel tolerances into distances
       const beside = screenToLatLng(globe, x + 1, y) ?? screenToLatLng(globe, x - 1, y)
       const perPixel = beside ? geoDistance([pos.lng, pos.lat], [beside.lng, beside.lat]) : 0
-      return findCountryNear(pos.lat, pos.lng, {
+      const country = findCountryNear(pos.lat, pos.lng, {
         markerRadius: markers ? MARKER_HIT_PX * perPixel : 0,
         tolerance: NEAR_MISS_PX * perPixel,
       })
+      return [country, pos]
     },
     [globe, markers],
   )
+
+  // The latest callbacks, so a pending hover isn't dropped when the caller re-renders with new ones
+  const latest = useRef({ countryAt, onHover })
+  useLayoutEffect(() => {
+    latest.current = { countryAt, onHover }
+  })
 
   const scheduleHover = useCallback(() => {
     if (frame.current) return
     frame.current = requestAnimationFrame(() => {
       frame.current = 0
-      onHover(pointer.current && countryAt(pointer.current))
+      const [country, position] = pointer.current ? latest.current.countryAt(pointer.current) : [null, null]
+      latest.current.onHover(country, position)
     })
-  }, [countryAt, onHover])
+  }, [])
 
   useEffect(() => {
     const controls = globe?.controls()
@@ -262,8 +273,53 @@ export function useCountryPointer(globe: GlobeMethods | null, { onHover, onClick
     },
     onPointerUp: (e: PointerEvent) => {
       const releasedAt = { x: e.clientX, y: e.clientY }
-      if (pressedAt.current && isClick(pressedAt.current, releasedAt)) onClick(countryAt(releasedAt))
+      if (pressedAt.current && isClick(pressedAt.current, releasedAt)) onClick(...countryAt(releasedAt))
       pressedAt.current = null
     },
   }
+}
+
+/** The states and provinces, once loaded (they load in the background after the globe). */
+export function useRegions() {
+  const [regions, setRegions] = useState<RegionFeature[] | null>(null)
+  useEffect(() => {
+    let current = true
+    loadRegions().then((loaded) => current && setRegions(loaded))
+    return () => {
+      current = false
+    }
+  }, [])
+  return regions
+}
+
+/** Draws states and provinces over their countries: `fills` in their colors, and `outlines`. */
+export function useRegionLayer(
+  globe: GlobeMethods | null,
+  regions: readonly RegionFeature[] | null,
+  fills: ReadonlyMap<RegionFeature, string>,
+  outlines: readonly RegionFeature[],
+  theme: Theme,
+) {
+  const layer = useRef<RegionLayer | null>(null)
+
+  useEffect(() => {
+    if (!globe || !regions) return
+    const scene = globe.scene()
+    const created = createRegionLayer(regions, globe.getGlobeRadius())
+    scene.add(created.object)
+    layer.current = created
+    return () => {
+      scene.remove(created.object)
+      created.dispose()
+      layer.current = null
+    }
+  }, [globe, regions])
+
+  useEffect(() => {
+    layer.current?.setOutlineColor(theme.border, theme.borderOpacity * 0.7)
+  }, [globe, regions, theme])
+
+  useEffect(() => {
+    layer.current?.show(fills, outlines)
+  }, [globe, regions, fills, outlines])
 }

@@ -44,6 +44,12 @@ export default function ExplorePanel({ settings, onChange }: Props) {
           onChange={(showVisited) => onChange({ showVisited })}
         />
         <Switch
+          label="Visited states"
+          description="Color the states and provinces you've visited, a shade darker than their country"
+          checked={settings.showRegions}
+          onChange={(showRegions) => onChange({ showRegions })}
+        />
+        <Switch
           label="Island markers"
           description="Rings around small islands and territories"
           checked={settings.showMarkers}

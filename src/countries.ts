@@ -273,3 +273,7 @@ export function searchCountries(query: string, among: readonly CountryFeature[] 
     .slice(0, limit)
     .map(({ match }) => match)
 }
+
+/** A country (not a territory sharing its code) by its ISO alpha-2 code */
+export const countryByAlpha2 = (code: string) =>
+  countries.find((c) => c.properties.isoAlpha2 === code && c.properties.kind === 'country') ?? null

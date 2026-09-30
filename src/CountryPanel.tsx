@@ -1,15 +1,19 @@
+import type { ComponentProps } from 'react'
 import type { CountryFeature } from './countries'
 import { CheckIcon } from './icons'
+import RegionPicker from './RegionPicker'
 
 type Props = {
   country: CountryFeature
   visited: boolean
   onToggleVisited: () => void
   onClose: () => void
+  /** For countries with states or provinces */
+  regions?: ComponentProps<typeof RegionPicker>
 }
 
 // Placeholder panel — the info shown per country is still to be decided.
-export default function CountryPanel({ country, visited, onToggleVisited, onClose }: Props) {
+export default function CountryPanel({ country, visited, onToggleVisited, onClose, regions }: Props) {
   const { name, isoCode } = country.properties
 
   return (
@@ -28,6 +32,7 @@ export default function CountryPanel({ country, visited, onToggleVisited, onClos
         {visited && <CheckIcon />}
         {visited ? 'Visited' : 'Mark as visited'}
       </button>
+      {regions && <RegionPicker {...regions} />}
       <p className="panel-placeholder">Country info coming soon.</p>
     </aside>
   )

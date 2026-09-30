@@ -9,6 +9,8 @@ type Props = {
   onAdd: (name: string) => void
   onRemove: (name: string) => void
   onShow: (country: CountryFeature) => void
+  /** e.g. "3 of 51 states", for countries with visited states */
+  regionNote?: (country: CountryFeature) => string | null
 }
 
 const byName = (a: CountryFeature, b: CountryFeature) => a.properties.name.localeCompare(b.properties.name)
@@ -29,7 +31,7 @@ function Flag({ country }: { country: CountryFeature }) {
   return url ? <img className="mini-flag" src={url} alt="" /> : <span className="mini-flag" />
 }
 
-export default function VisitedPanel({ visited, onAdd, onRemove, onShow }: Props) {
+export default function VisitedPanel({ visited, onAdd, onRemove, onShow, regionNote }: Props) {
   const [query, setQuery] = useState('')
 
   const visitedList = countries.filter((c) => visited.has(c.properties.name)).sort(byName)
@@ -151,6 +153,7 @@ export default function VisitedPanel({ visited, onAdd, onRemove, onShow }: Props
                       <Flag country={c} />
                       <span className="row-name">{c.properties.name}</span>
                       {!isCountry(c) && <span className="muted tag">territory</span>}
+                      {regionNote?.(c) && <span className="muted tag">{regionNote(c)}</span>}
                     </button>
                     <button
                       type="button"

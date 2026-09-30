@@ -149,6 +149,26 @@ test.describe('visited', () => {
   })
 })
 
+test.describe('visited states', () => {
+  test('ticking a state marks the country too, and both stay after reloading', async ({ page }) => {
+    await openGlobe(page)
+    await page.getByRole('button', { name: 'Visited', exact: true }).click()
+    await page.getByRole('searchbox', { name: 'Add a country' }).fill('Australia')
+    await page.getByRole('button', { name: /^Australia/ }).first().click()
+    await page.getByRole('button', { name: /^Australia/ }).first().click() // show it
+    await expect(panel(page).getByRole('heading', { name: 'Australia' })).toBeVisible()
+
+    await panel(page).getByRole('checkbox', { name: 'Tasmania' }).check()
+    await expect(panel(page).getByText('of 9 visited')).toContainText('1 of 9')
+
+    await page.reload()
+    await page.getByRole('button', { name: 'Visited', exact: true }).click()
+    await expect(page.getByRole('button', { name: /^Australia/ })).toContainText('1 of 9 states and territories')
+    await page.getByRole('button', { name: /^Australia/ }).click()
+    await expect(panel(page).getByRole('checkbox', { name: 'Tasmania' })).toBeChecked()
+  })
+})
+
 test.describe('explore', () => {
   test('settings switch visited countries and markers off, and stay off after reloading', async ({ page }) => {
     await openGlobe(page)

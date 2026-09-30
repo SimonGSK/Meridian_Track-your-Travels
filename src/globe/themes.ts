@@ -1,3 +1,5 @@
+import { Color } from 'three'
+
 /** A visual design for the globe. */
 export type Theme = {
   id: string
@@ -113,6 +115,9 @@ export const THEMES: readonly Theme[] = [CLASSIC, POLITICAL, NIGHT, VINTAGE, MIN
 export const DEFAULT_THEME = CLASSIC
 
 export const themeById = (id: string) => THEMES.find((t) => t.id === id) ?? DEFAULT_THEME
+
+/** Visited states and provinces: a darker shade of the visited color */
+export const visitedRegionColor = (theme: Theme) => '#' + new Color(theme.visited).multiplyScalar(0.68).getHexString()
 
 /** A country's plain land color in this design. */
 export function landColor(theme: Theme, mapColor: number) {

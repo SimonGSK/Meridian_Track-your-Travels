@@ -54,6 +54,20 @@ describe('VisitedPanel', () => {
     expect(names('South America')).toEqual(['Argentina', 'Brazil'])
   })
 
+  it('notes how many states of a country are visited', () => {
+    render(
+      <VisitedPanel
+        visited={new Set(['United States', 'Denmark'])}
+        onAdd={() => {}}
+        onRemove={() => {}}
+        onShow={() => {}}
+        regionNote={(c) => (c.properties.name === 'United States' ? '3 of 51 states' : null)}
+      />,
+    )
+    expect(screen.getByRole('button', { name: /^United States/ })).toHaveTextContent('3 of 51 states')
+    expect(screen.getByRole('button', { name: /^Denmark/ })).toHaveTextContent(/^Denmark$/)
+  })
+
   it('marks territories in the list', () => {
     setup(['Denmark', 'Greenland'])
     const northAmerica = screen.getByRole('list', { name: /North America/ })

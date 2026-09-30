@@ -5,20 +5,20 @@ import { DEFAULT_SETTINGS, SETTINGS_KEY, useSettings } from './useSettings'
 describe('useSettings', () => {
   it('shows visited countries and markers by default', () => {
     const { result } = renderHook(() => useSettings())
-    expect(result.current[0]).toEqual({ showVisited: true, showMarkers: true })
+    expect(result.current[0]).toEqual({ showVisited: true, showMarkers: true, showRegions: true })
   })
 
   it('changes and remembers settings', () => {
     const first = renderHook(() => useSettings())
     act(() => first.result.current[1]({ showMarkers: false }))
-    expect(first.result.current[0]).toEqual({ showVisited: true, showMarkers: false })
+    expect(first.result.current[0]).toEqual({ showVisited: true, showMarkers: false, showRegions: true })
     first.unmount()
     expect(renderHook(() => useSettings()).result.current[0].showMarkers).toBe(false)
   })
 
   it('fills in settings missing from what was saved', () => {
     localStorage.setItem(SETTINGS_KEY, JSON.stringify({ showVisited: false }))
-    expect(renderHook(() => useSettings()).result.current[0]).toEqual({ showVisited: false, showMarkers: true })
+    expect(renderHook(() => useSettings()).result.current[0]).toEqual({ showVisited: false, showMarkers: true, showRegions: true })
   })
 
   it('ignores corrupted settings', () => {

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Globe, { type GlobeMethods } from 'react-globe.gl'
 import { MeshPhongMaterial } from 'three'
 import type { CountryFeature } from './countries'
+import { findRegionAt, hasRegions, regionsLabel, regionsOf, type RegionFeature } from './data/regions'
 import CountryPanel from './CountryPanel'
 import DesignPanel from './design/DesignPanel'
 import ExplorePanel from './explore/ExplorePanel'
@@ -17,14 +18,20 @@ import { VIEWS, type ViewId } from './nav/views'
 import SidePanel from './nav/SidePanel'
 import VisitedPanel from './visited/VisitedPanel'
 import { useVisited } from './visited/useVisited'
+import { useVisitedRegions } from './visited/useVisitedRegions'
+import { regionFills, regionOutlines, regionProgress } from './visited/regionsView'
 import Tooltip from './Tooltip'
 import {
   useCountryLayer,
   useCountryPointer,
   useDepthPrecision,
+  useRegionLayer,
+  useRegions,
   useSelectedCountry,
   useSmoothAutoRotate,
 } from './globe/hooks'
+import { visitedRegionColor } from './globe/themes'
+import type { LatLng } from './globe/interaction'
 import { INITIAL_VIEW, fitAltitude, flightAltitude, flightDuration } from './globe/interaction'
 import { countryColor } from './globe/colors'
 
@@ -55,6 +62,9 @@ export default function App() {
   const { width, height } = useWindowSize()
   const [theme, setTheme] = useTheme()
   const [settings, changeSettings] = useSettings()
+  const regions = useRegions()
+  const { visitedRegions, toggle: toggleRegionId } = useVisitedRegions()
+  const [hoveredRegion, setHoveredRegion] = useState<RegionFeature | null>(null)
 
   const globeMaterial = useMemo(
     () => new MeshPhongMaterial({ color: theme.ocean, shininess: theme.oceanShininess }),
@@ -82,7 +92,14 @@ export default function App() {
     [flyTo],
   )
 
-  const highlights = useMemo(() => gameHighlights(game, theme), [game, theme])
+  // A selected country with states isn't raised: it stays flat so its states can be picked on the globe
+  const editing = !playing && selected && hasRegions(selected) ? selected : null
+  const editingRegions = useMemo(() => (editing && regions ? regionsOf(regions, editing) : []), [editing, regions])
+
+  const highlights = useMemo(() => {
+    const colors = gameHighlights(game, theme)
+    return editing ? new Map([...colors, [editing, theme.selected]]) : colors
+  }, [game, theme, editing])
 
   // Games get a clean globe: no visited colors, and hover only where the globe is the answer
   const colorHovered = !playing || globeIsAnswer ? hovered : null
@@ -93,19 +110,66 @@ export default function App() {
     [theme, colorHovered, colorVisited, highlights],
   )
   useCountryLayer(globe, theme, colorOf, { showMarkers: settings.showMarkers })
-  useSelectedCountry(globe, selected, theme.selected)
+  useSelectedCountry(globe, editing ? null : selected, theme.selected)
+
+  const fills = useMemo(
+    () =>
+      regions && !showsGame(game)
+        ? regionFills({
+            regions,
+            visitedRegions,
+            isShownCountry: (c) => settings.showRegions && visited.has(c.properties.name),
+            editing,
+            hovered: hoveredRegion,
+            color: visitedRegionColor(theme),
+            hoverColor: theme.hover,
+          })
+        : new Map<RegionFeature, string>(),
+    [regions, game, visitedRegions, settings.showRegions, visited, editing, hoveredRegion, theme],
+  )
+  const outlines = useMemo(() => (regions ? regionOutlines(regions, fills, editing) : []), [regions, fills, editing])
+  useRegionLayer(globe, regions, fills, outlines, theme)
+
+  /** Mark or unmark a state; marking one also marks its country as visited */
+  const toggleRegion = useCallback(
+    (region: RegionFeature, country: CountryFeature) => {
+      if (!visitedRegions.has(region.properties.id) && !visited.has(country.properties.name)) {
+        addVisited(country.properties.name)
+      }
+      toggleRegionId(region.properties.id)
+    },
+    [visitedRegions, visited, addVisited, toggleRegionId],
+  )
+  const regionAt = useCallback(
+    (country: CountryFeature | null, position: LatLng | null) =>
+      editing && country === editing && position ? findRegionAt(editingRegions, position.lat, position.lng) : null,
+    [editing, editingRegions],
+  )
   useDepthPrecision(globe)
   useSmoothAutoRotate(globe, !selected && !playing)
 
   const onGlobeClick = useCallback(
-    (country: CountryFeature | null) => {
-      if (!playing) selectCountry(country)
-      else if (globeIsAnswer && country) pick(country)
+    (country: CountryFeature | null, position: LatLng | null) => {
+      if (playing) {
+        if (globeIsAnswer && country) pick(country)
+        return
+      }
+      // Clicking a state of the country being edited marks it
+      const region = regionAt(country, position)
+      if (region && editing) toggleRegion(region, editing)
+      else selectCountry(country)
     },
-    [playing, globeIsAnswer, selectCountry, pick],
+    [playing, globeIsAnswer, pick, regionAt, editing, toggleRegion, selectCountry],
+  )
+  const onGlobeHover = useCallback(
+    (country: CountryFeature | null, position: LatLng | null) => {
+      setHovered(country)
+      setHoveredRegion(regionAt(country, position))
+    },
+    [regionAt],
   )
   const pointerHandlers = useCountryPointer(globe, {
-    onHover: setHovered,
+    onHover: onGlobeHover,
     onClick: onGlobeClick,
     markers: settings.showMarkers,
   })
@@ -193,7 +257,17 @@ export default function App() {
         <SidePanel title={VIEWS.find((v) => v.id === view)!.label} onClose={() => changeView(null)}>
           {view === 'explore' && <ExplorePanel settings={settings} onChange={changeSettings} />}
           {view === 'visited' && (
-            <VisitedPanel visited={visited} onAdd={addVisited} onRemove={removeVisited} onShow={showCountry} />
+            <VisitedPanel
+              visited={visited}
+              onAdd={addVisited}
+              onRemove={removeVisited}
+              onShow={showCountry}
+              regionNote={(country) => {
+                if (!regions || !hasRegions(country)) return null
+                const { visited: count, total } = regionProgress(regions, visitedRegions, country)
+                return count > 0 ? `${count} of ${total} ${regionsLabel(country).toLowerCase()}` : null
+              }}
+            />
           )}
           {view === 'design' && <DesignPanel theme={theme} onChange={setTheme} />}
           {view === 'games' && (
@@ -211,7 +285,7 @@ export default function App() {
       )}
 
       {/* Names and flags would give away game answers */}
-      <Tooltip text={playing ? null : (hovered?.properties.name ?? null)} />
+      <Tooltip text={playing ? null : (hoveredRegion?.properties.name ?? hovered?.properties.name ?? null)} />
       <FlagCorner country={playing ? null : hovered} />
 
       {selected && (
@@ -220,6 +294,16 @@ export default function App() {
           visited={visited.has(selected.properties.name)}
           onToggleVisited={() => toggleVisited(selected.properties.name)}
           onClose={() => selectCountry(null)}
+          regions={
+            editing
+              ? {
+                  regions: regions && editingRegions,
+                  label: regionsLabel(editing),
+                  visited: visitedRegions,
+                  onToggle: (region) => toggleRegion(region, editing),
+                }
+              : undefined
+          }
         />
       )}
     </div>

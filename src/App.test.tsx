@@ -1,15 +1,16 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useEffect, useImperativeHandle, useRef, type Ref } from 'react'
 import type { GlobeProps } from 'react-globe.gl'
 import App from './App'
 import { countries, findCountryAt } from './countries'
-import { DEFAULT_THEME, NIGHT, POLITICAL } from './globe/themes'
+import { loadRegions } from './data/regions'
+import { DEFAULT_THEME, NIGHT, POLITICAL, visitedRegionColor } from './globe/themes'
 
 // WebGL doesn't exist in jsdom, so the globe is replaced by a stand-in that
 // exposes what the app passes to it. Screen positions map to places by x.
-const { PLACES, globe, layer, sceneObjects } = vi.hoisted(() => {
+const { PLACES, globe, layer, regionLayer, sceneObjects } = vi.hoisted(() => {
   const listeners = new Map<string, Set<() => void>>()
   const sceneObjects = new Set<object>()
   const controls = {
@@ -31,6 +32,9 @@ const { PLACES, globe, layer, sceneObjects } = vi.hoisted(() => {
       500: { lat: -10, lng: -52 }, // Brazil
       600: { lat: 36.2, lng: 138.25 }, // Japan
       700: { lat: 0, lng: 37.9 }, // Kenya
+      800: { lat: 36.7, lng: -119.4 }, // California, United States
+      // Not next to another place: neighboring pixels set how far a pixel is on the globe
+      810: { lat: 31, lng: -99 }, // Texas, United States
       // anything else: outer space
     } as Record<number, { lat: number; lng: number }>,
     globe: {
@@ -43,6 +47,7 @@ const { PLACES, globe, layer, sceneObjects } = vi.hoisted(() => {
     },
     sceneObjects,
     layer: { object: {}, paint: vi.fn(), setBorders: vi.fn(), setMarkersVisible: vi.fn(), dispose: vi.fn() },
+    regionLayer: { object: {}, show: vi.fn(), setOutlineColor: vi.fn(), dispose: vi.fn() },
   }
 })
 
@@ -60,6 +65,7 @@ vi.mock('./globe/picking', () => ({
   screenToLatLng: (_: unknown, x: number) =>
     PLACES[x] ?? (x >= 2000 && x < 2400 ? { lat: 12.3, lng: -64 + (x - 2000) * 0.02 } : null),
 }))
+vi.mock('./globe/regionLayer', () => ({ createRegionLayer: () => regionLayer }))
 vi.mock('./globe/countryLayer', () => ({
   createCountryLayer: () => layer,
   createRaisedCountry: (country: { properties: { name: string } }) => ({
@@ -126,10 +132,14 @@ function painted() {
 const denmark = countries.find((c) => c.properties.name === 'Denmark')!
 
 describe('App', () => {
+  // The region shapes are big; load them once up front rather than inside the first test that needs them
+  beforeAll(() => loadRegions(), 20_000)
+
   beforeEach(() => {
     globe.pointOfView.mockClear()
     layer.paint.mockClear()
     layer.setBorders.mockClear()
+    regionLayer.show.mockClear()
   })
 
   it('shows the title and how to use the globe', () => {
@@ -148,7 +158,7 @@ describe('App', () => {
       render(<App />)
       hover(100)
       await waitFor(() => expect(tooltip()).toHaveTextContent('Denmark'))
-      expect(painted()).toEqual({ Denmark: DEFAULT_THEME.hover })
+      await waitFor(() => expect(painted()).toEqual({ Denmark: DEFAULT_THEME.hover }))
       expect(raised()).toEqual([])
       expect(surface()).toHaveStyle({ cursor: 'pointer' })
     })
@@ -174,7 +184,7 @@ describe('App', () => {
       await waitFor(() => expect(tooltip()).toHaveTextContent('Denmark'))
       hover(200)
       await waitFor(() => expect(tooltip()).toHaveTextContent('France'))
-      expect(painted()).toEqual({ France: DEFAULT_THEME.hover })
+      await waitFor(() => expect(painted()).toEqual({ France: DEFAULT_THEME.hover }))
       expect(flag()).toHaveAccessibleName('Flag of France')
     })
 
@@ -184,7 +194,7 @@ describe('App', () => {
       await waitFor(() => expect(tooltip()).toBeVisible())
       hover(300)
       await waitFor(() => expect(tooltip()).not.toBeInTheDocument())
-      expect(painted()).toEqual({})
+      await waitFor(() => expect(painted()).toEqual({}))
       expect(flag()).not.toBeInTheDocument()
 
       hover(100)
@@ -359,6 +369,81 @@ describe('App', () => {
 
       render(<App />)
       expect(painted()).toEqual({ Denmark: DEFAULT_THEME.visited })
+    })
+  })
+
+  describe('visited states', () => {
+    /** Regions last drawn on the globe, by name → color */
+    const shownRegions = () => {
+      const [fills] = regionLayer.show.mock.calls.at(-1) ?? [new Map()]
+      return Object.fromEntries(
+        [...(fills as Map<{ properties: { name: string } }, string>)].map(([r, color]) => [r.properties.name, color]),
+      )
+    }
+    const openUnitedStates = async () => {
+      render(<App />)
+      click(800)
+      await screen.findByText('of 51 visited')
+    }
+
+    it('lists the states of a selected country, which stays flat in the selected color', async () => {
+      await openUnitedStates()
+      expect(panelHeading()).toHaveTextContent('United States')
+      expect(within(countryPanel()!).getByRole('checkbox', { name: 'California' })).not.toBeChecked()
+      expect(raised()).toEqual([])
+      expect(painted()['United States']).toBe(DEFAULT_THEME.selected)
+    })
+
+    it('marks a state clicked on the globe, and the country with it', async () => {
+      await openUnitedStates()
+      click(800)
+      expect(within(countryPanel()!).getByRole('checkbox', { name: 'California' })).toBeChecked()
+      expect(within(countryPanel()!).getByRole('button', { name: 'Visited' })).toHaveAttribute('aria-pressed', 'true')
+      expect(shownRegions()).toEqual({ California: visitedRegionColor(DEFAULT_THEME) })
+      click(800)
+      expect(within(countryPanel()!).getByRole('checkbox', { name: 'California' })).not.toBeChecked()
+    })
+
+    it('marks states from the list', async () => {
+      await openUnitedStates()
+      await userEvent.click(within(countryPanel()!).getByRole('checkbox', { name: 'Texas' }))
+      expect(shownRegions()).toEqual({ Texas: visitedRegionColor(DEFAULT_THEME) })
+      expect(screen.getByText('of 51 visited')).toHaveTextContent('1 of 51 visited')
+    })
+
+    it('names and highlights the state pointed at', async () => {
+      await openUnitedStates()
+      hover(810)
+      await waitFor(() => expect(tooltip()).toHaveTextContent('Texas'))
+      await waitFor(() => expect(shownRegions()).toEqual({ Texas: DEFAULT_THEME.hover }))
+    })
+
+    it('keeps showing visited states after closing the country, unless switched off', async () => {
+      await openUnitedStates()
+      click(800)
+      fireEvent.keyDown(window, { key: 'Escape' })
+      expect(shownRegions()).toEqual({ California: visitedRegionColor(DEFAULT_THEME) })
+
+      await userEvent.click(screen.getByRole('button', { name: 'Explore' }))
+      await userEvent.click(screen.getByRole('switch', { name: /Visited states/ }))
+      expect(shownRegions()).toEqual({})
+    })
+
+    it('notes the states visited in the Visited list', async () => {
+      await openUnitedStates()
+      click(800)
+      fireEvent.keyDown(window, { key: 'Escape' })
+      await userEvent.click(within(screen.getByRole('navigation')).getByRole('button', { name: 'Visited' }))
+      expect(screen.getByRole('button', { name: /^United States/ })).toHaveTextContent('1 of 51 states')
+    })
+
+    it('hides states during games', async () => {
+      await openUnitedStates()
+      click(800)
+      await userEvent.click(screen.getByRole('button', { name: 'Games' }))
+      await userEvent.click(screen.getByRole('button', { name: /Flag quiz/ }))
+      await userEvent.click(screen.getByRole('button', { name: /^Easy/ }))
+      expect(shownRegions()).toEqual({})
     })
   })
 
