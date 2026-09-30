@@ -49,6 +49,22 @@ describe('round games', () => {
     expect(flightTarget(answered)).toBe(target)
   })
 
+  it('shows every miss in "find the country" while you keep trying', () => {
+    const game = round('find')
+    const target = game.rounds[0].target
+    const [first, second] = pool.filter((c) => c !== target)
+    const missed = answer(answer(game, first), second)
+    expect(names(gameHighlights(missed, CLASSIC))).toEqual({
+      [first.properties.name]: CLASSIC.wrong,
+      [second.properties.name]: CLASSIC.wrong,
+    })
+    expect(flightTarget(missed)).toBeNull() // keep searching where you are
+    expect(globeAnswers(missed)).toBe(true)
+    const found = answer(missed, target)
+    expect(names(gameHighlights(found, CLASSIC))[target.properties.name]).toBe(CLASSIC.correct)
+    expect(flightTarget(found)).toBe(target)
+  })
+
   it('answers "find" on the globe until answered, starting each round zoomed out', () => {
     const game = round('find')
     expect(globeAnswers(game)).toBe(true)

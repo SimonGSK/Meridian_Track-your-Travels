@@ -2,12 +2,15 @@ import { describe, expect, it } from 'vitest'
 import { countries } from '../countries'
 import { flagUrl } from '../flags'
 import {
+  MAX_TRIES,
   OPTION_COUNT,
   ROUNDS,
   answer,
   answerMode,
   currentRound,
+  difficultyDescription,
   gamePool,
+  maxScore,
   newRoundGame,
   next,
   shuffle,
@@ -82,7 +85,7 @@ describe('newRoundGame', () => {
     expect(new Set(game.rounds.map((r) => r.target)).size).toBe(ROUNDS)
     const pool = gamePool('find', 'medium')
     for (const round of game.rounds) expect(pool).toContain(round.target)
-    expect(game).toMatchObject({ kind: 'rounds', difficulty: 'medium', index: 0, score: 0, answer: null, finished: false })
+    expect(game).toMatchObject({ kind: 'rounds', difficulty: 'medium', index: 0, score: 0, answer: null, misses: [], finished: false })
   })
 
   it('gives easy rounds four distinct choices including the answer', () => {
@@ -105,15 +108,74 @@ describe('newRoundGame', () => {
   })
 })
 
-describe('playing rounds', () => {
-  const pool = ['Denmark', 'France', 'Brazil', 'Japan', 'Kenya'].map(byName)
-  const start = () => newRoundGame('find', 'medium', seeded(), pool.slice(0, 2))
+describe('difficultyDescription', () => {
+  it('says which countries, and how to answer', () => {
+    expect(difficultyDescription('flags', 'easy')).toBe('Big countries. Pick from four answers.')
+    expect(difficultyDescription('shape', 'hard')).toBe('All 197 countries, even the tiniest. Type your answers.')
+    expect(difficultyDescription('find', 'medium')).toBe('All but the smallest countries.')
+  })
+})
 
-  it('scores a correct answer', () => {
+describe('find the country: tries and points', () => {
+  const pool = ['Denmark', 'France', 'Brazil', 'Japan', 'Kenya'].map(byName)
+  const start = () => newRoundGame('find', 'medium', seeded(), pool)
+  const wrongOnes = (game: ReturnType<typeof start>) => pool.filter((c) => c !== currentRound(game).target)
+
+  it(`gives ${MAX_TRIES} points for the first try`, () => {
     const game = start()
     const after = answer(game, currentRound(game).target)
-    expect(after.answer).toEqual({ picked: currentRound(game).target, correct: true, alias: null })
+    expect(after.answer).toEqual({ picked: currentRound(game).target, correct: true, alias: null, points: 3 })
+    expect(after.score).toBe(3)
+  })
+
+  it('lets you try again after a miss, for fewer points', () => {
+    const game = start()
+    const [first, second] = wrongOnes(game)
+    const missedOnce = answer(game, first)
+    expect(missedOnce.answer).toBeNull()
+    expect(missedOnce.misses).toEqual([first])
+    expect(answer(missedOnce, currentRound(game).target).answer?.points).toBe(2)
+    const missedTwice = answer(missedOnce, second)
+    expect(answer(missedTwice, currentRound(game).target).answer?.points).toBe(1)
+  })
+
+  it(`ends the round with no points after ${MAX_TRIES} misses`, () => {
+    let game = start()
+    for (const wrong of wrongOnes(game).slice(0, MAX_TRIES)) game = answer(game, wrong)
+    expect(game.answer).toMatchObject({ correct: false, points: 0 })
+    expect(game.misses).toHaveLength(MAX_TRIES)
+    expect(game.score).toBe(0)
+  })
+
+  it('does not count the same wrong country twice', () => {
+    const game = start()
+    const [wrong] = wrongOnes(game)
+    const once = answer(game, wrong)
+    expect(answer(once, wrong)).toBe(once)
+  })
+
+  it('clears the misses for the next round', () => {
+    const game = start()
+    const [wrong] = wrongOnes(game)
+    const next1 = next(answer(answer(game, wrong), currentRound(game).target))
+    expect(next1.misses).toEqual([])
+  })
+
+  it(`is out of ${MAX_TRIES} points per round`, () => {
+    expect(maxScore(start())).toBe(pool.length * MAX_TRIES)
+  })
+})
+
+describe('playing rounds', () => {
+  const pool = ['Denmark', 'France', 'Brazil', 'Japan', 'Kenya'].map(byName)
+  const start = () => newRoundGame('shape', 'medium', seeded(), pool.slice(0, 2))
+
+  it('scores a correct answer with 1 point, outside "find the country"', () => {
+    const game = start()
+    const after = answer(game, currentRound(game).target)
+    expect(after.answer).toEqual({ picked: currentRound(game).target, correct: true, alias: null, points: 1 })
     expect(after.score).toBe(1)
+    expect(maxScore(game)).toBe(2)
   })
 
   it('remembers an alternative name that was typed', () => {
@@ -121,11 +183,11 @@ describe('playing rounds', () => {
     expect(answer(game, byName('Eswatini'), 'Swaziland').answer).toMatchObject({ correct: true, alias: 'Swaziland' })
   })
 
-  it('does not score a wrong answer', () => {
+  it('ends the round on a wrong answer, with no second try', () => {
     const game = start()
     const wrong = pool.find((c) => c !== currentRound(game).target)!
     const after = answer(game, wrong)
-    expect(after.answer?.correct).toBe(false)
+    expect(after.answer).toMatchObject({ correct: false, points: 0 })
     expect(after.score).toBe(0)
   })
 

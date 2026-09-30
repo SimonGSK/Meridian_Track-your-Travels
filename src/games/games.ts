@@ -13,14 +13,25 @@ export const GAMES: { id: GameId; title: string; description: string }[] = [
   { id: 'shape', title: 'Shape quiz', description: 'Name the country from its outline alone.' },
 ]
 
-export const DIFFICULTIES: { id: Difficulty; label: string; description: string }[] = [
-  { id: 'easy', label: 'Easy', description: 'Big countries. Pick from four answers.' },
-  { id: 'medium', label: 'Medium', description: 'All but the smallest countries. Type your answers.' },
-  { id: 'hard', label: 'Hard', description: 'All 197 countries, even the tiniest. Type your answers.' },
+export const DIFFICULTIES: { id: Difficulty; label: string; countries: string }[] = [
+  { id: 'easy', label: 'Easy', countries: 'Big countries' },
+  { id: 'medium', label: 'Medium', countries: 'All but the smallest countries' },
+  { id: 'hard', label: 'Hard', countries: 'All 197 countries, even the tiniest' },
 ]
 
 export const ROUNDS = 10
 export const OPTION_COUNT = 4
+/** In "find the country": tries per round, and points for getting it on the first, second or third */
+export const MAX_TRIES = 3
+
+/** What a difficulty means for a game, e.g. "Big countries. Pick from four answers." */
+export function difficultyDescription(id: GameId, difficulty: Difficulty) {
+  const { countries } = DIFFICULTIES.find((d) => d.id === difficulty)!
+  const mode = answerMode(id, difficulty)
+  if (mode === 'choices') return `${countries}. Pick from four answers.`
+  if (mode === 'typing') return `${countries}. Type your answers.`
+  return `${countries}.`
+}
 
 /** Smallest country (km²) in each difficulty; hard has them all */
 const MIN_AREA_KM2: Record<Difficulty, number> = { easy: 100_000, medium: 5_000, hard: 0 }
@@ -64,6 +75,8 @@ export type Answer = {
   correct: boolean
   /** The name typed, when it's an older or alternative name, e.g. "Swaziland" */
   alias: string | null
+  /** Points won this round */
+  points: number
 }
 
 export type RoundGameState = {
@@ -73,8 +86,10 @@ export type RoundGameState = {
   rounds: Round[]
   index: number
   score: number
-  /** Set once the current round is answered */
+  /** Set once the current round is over */
   answer: Answer | null
+  /** Wrong tries so far this round ("find the country" allows MAX_TRIES) */
+  misses: CountryFeature[]
   finished: boolean
 }
 
@@ -92,21 +107,32 @@ export function newRoundGame(
       ? shuffle([target, ...shuffle(pool.filter((c) => c !== target), random).slice(0, OPTION_COUNT - 1)], random)
       : [],
   }))
-  return { kind: 'rounds', id, difficulty, rounds, index: 0, score: 0, answer: null, finished: false }
+  return { kind: 'rounds', id, difficulty, rounds, index: 0, score: 0, answer: null, misses: [], finished: false }
 }
+
+/** "Find the country" scores 3, 2 or 1 points by try; the other games 1 point per round. */
+export const maxScore = (game: RoundGameState) => game.rounds.length * (game.id === 'find' ? MAX_TRIES : 1)
 
 export const currentRound = (game: RoundGameState) => game.rounds[game.index]
 
-/** Answer the current round. Later answers to the same round are ignored. */
+/**
+ * Answer the current round. In "find the country" a wrong country is a
+ * miss and you try again, up to MAX_TRIES, for fewer points each time.
+ * Answers after the round is over are ignored.
+ */
 export function answer(game: RoundGameState, picked: CountryFeature, alias: string | null = null): RoundGameState {
-  if (game.answer || game.finished) return game
+  if (game.answer || game.finished || game.misses.includes(picked)) return game
   const correct = picked === currentRound(game).target
-  return { ...game, answer: { picked, correct, alias }, score: game.score + (correct ? 1 : 0) }
+  const tries = game.id === 'find' ? MAX_TRIES : 1
+  if (!correct && game.misses.length + 1 < tries) return { ...game, misses: [...game.misses, picked] }
+  const points = correct ? tries - game.misses.length : 0
+  const misses = correct ? game.misses : [...game.misses, picked]
+  return { ...game, answer: { picked, correct, alias, points }, misses, score: game.score + points }
 }
 
 /** Move on to the next round once the current one is answered. */
 export function next(game: RoundGameState): RoundGameState {
   if (!game.answer) return game
   if (game.index + 1 >= game.rounds.length) return { ...game, finished: true }
-  return { ...game, index: game.index + 1, answer: null }
+  return { ...game, index: game.index + 1, answer: null, misses: [] }
 }

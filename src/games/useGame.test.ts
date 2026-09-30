@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { act, renderHook } from '@testing-library/react'
-import { BEST_SCORES_KEY, DIFFICULTY_KEY, useGame } from './useGame'
+import { BEST_SCORES_KEY, useGame } from './useGame'
 import { currentRound, type RoundGameState } from './games'
 import { countries } from '../countries'
 import type { LetterGameState } from './letterGame'
@@ -19,32 +19,29 @@ function playAll(result: Hook, correct: (i: number) => boolean) {
 }
 
 describe('useGame', () => {
-  it('starts with no game, on easy', () => {
+  it('starts with no game', () => {
     const { result } = renderHook(() => useGame())
     expect(result.current.game).toBeNull()
-    expect(result.current.difficulty).toBe('easy')
-  })
-
-  it('remembers the chosen difficulty', () => {
-    const first = renderHook(() => useGame())
-    act(() => first.result.current.setDifficulty('hard'))
-    first.unmount()
-    expect(JSON.parse(localStorage.getItem(DIFFICULTY_KEY)!)).toBe('hard')
-    expect(renderHook(() => useGame()).result.current.difficulty).toBe('hard')
   })
 
   it('starts games at the chosen difficulty', () => {
     const { result } = renderHook(() => useGame())
-    act(() => result.current.setDifficulty('medium'))
-    act(() => result.current.start('shape'))
+    act(() => result.current.start('shape', 'medium'))
     expect(result.current.game).toMatchObject({ kind: 'rounds', id: 'shape', difficulty: 'medium' })
-    act(() => result.current.start('letter'))
-    expect(result.current.game).toMatchObject({ kind: 'letter', difficulty: 'medium' })
+    act(() => result.current.start('letter', 'hard'))
+    expect(result.current.game).toMatchObject({ kind: 'letter', difficulty: 'hard' })
+  })
+
+  it('keeps "find the country" scores (points) apart from the old 1-per-round ones', () => {
+    localStorage.setItem(BEST_SCORES_KEY, JSON.stringify({ 'find:easy': 9 }))
+    const { result } = renderHook(() => useGame())
+    act(() => result.current.start('find', 'easy'))
+    expect(result.current.previousBest).toBeUndefined()
   })
 
   it('answers, with the name typed, and advances', () => {
     const { result } = renderHook(() => useGame())
-    act(() => result.current.start('flags'))
+    act(() => result.current.start('flags', 'easy'))
     const { target } = currentRound(rounds(result))
     act(() => result.current.pick(target, 'Some old name'))
     expect(rounds(result).answer).toMatchObject({ correct: true, alias: 'Some old name' })
@@ -54,7 +51,7 @@ describe('useGame', () => {
 
   it('saves the best score per game and difficulty', () => {
     const { result } = renderHook(() => useGame())
-    act(() => result.current.start('flags'))
+    act(() => result.current.start('flags', 'easy'))
     playAll(result, (i) => i < 6)
     expect(result.current.game?.finished).toBe(true)
     expect(result.current.best).toEqual({ 'flags:easy': 6 })
@@ -63,9 +60,9 @@ describe('useGame', () => {
 
   it('keeps the higher score and remembers the previous best', () => {
     const { result } = renderHook(() => useGame())
-    act(() => result.current.start('name'))
+    act(() => result.current.start('name', 'easy'))
     playAll(result, (i) => i < 6)
-    act(() => result.current.start('name'))
+    act(() => result.current.start('name', 'easy'))
     expect(result.current.previousBest).toBe(6)
     playAll(result, (i) => i < 3)
     expect(result.current.best).toEqual({ 'name:easy': 6 })
@@ -73,7 +70,7 @@ describe('useGame', () => {
 
   it('gives up the letter hunt, saving the share found', () => {
     const { result } = renderHook(() => useGame())
-    act(() => result.current.start('letter'))
+    act(() => result.current.start('letter', 'easy'))
     const game = result.current.game as LetterGameState
     act(() => result.current.pick(game.targets[0]))
     act(() => result.current.advance())
@@ -84,7 +81,7 @@ describe('useGame', () => {
 
   it('finishes the letter hunt when everything is found, saving 100%', () => {
     const { result } = renderHook(() => useGame())
-    act(() => result.current.start('letter'))
+    act(() => result.current.start('letter', 'easy'))
     for (const country of (result.current.game as LetterGameState).targets) act(() => result.current.pick(country))
     expect(result.current.game?.finished).toBe(true)
     expect(result.current.best['letter:easy']).toBe(100)
@@ -92,7 +89,7 @@ describe('useGame', () => {
 
   it('quits', () => {
     const { result } = renderHook(() => useGame())
-    act(() => result.current.start('find'))
+    act(() => result.current.start('find', 'easy'))
     act(() => result.current.quit())
     expect(result.current.game).toBeNull()
   })

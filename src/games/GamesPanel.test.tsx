@@ -13,10 +13,8 @@ const roundGame = (id: RoundGameId, difficulty: Difficulty = 'easy') => newRound
 function setup(overrides: Partial<Parameters<typeof GamesPanel>[0]> = {}) {
   const props = {
     game: null,
-    difficulty: 'easy' as Difficulty,
     best: {},
     previousBest: undefined,
-    onDifficulty: vi.fn(),
     onStart: vi.fn(),
     onPick: vi.fn(),
     onNext: vi.fn(),
@@ -28,32 +26,41 @@ function setup(overrides: Partial<Parameters<typeof GamesPanel>[0]> = {}) {
 }
 
 describe('GamesPanel: choosing a game', () => {
-  it('lists every game', () => {
+  it('lists every game, without asking for a difficulty yet', () => {
     setup()
     for (const title of ['Find the country', 'Letter hunt', 'Flag quiz', 'Name that country', 'Shape quiz']) {
       expect(screen.getByRole('button', { name: new RegExp(title) })).toBeInTheDocument()
     }
+    expect(screen.queryByRole('button', { name: /^Easy/ })).not.toBeInTheDocument()
   })
 
-  it('switches difficulty, describing each one', async () => {
-    const { onDifficulty } = setup({ difficulty: 'medium' })
-    expect(screen.getByRole('radio', { name: 'Medium' })).toBeChecked()
-    expect(screen.getByText(/Type your answers/)).toBeInTheDocument()
-    await userEvent.click(screen.getByRole('radio', { name: 'Hard' }))
-    expect(onDifficulty).toHaveBeenCalledWith('hard')
-  })
-
-  it('shows the best score for the chosen difficulty', () => {
-    setup({ difficulty: 'hard', best: { 'flags:hard': 7, 'flags:easy': 10, 'letter:hard': 85 } })
-    expect(screen.getByRole('button', { name: /Flag quiz/ })).toHaveTextContent('Best: 7 / 10')
-    expect(screen.getByRole('button', { name: /Letter hunt/ })).toHaveTextContent('Best: 85%')
-    expect(screen.getByRole('button', { name: /Shape quiz/ })).not.toHaveTextContent('Best')
-  })
-
-  it('starts a game', async () => {
+  it('asks for the difficulty after choosing a game, then starts it', async () => {
     const { onStart } = setup()
     await userEvent.click(screen.getByRole('button', { name: /Shape quiz/ }))
-    expect(onStart).toHaveBeenCalledWith('shape')
+    expect(screen.getByRole('heading', { name: 'Shape quiz' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /^Easy/ })).toHaveTextContent('Pick from four answers')
+    expect(screen.getByRole('button', { name: /^Hard/ })).toHaveTextContent('Type your answers')
+    await userEvent.click(screen.getByRole('button', { name: /^Medium/ }))
+    expect(onStart).toHaveBeenCalledWith('shape', 'medium')
+  })
+
+  it('explains the tries in "find the country"', async () => {
+    setup()
+    await userEvent.click(screen.getByRole('button', { name: /Find the country/ }))
+    expect(screen.getByText(/3 tries per country/)).toBeInTheDocument()
+  })
+
+  it('shows the best score for each difficulty', async () => {
+    setup({ best: { 'flags:hard': 7, 'find-points:easy': 24, 'letter:medium': 85 } })
+    await userEvent.click(screen.getByRole('button', { name: /Flag quiz/ }))
+    expect(screen.getByRole('button', { name: /^Hard/ })).toHaveTextContent('Best: 7 / 10')
+    expect(screen.getByRole('button', { name: /^Easy/ })).not.toHaveTextContent('Best')
+    await userEvent.click(screen.getByRole('button', { name: '← All games' }))
+    await userEvent.click(screen.getByRole('button', { name: /Find the country/ }))
+    expect(screen.getByRole('button', { name: /^Easy/ })).toHaveTextContent('Best: 24 / 30 points')
+    await userEvent.click(screen.getByRole('button', { name: '← All games' }))
+    await userEvent.click(screen.getByRole('button', { name: /Letter hunt/ }))
+    expect(screen.getByRole('button', { name: /^Medium/ })).toHaveTextContent('Best: 85%')
   })
 })
 
@@ -99,7 +106,7 @@ describe('GamesPanel: rounds', () => {
   })
 
   it('says what was picked and what was right after a wrong answer, and lets you continue', async () => {
-    const g = roundGame('find')
+    const g = roundGame('shape', 'medium')
     const { target } = g.rounds[0]
     const wrong = pool.find((c) => c !== target)!
     const { onNext } = setup({ game: answer(g, wrong) })
@@ -109,6 +116,31 @@ describe('GamesPanel: rounds', () => {
     expect(screen.getByRole('button', { name: 'Next' })).toHaveFocus()
     await userEvent.keyboard('{Enter}')
     expect(onNext).toHaveBeenCalled()
+  })
+
+  it('lets you try again after a miss in "find the country", for fewer points', () => {
+    const g = roundGame('find')
+    const [wrong] = pool.filter((c) => c !== g.rounds[0].target)
+    setup({ game: answer(g, wrong) })
+    expect(screen.getByRole('status')).toHaveTextContent(`That's ${wrong.properties.name}. Try again: 2 tries left.`)
+    expect(screen.getByLabelText('Try 2 of 3')).toHaveTextContent('Worth 2 points')
+    expect(screen.queryByRole('button', { name: 'Next' })).not.toBeInTheDocument()
+  })
+
+  it('shows the points won in "find the country"', () => {
+    const g = roundGame('find')
+    const [wrong] = pool.filter((c) => c !== g.rounds[0].target)
+    setup({ game: answer(answer(g, wrong), g.rounds[0].target) })
+    expect(screen.getByRole('status')).toHaveTextContent('Correct! +2 points')
+    expect(screen.getByText('2 points')).toBeInTheDocument()
+  })
+
+  it('gives the answer after three misses', () => {
+    let g = roundGame('find')
+    for (const wrong of pool.filter((c) => c !== g.rounds[0].target).slice(0, 3)) g = answer(g, wrong)
+    setup({ game: g })
+    expect(screen.getByRole('status')).toHaveTextContent(`The answer is ${g.rounds[0].target.properties.name}.`)
+    expect(screen.getByRole('button', { name: 'Next' })).toBeInTheDocument()
   })
 
   it('marks the right and wrong choices', () => {
@@ -132,11 +164,12 @@ describe('GamesPanel: rounds', () => {
     let g: RoundGameState = roundGame('find')
     while (!g.finished) g = next(answer(g, g.rounds[g.index].target))
     const { onStart, onQuit } = setup({ game: g, previousBest: 3 })
-    expect(screen.getByText('5 / 5')).toBeInTheDocument()
+    expect(screen.getByText('15 / 15')).toBeInTheDocument()
+    expect(screen.getByText('points')).toBeInTheDocument()
     expect(screen.getByText('Perfect! A true geographer.')).toBeInTheDocument()
     expect(screen.getByText('New best score!')).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: 'Play again' }))
-    expect(onStart).toHaveBeenCalledWith('find')
+    expect(onStart).toHaveBeenCalledWith('find', 'easy')
     await userEvent.click(screen.getByRole('button', { name: 'All games' }))
     expect(onQuit).toHaveBeenCalled()
   })

@@ -197,6 +197,7 @@ test.describe('games', () => {
     await openGlobe(page)
     await page.getByRole('button', { name: 'Games' }).click()
     await page.getByRole('button', { name: /Find the country/ }).click()
+    await page.getByRole('button', { name: /^Easy/ }).click()
     await expect(page.getByText('Round 1 of 10')).toBeVisible()
 
     // The middle of the globe, which sits beside the side panel
@@ -206,17 +207,16 @@ test.describe('games', () => {
     await page.mouse.move(x, y)
     await expect(tooltip(page)).toBeHidden() // no giveaways
     await page.mouse.click(x, y)
-    await expect(feedback(page)).toHaveText(/Correct!|The answer is/)
+    // Right away, or a miss with two tries left
+    await expect(feedback(page)).toHaveText(/Correct! \+3 points|Try again: 2 tries left/)
     await expect(panel(page)).toBeHidden()
-
-    await page.getByRole('button', { name: 'Next' }).click()
-    await expect(page.getByText('Round 2 of 10')).toBeVisible()
   })
 
   test('flag quiz: picking a country gives feedback', async ({ page }) => {
     await openGlobe(page)
     await page.getByRole('button', { name: 'Games' }).click()
     await page.getByRole('button', { name: /Flag quiz/ }).click()
+    await page.getByRole('button', { name: /^Easy/ }).click()
     const flag = page.getByRole('img', { name: 'The flag to identify' })
     await expect.poll(() => flag.evaluate((img) => (img as { naturalWidth: number }).naturalWidth)).toBeGreaterThan(0)
 
@@ -229,6 +229,7 @@ test.describe('games', () => {
     await openGlobe(page)
     await page.getByRole('button', { name: 'Games' }).click()
     await page.getByRole('button', { name: /Letter hunt/ }).click()
+    await page.getByRole('button', { name: /^Easy/ }).click()
     await expect(page.getByText(/^Found 0 of \d+$/)).toBeVisible()
 
     const box = (await page.locator('.globe canvas').boundingBox())!
@@ -242,8 +243,8 @@ test.describe('games', () => {
   test('shape quiz on medium: type an answer', async ({ page }) => {
     await openGlobe(page)
     await page.getByRole('button', { name: 'Games' }).click()
-    await page.getByRole('radio', { name: 'Medium' }).check()
     await page.getByRole('button', { name: /Shape quiz/ }).click()
+    await page.getByRole('button', { name: /^Medium/ }).click()
     await expect(page.getByRole('img', { name: 'The outline to identify' })).toBeVisible()
 
     const input = page.getByRole('combobox', { name: 'Your answer' })
@@ -260,6 +261,7 @@ test.describe('games', () => {
     await openGlobe(page)
     await page.getByRole('button', { name: 'Games' }).click()
     await page.getByRole('button', { name: /Name that country/ }).click()
+    await page.getByRole('button', { name: /^Easy/ }).click()
     for (let round = 1; round <= 10; round++) {
       await expect(page.getByText(`Round ${round} of 10`)).toBeVisible()
       await page.locator('.option').first().click()
@@ -267,7 +269,8 @@ test.describe('games', () => {
     }
     await expect(page.getByText(/^\d+ \/ 10$/)).toBeVisible()
     await page.getByRole('button', { name: 'All games' }).click()
-    await expect(page.getByRole('button', { name: /Name that country/ })).toContainText('Best:')
+    await page.getByRole('button', { name: /Name that country/ }).click()
+    await expect(page.getByRole('button', { name: /^Easy/ })).toContainText('Best:')
   })
 })
 

@@ -429,10 +429,11 @@ describe('App', () => {
 
   describe('games', () => {
     const byName = (name: string) => countries.find((c) => c.properties.name === name)!
-    const startGame = async (title: RegExp) => {
+    const startGame = async (title: RegExp, difficulty = 'Easy') => {
       render(<App />)
       await userEvent.click(screen.getByRole('button', { name: 'Games' }))
       await userEvent.click(screen.getByRole('button', { name: title }))
+      await userEvent.click(screen.getByRole('button', { name: new RegExp(`^${difficulty}`) }))
     }
     const findTarget = () => screen.getByText('Find this country on the globe').nextElementSibling!.textContent!
     const feedback = () => screen.getByRole('status')
@@ -452,27 +453,40 @@ describe('App', () => {
       await userEvent.click(within(countryPanel()!).getByRole('button', { name: 'Mark as visited' }))
       await userEvent.click(screen.getByRole('button', { name: 'Games' }))
       await userEvent.click(screen.getByRole('button', { name: /Flag quiz/ }))
+      await userEvent.click(screen.getByRole('button', { name: /^Easy/ }))
       expect(painted()).toEqual({})
     })
 
     describe('find the country', () => {
-      it('scores a click on the right country', async () => {
+      it('scores 3 points for the right country on the first try', async () => {
         await startGame(/Find the country/)
         const target = findTarget()
         click(PLACE_OF[target])
-        expect(feedback()).toHaveTextContent('Correct!')
-        expect(screen.getByText('Score 1')).toBeInTheDocument()
+        expect(feedback()).toHaveTextContent('Correct! +3 points')
+        expect(screen.getByText('3 points')).toBeInTheDocument()
         expect(painted()).toEqual({ [target]: DEFAULT_THEME.correct })
         expect(countryPanel()).not.toBeInTheDocument()
       })
 
-      it('shows the wrong and the right country after a miss, and flies to the answer', async () => {
+      it('lets you try again after a miss, for fewer points', async () => {
         await startGame(/Find the country/)
         const target = findTarget()
         const wrong = Object.keys(PLACE_OF).find((name) => name !== target)!
         click(PLACE_OF[wrong])
-        expect(feedback()).toHaveTextContent(`That's ${wrong}. The answer is ${target}.`)
+        expect(feedback()).toHaveTextContent(`That's ${wrong}. Try again: 2 tries left.`)
+        expect(painted()).toEqual({ [wrong]: DEFAULT_THEME.wrong })
+        click(PLACE_OF[target])
+        expect(feedback()).toHaveTextContent('Correct! +2 points')
         expect(painted()).toEqual({ [wrong]: DEFAULT_THEME.wrong, [target]: DEFAULT_THEME.correct })
+      })
+
+      it('shows the answer and flies there after three misses', async () => {
+        await startGame(/Find the country/)
+        const target = findTarget()
+        const wrong = Object.keys(PLACE_OF).filter((name) => name !== target).slice(0, 3)
+        for (const name of wrong) click(PLACE_OF[name])
+        expect(feedback()).toHaveTextContent(`The answer is ${target}.`)
+        expect(painted()[target]).toBe(DEFAULT_THEME.correct)
         const [lng, lat] = byName(target).properties.centroid
         expect(lastFlight()?.[0]).toMatchObject({ lat, lng })
       })
@@ -484,7 +498,7 @@ describe('App', () => {
         const target = findTarget()
         click(PLACE_OF[target])
         click(PLACE_OF[Object.keys(PLACE_OF).find((name) => name !== target)!])
-        expect(screen.getByText('Score 1')).toBeInTheDocument()
+        expect(screen.getByText('3 points')).toBeInTheDocument()
       })
 
       it('plays to the end and saves the best score', async () => {
@@ -493,9 +507,10 @@ describe('App', () => {
           click(PLACE_OF[findTarget()])
           await userEvent.click(screen.getByRole('button', { name: round < 4 ? 'Next' : 'See results' }))
         }
-        expect(screen.getByText('5 / 5')).toBeInTheDocument()
+        expect(screen.getByText('15 / 15')).toBeInTheDocument()
         await userEvent.click(screen.getByRole('button', { name: 'All games' }))
-        expect(screen.getByRole('button', { name: /Find the country/ })).toHaveTextContent('Best: 5 / 10')
+        await userEvent.click(screen.getByRole('button', { name: /Find the country/ }))
+        expect(screen.getByRole('button', { name: /^Easy/ })).toHaveTextContent('Best: 15 / 30 points')
       })
     })
 
@@ -535,15 +550,8 @@ describe('App', () => {
     })
 
     describe('difficulty', () => {
-      const chooseDifficulty = async (label: string) => {
-        await userEvent.click(screen.getByRole('radio', { name: label }))
-      }
-
-      it('asks for typed answers on medium, accepting old names', async () => {
-        render(<App />)
-        await userEvent.click(screen.getByRole('button', { name: 'Games' }))
-        await chooseDifficulty('Medium')
-        await userEvent.click(screen.getByRole('button', { name: /Shape quiz/ }))
+      it('asks for typed answers on medium', async () => {
+        await startGame(/Shape quiz/, 'Medium')
         const target = lastRoundGame.current!.rounds[0].target.properties.name
         await userEvent.type(screen.getByRole('combobox'), `${target}{Enter}`)
         expect(feedback()).toHaveTextContent('Correct!')
@@ -552,14 +560,11 @@ describe('App', () => {
         expect(lastFlight()?.[0]).toMatchObject({ lat, lng })
       })
 
-      it('remembers the difficulty', async () => {
-        const first = render(<App />)
-        await userEvent.click(screen.getByRole('button', { name: 'Games' }))
-        await chooseDifficulty('Hard')
-        first.unmount()
-        render(<App />)
-        await userEvent.click(screen.getByRole('button', { name: 'Games' }))
-        expect(screen.getByRole('radio', { name: 'Hard' })).toBeChecked()
+      it('plays again at the same difficulty', async () => {
+        await startGame(/Letter hunt/, 'Hard')
+        await userEvent.click(screen.getByRole('button', { name: 'Give up and show the rest' }))
+        await userEvent.click(screen.getByRole('button', { name: 'Play again' }))
+        expect(screen.getByText(/Letter hunt · Hard/)).toBeInTheDocument()
       })
     })
 

@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { flagUrl } from '../flags'
 import type { CountryFeature } from '../countries'
 import CountryInput from './CountryInput'
@@ -5,8 +6,12 @@ import CountryShape from './CountryShape'
 import {
   DIFFICULTIES,
   GAMES,
+  MAX_TRIES,
+  ROUNDS,
   answerMode,
   currentRound,
+  difficultyDescription,
+  maxScore,
   type Difficulty,
   type GameId,
   type RoundGameState,
@@ -16,11 +21,9 @@ import { bestKey, gameScore, type BestScores, type GameState } from './useGame'
 
 type Props = {
   game: GameState | null
-  difficulty: Difficulty
   best: BestScores
   previousBest: number | undefined
-  onDifficulty: (difficulty: Difficulty) => void
-  onStart: (id: GameId) => void
+  onStart: (id: GameId, difficulty: Difficulty) => void
   onPick: (country: CountryFeature, alias?: string | null) => void
   onNext: () => void
   onQuit: () => void
@@ -28,7 +31,10 @@ type Props = {
 
 const titleOf = (id: GameId) => GAMES.find((g) => g.id === id)!.title
 const difficultyLabel = (d: Difficulty) => DIFFICULTIES.find((x) => x.id === d)!.label
-const formatScore = (id: GameId, score: number) => (id === 'letter' ? `${score}%` : `${score} / 10`)
+function formatScore(id: GameId, score: number) {
+  if (id === 'letter') return `${score}%`
+  return id === 'find' ? `${score} / ${ROUNDS * MAX_TRIES} points` : `${score} / ${ROUNDS}`
+}
 
 export default function GamesPanel(props: Props) {
   const { game } = props
@@ -37,43 +43,60 @@ export default function GamesPanel(props: Props) {
   return game.kind === 'letter' ? <LetterHunt {...props} game={game} /> : <RoundPlay {...props} game={game} />
 }
 
-function GameList({ difficulty, best, onDifficulty, onStart }: Props) {
+/** All games; picking one asks for the difficulty. */
+function GameList({ best, onStart }: Props) {
+  const [chosen, setChosen] = useState<GameId | null>(null)
+  if (chosen) return <DifficultyChoice id={chosen} best={best} onStart={onStart} onBack={() => setChosen(null)} />
   return (
     <>
-      <fieldset className="difficulty">
-        <legend>Difficulty</legend>
-        <div className="segmented">
-          {DIFFICULTIES.map((d) => (
-            <label key={d.id}>
-              <input
-                type="radio"
-                name="difficulty"
-                value={d.id}
-                checked={d.id === difficulty}
-                onChange={() => onDifficulty(d.id)}
-              />
-              <span>{d.label}</span>
-            </label>
-          ))}
-        </div>
-        <p className="muted">{DIFFICULTIES.find((d) => d.id === difficulty)!.description}</p>
-      </fieldset>
-
+      <p className="muted">Test your geography. Each game has {ROUNDS} rounds, at the difficulty you choose.</p>
       <ul className="game-list">
-        {GAMES.map((g) => {
-          const score = best[bestKey(g.id, difficulty)]
+        {GAMES.map((g) => (
+          <li key={g.id}>
+            <button type="button" className="game-card" onClick={() => setChosen(g.id)}>
+              <strong>{g.title}</strong>
+              <span className="muted">{g.description}</span>
+            </button>
+          </li>
+        ))}
+      </ul>
+    </>
+  )
+}
+
+function DifficultyChoice({ id, best, onStart, onBack }: {
+  id: GameId
+  best: BestScores
+  onStart: Props['onStart']
+  onBack: () => void
+}) {
+  const game = GAMES.find((g) => g.id === id)!
+  return (
+    <div className="game">
+      <button type="button" className="text-button" onClick={onBack}>
+        ← All games
+      </button>
+      <h3 className="game-heading">{game.title}</h3>
+      <p className="muted">
+        {game.description}
+        {id === 'find' && ` ${MAX_TRIES} tries per country: ${MAX_TRIES} points on the first, 2 on the second, 1 on the third.`}
+      </p>
+      <p className="game-prompt">Choose a difficulty</p>
+      <ul className="game-list">
+        {DIFFICULTIES.map((d) => {
+          const score = best[bestKey(id, d.id)]
           return (
-            <li key={g.id}>
-              <button type="button" className="game-card" onClick={() => onStart(g.id)}>
-                <strong>{g.title}</strong>
-                <span className="muted">{g.description}</span>
-                {score !== undefined && <span className="best-score">Best: {formatScore(g.id, score)}</span>}
+            <li key={d.id}>
+              <button type="button" className="game-card" onClick={() => onStart(id, d.id)}>
+                <strong>{d.label}</strong>
+                <span className="muted">{difficultyDescription(id, d.id)}</span>
+                {score !== undefined && <span className="best-score">Best: {formatScore(id, score)}</span>}
               </button>
             </li>
           )
         })}
       </ul>
-    </>
+    </div>
   )
 }
 
@@ -105,10 +128,18 @@ function RoundPlay({ game, onPick, onNext, onQuit }: Props & { game: RoundGameSt
     return option === answer.picked ? ' wrong' : ' dimmed'
   }
 
+  const isFind = game.id === 'find'
+  const lastMiss = game.misses.at(-1)
+  const triesLeft = MAX_TRIES - game.misses.length
+
   const feedback = () => {
-    if (!answer) return ''
     const name = target.properties.name
-    if (answer.correct) return answer.alias ? `Correct: ${name} (you wrote ${answer.alias})` : 'Correct!'
+    if (!answer) {
+      if (!lastMiss) return ''
+      return `That's ${lastMiss.properties.name}. Try again: ${triesLeft} ${triesLeft === 1 ? 'try' : 'tries'} left.`
+    }
+    const points = isFind ? ` +${answer.points} ${answer.points === 1 ? 'point' : 'points'}` : ''
+    if (answer.correct) return answer.alias ? `Correct: ${name} (you wrote ${answer.alias})${points}` : `Correct!${points}`
     const picked = answer.picked.properties.name
     return mode === 'choices' ? `The answer is ${name}.` : `That's ${picked}. The answer is ${name}.`
   }
@@ -120,7 +151,7 @@ function RoundPlay({ game, onPick, onNext, onQuit }: Props & { game: RoundGameSt
         <span>
           Round {game.index + 1} of {game.rounds.length}
         </span>
-        <span>Score {game.score}</span>
+        <span>{isFind ? `${game.score} points` : `Score ${game.score}`}</span>
       </div>
       <div
         className="progress"
@@ -134,7 +165,17 @@ function RoundPlay({ game, onPick, onNext, onQuit }: Props & { game: RoundGameSt
       </div>
 
       <p className="game-prompt">{PROMPTS[game.id]}</p>
-      {game.id === 'find' && <p className="game-target">{target.properties.name}</p>}
+      {isFind && <p className="game-target">{target.properties.name}</p>}
+      {isFind && !answer && (
+        <p className="tries" aria-label={`Try ${game.misses.length + 1} of ${MAX_TRIES}`}>
+          {Array.from({ length: MAX_TRIES }, (_, i) => (
+            <span key={i} className={i < game.misses.length ? 'used' : ''} />
+          ))}
+          <span className="muted">
+            Worth {triesLeft} {triesLeft === 1 ? 'point' : 'points'}
+          </span>
+        </p>
+      )}
       {game.id === 'flags' && <img className="game-flag" src={flagUrl(target)!} alt="The flag to identify" />}
       {game.id === 'shape' && <CountryShape country={target} />}
 
@@ -155,7 +196,10 @@ function RoundPlay({ game, onPick, onNext, onQuit }: Props & { game: RoundGameSt
       )}
       {mode === 'typing' && !answer && <CountryInput key={game.index} onAnswer={onPick} />}
 
-      <p className={`feedback${answer ? (answer.correct ? ' correct' : ' wrong') : ''}`} role="status">
+      <p
+        className={`feedback${answer?.correct ? ' correct' : answer || lastMiss ? ' wrong' : ''}`}
+        role="status"
+      >
         {feedback()}
       </p>
 
@@ -239,7 +283,7 @@ function verdict(share: number) {
 function Results({ game, previousBest, onStart, onQuit }: Props & { game: GameState }) {
   const score = gameScore(game)
   const newBest = previousBest !== undefined && score > previousBest
-  const share = game.kind === 'letter' ? score / 100 : score / game.rounds.length
+  const share = game.kind === 'letter' ? score / 100 : score / maxScore(game)
 
   return (
     <div className="game game-results">
@@ -258,13 +302,16 @@ function Results({ game, previousBest, onStart, onQuit }: Props & { game: GameSt
           )}
         </>
       ) : (
-        <p className="big-score">
-          {game.score} / {game.rounds.length}
-        </p>
+        <>
+          <p className="big-score">
+            {game.score} / {maxScore(game)}
+          </p>
+          {game.id === 'find' && <p className="muted">points</p>}
+        </>
       )}
       <p>{verdict(share)}</p>
       {newBest && <p className="new-best">New best score!</p>}
-      <button type="button" className="primary-button" onClick={() => onStart(game.id)}>
+      <button type="button" className="primary-button" onClick={() => onStart(game.id, game.difficulty)}>
         Play again
       </button>
       <button type="button" className="text-button" onClick={onQuit}>

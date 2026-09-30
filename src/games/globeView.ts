@@ -31,6 +31,7 @@ export function gameHighlights(game: GameState | null, theme: Theme): ReadonlyMa
     return colors
   }
   const { target } = currentRound(game)
+  for (const miss of game.misses) colors.set(miss, theme.wrong)
   if (game.answer) {
     if (!game.answer.correct) colors.set(game.answer.picked, theme.wrong)
     colors.set(target, theme.correct)
