@@ -1,23 +1,24 @@
 import {
   BufferAttribute,
+  BufferGeometry,
   Color,
+  DoubleSide,
+  Float32BufferAttribute,
   Group,
   LineBasicMaterial,
   LineSegments,
-  MathUtils,
   Mesh,
   MeshLambertMaterial,
   type ColorRepresentation,
 } from 'three'
-import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
-import ConicPolygonGeometry from 'three-conic-polygon-geometry'
 import GeoJsonGeometry from 'three-geojson-geometry'
-import type { MultiLineString, Position } from 'geojson'
-import { geoBounds } from 'd3-geo'
+import type { MultiLineString } from 'geojson'
 import type { CountryFeature } from '../countries'
+import { densifyRing, triangulatePolygon } from './sphereMesh'
 import { LAND_ALTITUDE } from './style'
 
-const CURVATURE_RESOLUTION = 5
+/** How far borders float above the land, as a fraction of its radius */
+const BORDER_LIFT = 0.0004
 
 export type CountryLayer = {
   object: Group
@@ -43,36 +44,37 @@ export function createCountryLayer(
 
   // Which vertices of the merged mesh belong to which country
   const ranges = new Map<CountryFeature, { start: number; count: number }>()
-  let vertexCount = 0
-  const parts = countries.flatMap((country) => {
-    const { geometry } = country
-    const polygons = geometry.type === 'Polygon' ? [geometry.coordinates] : geometry.coordinates
-    const countryParts = polygons.map((rings) => createCapGeometry(rings, globeRadius, top))
-    const count = countryParts.reduce((sum, part) => sum + part.attributes.position.count, 0)
-    ranges.set(country, { start: vertexCount, count })
-    vertexCount += count
-    return countryParts
-  })
-  const landGeometry = mergeGeometries(parts, false)
-  parts.forEach((p) => p.dispose())
+  const positions: number[] = []
+  const normals: number[] = []
+  const indices: number[] = []
+  for (const country of countries) {
+    const start = positions.length / 3
+    for (const rings of polygonsOf(country)) {
+      const offset = positions.length / 3
+      const { vertices, indices: triangles } = triangulatePolygon(rings)
+      for (const v of vertices) {
+        positions.push(v[0] * top, v[1] * top, v[2] * top)
+        normals.push(...v)
+      }
+      for (const i of triangles) indices.push(offset + i)
+    }
+    ranges.set(country, { start, count: positions.length / 3 - start })
+  }
+  const vertexCount = positions.length / 3
+  const landGeometry = new BufferGeometry()
+  landGeometry.setAttribute('position', new Float32BufferAttribute(positions, 3))
+  landGeometry.setAttribute('normal', new Float32BufferAttribute(normals, 3))
+  landGeometry.setIndex(indices)
 
   // Starts out white; the caller paints each country
   const colors = new BufferAttribute(new Float32Array(vertexCount * 3).fill(1), 3)
   landGeometry.setAttribute('color', colors)
 
-  const land = new Mesh(
-    landGeometry,
-    new MeshLambertMaterial({
-      vertexColors: true,
-      // Push the land back in the depth buffer so borders never flicker through it
-      polygonOffset: true,
-      polygonOffsetFactor: 1,
-      polygonOffsetUnits: 1,
-    }),
-  )
+  const land = new Mesh(landGeometry, new MeshLambertMaterial({ vertexColors: true }))
 
+  // Borders sit just above the land so they never sink into it
   const lines = new LineSegments(
-    new GeoJsonGeometry(borders, top, CURVATURE_RESOLUTION),
+    new GeoJsonGeometry(borders, top * (1 + BORDER_LIFT), 1),
     new LineBasicMaterial({ transparent: true }),
   )
 
@@ -107,30 +109,77 @@ export function createCountryLayer(
   }
 }
 
-const wrapLng = (lng: number) => ((((lng + 180) % 360) + 360) % 360) - 180
+const polygonsOf = ({ geometry }: CountryFeature) =>
+  geometry.type === 'Polygon' ? [geometry.coordinates] : geometry.coordinates
 
 /**
- * How far to shift a polygon's longitudes so it no longer crosses the
- * antimeridian (180°), or 0 if it doesn't cross it.
+ * A country standing out from the globe: its surface at `topRadius` and
+ * walls down to `baseRadius`.
  */
-export function antimeridianShift(rings: Position[][]) {
-  const [[west], [east]] = geoBounds({ type: 'Polygon', coordinates: rings })
-  if (west <= east) return 0
-  const center = (west + east + 360) / 2
-  return -center
+export function createRaisedCountry(country: CountryFeature, baseRadius: number, topRadius: number) {
+  const capPositions: number[] = []
+  const capNormals: number[] = []
+  const capIndices: number[] = []
+  const wallPositions: number[] = []
+  const wallNormals: number[] = []
+
+  for (const rings of polygonsOf(country)) {
+    const offset = capPositions.length / 3
+    const { vertices, indices } = triangulatePolygon(rings)
+    for (const v of vertices) {
+      capPositions.push(v[0] * topRadius, v[1] * topRadius, v[2] * topRadius)
+      capNormals.push(...v)
+    }
+    for (const i of indices) capIndices.push(offset + i)
+
+    for (const ring of rings) {
+      const points = densifyRing(ring)
+      points.forEach((a, i) => {
+        const b = points[(i + 1) % points.length]
+        const corners = [
+          [a, baseRadius],
+          [b, baseRadius],
+          [b, topRadius],
+          [a, baseRadius],
+          [b, topRadius],
+          [a, topRadius],
+        ] as const
+        for (const [v, r] of corners) {
+          wallPositions.push(v[0] * r, v[1] * r, v[2] * r)
+          wallNormals.push(...v)
+        }
+      })
+    }
+  }
+
+  const cap = new BufferGeometry()
+  cap.setAttribute('position', new Float32BufferAttribute(capPositions, 3))
+  cap.setAttribute('normal', new Float32BufferAttribute(capNormals, 3))
+  cap.setIndex(capIndices)
+  const walls = new BufferGeometry()
+  walls.setAttribute('position', new Float32BufferAttribute(wallPositions, 3))
+  walls.setAttribute('normal', new Float32BufferAttribute(wallNormals, 3))
+
+  const object = new Group()
+  object.name = 'selected-country'
+  const capMesh = new Mesh(cap, new MeshLambertMaterial())
+  const wallMesh = new Mesh(walls, new MeshLambertMaterial({ side: DoubleSide }))
+  object.add(capMesh, wallMesh)
+
+  return {
+    object,
+    setColor(color: ColorRepresentation) {
+      capMesh.material.color.set(color)
+      // Walls a shade darker, so the country reads as raised
+      wallMesh.material.color.set(color).multiplyScalar(0.6)
+    },
+    dispose() {
+      cap.dispose()
+      walls.dispose()
+      capMesh.material.dispose()
+      wallMesh.material.dispose()
+    },
+  }
 }
 
-/**
- * The flat top of one polygon, lifted to `radius`.
- *
- * Polygons crossing the antimeridian (Russia's mainland) take a very slow
- * triangulation path — seconds, not milliseconds. So they're built rotated
- * away from it and the finished geometry is rotated back into place.
- */
-export function createCapGeometry(rings: Position[][], globeRadius: number, radius: number) {
-  const shift = antimeridianShift(rings)
-  const shifted = shift ? rings.map((ring) => ring.map(([lng, lat]) => [wrapLng(lng + shift), lat])) : rings
-  const geometry = new ConicPolygonGeometry(shifted, globeRadius, radius, false, true, false, CURVATURE_RESOLUTION)
-  if (shift) geometry.rotateY(MathUtils.degToRad(-shift))
-  return geometry
-}
+export type RaisedCountry = ReturnType<typeof createRaisedCountry>

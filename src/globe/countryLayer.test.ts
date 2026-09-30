@@ -1,76 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { BufferAttribute, BufferGeometry, Color, LineBasicMaterial, LineSegments, Mesh, Vector3 } from 'three'
-import { geoContains } from 'd3-geo'
-import type { Position } from 'geojson'
+import { BufferAttribute, BufferGeometry, Color, LineBasicMaterial, LineSegments, Mesh, MeshLambertMaterial, Vector3 } from 'three'
 import { borders, countries } from '../countries'
-import { antimeridianShift, createCapGeometry, createCountryLayer } from './countryLayer'
+import { createCountryLayer, createRaisedCountry } from './countryLayer'
 
 const LAND = '#48a078'
 const HOVER = '#ffc850'
 
 const RADIUS = 100
-
-/** Inverse of three-globe's polar2Cartesian */
-function toLngLat({ x, y, z }: Vector3): [number, number] {
-  const r = Math.hypot(x, y, z)
-  const lat = 90 - (Math.acos(y / r) * 180) / Math.PI
-  const lng = 90 - (Math.atan2(z, x) * 180) / Math.PI
-  return [((lng + 540) % 360) - 180, lat]
-}
-
-/** Checks the center of every triangle lies inside the polygon it was built from. */
-function trianglesInside(rings: Position[][]) {
-  const geometry = createCapGeometry(rings, RADIUS, RADIUS * 1.01)
-  const pos = geometry.attributes.position
-  const index = geometry.index!
-  const polygon = { type: 'Polygon' as const, coordinates: rings }
-  let inside = 0
-  const total = index.count / 3
-  for (let i = 0; i < index.count; i += 3) {
-    const center = new Vector3()
-    for (let k = 0; k < 3; k++) center.add(new Vector3().fromBufferAttribute(pos, index.getX(i + k)))
-    if (geoContains(polygon, toLngLat(center.divideScalar(3)))) inside++
-  }
-  return inside / total
-}
-
-const russia = countries.find((c) => c.properties.name === 'Russia')!
-const russiaParts = russia.geometry.coordinates as Position[][][]
-const russiaMainland = russiaParts.reduce((a, b) => (b[0].length > a[0].length ? b : a))
-
-describe('antimeridianShift', () => {
-  it('is 0 for polygons that do not cross 180°', () => {
-    const denmark = countries.find((c) => c.properties.name === 'Denmark')!
-    expect(antimeridianShift((denmark.geometry.coordinates as Position[][][])[0])).toBe(0)
-  })
-
-  it('moves a crossing polygon so it no longer crosses', () => {
-    const shift = antimeridianShift(russiaMainland)
-    expect(shift).not.toBe(0)
-    const lngs = russiaMainland[0].map(([lng]) => ((lng + shift + 540) % 360) - 180)
-    expect(Math.max(...lngs) - Math.min(...lngs)).toBeLessThan(180)
-  })
-})
-
-describe('createCapGeometry', () => {
-  it('covers exactly the polygon for an ordinary country', () => {
-    const france = countries.find((c) => c.properties.name === 'France')!
-    const mainland = (france.geometry.coordinates as Position[][][]).reduce((a, b) =>
-      b[0].length > a[0].length ? b : a,
-    )
-    expect(trianglesInside(mainland)).toBe(1)
-  })
-
-  it('puts a polygon crossing the antimeridian back in the right place', () => {
-    expect(trianglesInside(russiaMainland)).toBe(1)
-  })
-
-  it('builds Russia quickly despite crossing the antimeridian', () => {
-    const start = performance.now()
-    createCapGeometry(russiaMainland, RADIUS, RADIUS * 1.01)
-    expect(performance.now() - start).toBeLessThan(1000)
-  })
-})
 
 describe('createCountryLayer', () => {
   const layer = createCountryLayer(countries, borders, RADIUS)
@@ -116,5 +52,31 @@ describe('createCountryLayer', () => {
     layer.setBorders('#ff0000', 0.5)
     expect(lines.material.color.getHexString()).toBe('ff0000')
     expect(lines.material.opacity).toBe(0.5)
+  })
+})
+
+describe('createRaisedCountry', () => {
+  const denmark = countries.find((c) => c.properties.name === 'Denmark')!
+  const raised = createRaisedCountry(denmark, RADIUS, RADIUS * 1.01)
+  const [cap, walls] = raised.object.children as Mesh<BufferGeometry, MeshLambertMaterial>[]
+  const radii = (mesh: Mesh) => {
+    const pos = mesh.geometry.getAttribute('position')
+    return Array.from({ length: pos.count }, (_, i) => new Vector3().fromBufferAttribute(pos, i).length())
+  }
+
+  it('puts the surface at the raised height', () => {
+    for (const r of radii(cap)) expect(r).toBeCloseTo(RADIUS * 1.01, 3)
+  })
+
+  it('has walls from the globe up to the surface', () => {
+    const r = radii(walls)
+    expect(Math.min(...r)).toBeCloseTo(RADIUS, 3)
+    expect(Math.max(...r)).toBeCloseTo(RADIUS * 1.01, 3)
+  })
+
+  it('colors the walls darker than the surface', () => {
+    raised.setColor('#ff7846')
+    expect(cap.material.color.getHexString()).toBe('ff7846')
+    expect(walls.material.color.getHSL({ h: 0, s: 0, l: 0 }).l).toBeLessThan(cap.material.color.getHSL({ h: 0, s: 0, l: 0 }).l)
   })
 })

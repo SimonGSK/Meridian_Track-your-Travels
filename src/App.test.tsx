@@ -9,11 +9,13 @@ import { DEFAULT_THEME, NIGHT, POLITICAL } from './globe/themes'
 
 // WebGL doesn't exist in jsdom, so the globe is replaced by a stand-in that
 // exposes what the app passes to it. Screen positions map to places by x.
-const { PLACES, globe, layer } = vi.hoisted(() => {
+const { PLACES, globe, layer, sceneObjects } = vi.hoisted(() => {
   const listeners = new Map<string, Set<() => void>>()
+  const sceneObjects = new Set<object>()
   const controls = {
     autoRotate: false,
     autoRotateSpeed: 0,
+    minDistance: 0,
     addEventListener: (type: string, fn: () => void) => {
       if (!listeners.has(type)) listeners.set(type, new Set())
       listeners.get(type)!.add(fn)
@@ -34,33 +36,35 @@ const { PLACES, globe, layer } = vi.hoisted(() => {
     globe: {
       controls: () => controls,
       pointOfView: vi.fn((..._args: unknown[]) => ({ lat: 25, lng: 10, altitude: 1.9 })),
-      scene: () => ({ add: vi.fn(), remove: vi.fn() }),
+      scene: () => ({ add: (o: object) => sceneObjects.add(o), remove: (o: object) => sceneObjects.delete(o) }),
+      camera: () => ({ position: { length: () => 290 }, near: 0.05, updateProjectionMatrix: () => {} }),
       getGlobeRadius: () => 100,
     },
+    sceneObjects,
     layer: { object: {}, paint: vi.fn(), setBorders: vi.fn(), dispose: vi.fn() },
   }
 })
 
 vi.mock('react-globe.gl', () => ({
-  default: function FakeGlobe({ ref, onGlobeReady, polygonsData }: GlobeProps & { ref: Ref<unknown> }) {
+  default: function FakeGlobe({ ref, onGlobeReady }: GlobeProps & { ref: Ref<unknown> }) {
     useImperativeHandle(ref, () => globe)
     // Like the real globe, fires once after mounting
     const onReady = useRef(onGlobeReady)
     useEffect(() => onReady.current?.(), [])
-    const raised = (polygonsData ?? []) as typeof countries
-    return (
-      <ul aria-label="raised countries">
-        {raised.map((c) => (
-          <li key={c.properties.name}>{c.properties.name}</li>
-        ))}
-      </ul>
-    )
+    return <canvas />
   },
 }))
 vi.mock('./globe/picking', () => ({
   screenToLatLng: (_: unknown, x: number) => PLACES[x] ?? null,
 }))
-vi.mock('./globe/countryLayer', () => ({ createCountryLayer: () => layer }))
+vi.mock('./globe/countryLayer', () => ({
+  createCountryLayer: () => layer,
+  createRaisedCountry: (country: { properties: { name: string } }) => ({
+    object: { raised: country.properties.name, scale: { setScalar: () => {} } },
+    setColor: () => {},
+    dispose: () => {},
+  }),
+}))
 // Games ask about a small, known set of countries in a fixed order
 vi.mock('./games/games', async (importOriginal) => {
   const actual = await importOriginal<typeof import('./games/games')>()
@@ -83,7 +87,8 @@ const tooltip = () => screen.queryByRole('tooltip')
 const countryPanel = () => screen.queryByRole('complementary')
 const panelHeading = () => countryPanel()?.querySelector('h2') ?? null
 const sidePanel = () => screen.queryByRole('region')
-const raised = () => screen.getByRole('list', { name: 'raised countries' })
+/** Names of countries currently raised on the globe */
+const raised = () => [...sceneObjects].flatMap((o) => ('raised' in o ? [o.raised as string] : []))
 const flag = () => screen.queryByRole('img', { name: /^Flag of/ })
 
 /** Countries currently not in the plain land color, replayed from paint() calls */
@@ -119,7 +124,7 @@ describe('App', () => {
       hover(100)
       await waitFor(() => expect(tooltip()).toHaveTextContent('Denmark'))
       expect(painted()).toEqual({ Denmark: DEFAULT_THEME.hover })
-      expect(raised()).toBeEmptyDOMElement()
+      expect(raised()).toEqual([])
       expect(surface()).toHaveStyle({ cursor: 'pointer' })
     })
 
@@ -194,8 +199,15 @@ describe('App', () => {
       click(100)
       hover(200)
       await waitFor(() => expect(painted()).toEqual({ France: DEFAULT_THEME.hover }))
-      expect(raised()).toHaveTextContent('Denmark')
-      expect(raised()).not.toHaveTextContent('France')
+      expect(raised()).toEqual(['Denmark'])
+    })
+
+    it('lowers the country again when it is deselected', () => {
+      render(<App />)
+      click(100)
+      expect(raised()).toEqual(['Denmark'])
+      click(300)
+      expect(raised()).toEqual([])
     })
 
     it('switches to another country', () => {

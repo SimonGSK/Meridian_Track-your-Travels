@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { PointerEvent } from 'react'
 import type { GlobeMethods } from 'react-globe.gl'
+import type { PerspectiveCamera } from 'three'
 import { borders, countries, findCountryAt, type CountryFeature } from '../countries'
-import { createCountryLayer, type CountryLayer } from './countryLayer'
+import { createCountryLayer, createRaisedCountry, type CountryLayer } from './countryLayer'
 import { approach, isClick, type Point } from './interaction'
 import { screenToLatLng } from './picking'
+import { LAND_ALTITUDE, SELECTED_ALTITUDE } from './style'
 import type { Theme } from './themes'
 
 export const SPIN_SPEED = 0.4
@@ -52,6 +54,72 @@ export function useCountryLayer(
       painted.current.set(country, color)
     }
   }, [globe, colorOf])
+}
+
+const RISE_MS = 300
+
+/** Shows the selected country raised above the others, rising smoothly into place. */
+export function useSelectedCountry(globe: GlobeMethods | null, selected: CountryFeature | null, color: string) {
+  const raised = useRef<ReturnType<typeof createRaisedCountry> | null>(null)
+
+  useEffect(() => {
+    if (!globe || !selected) return
+    const radius = globe.getGlobeRadius()
+    const base = radius * (1 + LAND_ALTITUDE)
+    const top = radius * (1 + SELECTED_ALTITUDE)
+    const country = createRaisedCountry(selected, radius, top)
+    raised.current = country
+    const scene = globe.scene()
+    scene.add(country.object)
+
+    // Start level with the other countries and ease up
+    const start = performance.now()
+    let frame = 0
+    const rise = () => {
+      const t = Math.min(1, (performance.now() - start) / RISE_MS)
+      const eased = 1 - (1 - t) ** 3
+      country.object.scale.setScalar((base + (top - base) * eased) / top)
+      if (t < 1) frame = requestAnimationFrame(rise)
+    }
+    rise()
+
+    return () => {
+      cancelAnimationFrame(frame)
+      scene.remove(country.object)
+      country.dispose()
+      raised.current = null
+    }
+  }, [globe, selected])
+
+  useEffect(() => {
+    raised.current?.setColor(color)
+  }, [globe, selected, color])
+}
+
+/**
+ * Keeps the depth buffer precise at every zoom level. With a fixed, tiny
+ * near plane, zooming out leaves too little precision to tell the land from
+ * the ocean just below it, and the two flicker. Moving the near plane out
+ * with the camera fixes that. Also stops the camera from zooming into the land.
+ */
+export function useDepthPrecision(globe: GlobeMethods | null) {
+  useEffect(() => {
+    if (!globe) return
+    const camera = globe.camera() as PerspectiveCamera
+    const controls = globe.controls()
+    const radius = globe.getGlobeRadius()
+    controls.minDistance = radius * (1 + SELECTED_ALTITUDE * 2)
+
+    const update = () => {
+      const near = Math.max(0.1, (camera.position.length() - radius) * 0.5)
+      if (Math.abs(near - camera.near) / camera.near < 0.01) return
+      camera.near = near
+      camera.updateProjectionMatrix()
+    }
+    update()
+    controls.addEventListener('change', update)
+    return () => controls.removeEventListener('change', update)
+  }, [globe])
 }
 
 /**

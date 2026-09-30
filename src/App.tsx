@@ -15,10 +15,15 @@ import SidePanel from './nav/SidePanel'
 import VisitedPanel from './visited/VisitedPanel'
 import { useVisited } from './visited/useVisited'
 import Tooltip from './Tooltip'
-import { useCountryLayer, useCountryPointer, useSmoothAutoRotate } from './globe/hooks'
+import {
+  useCountryLayer,
+  useCountryPointer,
+  useDepthPrecision,
+  useSelectedCountry,
+  useSmoothAutoRotate,
+} from './globe/hooks'
 import { INITIAL_VIEW, fitAltitude, flightAltitude, flightDuration } from './globe/interaction'
 import { countryColor } from './globe/colors'
-import { SELECTED_ALTITUDE } from './globe/style'
 
 const RENDERER_CONFIG = { antialias: true, alpha: true, powerPreference: 'high-performance' } as const
 
@@ -98,6 +103,8 @@ export default function App() {
     [theme, colorHovered, colorVisited, highlights],
   )
   useCountryLayer(globe, theme, colorOf)
+  useSelectedCountry(globe, selected, theme.selected)
+  useDepthPrecision(globe)
   useSmoothAutoRotate(globe, !selected && !hovered && !playing)
 
   const onGlobeClick = useCallback(
@@ -155,12 +162,6 @@ export default function App() {
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [selected, selectCountry, quitGame])
 
-  // Hover is painted flat on the merged country mesh; only the selected
-  // country goes through the globe's polygon layer, slightly raised.
-  const raised = useMemo(() => (selected ? [selected] : []), [selected])
-  const selectedColor = useCallback(() => theme.selected, [theme])
-  const sideColor = useCallback(() => theme.selectedSide, [theme])
-  const strokeColor = useCallback(() => theme.border, [theme])
 
   return (
     <div className={`app${view ? ' panel-open' : ''}`}>
@@ -182,12 +183,6 @@ export default function App() {
           atmosphereAltitude={0.18}
           // Picking happens in useCountryPointer, far cheaper than raycasting every mesh
           enablePointerInteraction={false}
-          polygonsData={raised}
-          polygonAltitude={SELECTED_ALTITUDE}
-          polygonCapColor={selectedColor}
-          polygonSideColor={sideColor}
-          polygonStrokeColor={strokeColor}
-          polygonsTransitionDuration={300}
           onGlobeReady={() => {
             globeRef.current?.pointOfView(INITIAL_VIEW)
             setGlobe(globeRef.current ?? null)

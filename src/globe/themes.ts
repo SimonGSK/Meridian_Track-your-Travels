@@ -11,7 +11,6 @@ export type Theme = {
   borderOpacity: number
   hover: string
   selected: string
-  selectedSide: string
   visited: string
   /** Game feedback */
   correct: string
@@ -31,7 +30,6 @@ export const CLASSIC: Theme = {
   borderOpacity: 0.8,
   hover: '#ffc850',
   selected: '#ff7846',
-  selectedSide: 'rgba(20, 60, 50, 0.6)',
   visited: '#5b8def',
   correct: '#b4f25c',
   wrong: '#ff5a5f',
@@ -50,7 +48,6 @@ export const POLITICAL: Theme = {
   borderOpacity: 0.55,
   hover: '#ff8a00',
   selected: '#e63946',
-  selectedSide: 'rgba(90, 40, 40, 0.5)',
   visited: '#2f6fdb',
   correct: '#15803d',
   wrong: '#dc2626',
@@ -69,7 +66,6 @@ export const NIGHT: Theme = {
   borderOpacity: 0.9,
   hover: '#ff4fd8',
   selected: '#ffd166',
-  selectedSide: 'rgba(56, 225, 255, 0.35)',
   visited: '#7b5cff',
   correct: '#39ff88',
   wrong: '#ff3b5c',
@@ -88,7 +84,6 @@ export const VINTAGE: Theme = {
   borderOpacity: 0.7,
   hover: '#d9824b',
   selected: '#9c3d22',
-  selectedSide: 'rgba(107, 79, 42, 0.6)',
   visited: '#5f8f6e',
   correct: '#2f7d3a',
   wrong: '#b83227',
@@ -107,7 +102,6 @@ export const MINIMAL: Theme = {
   borderOpacity: 0.9,
   hover: '#1f2937',
   selected: '#2563eb',
-  selectedSide: 'rgba(37, 99, 235, 0.4)',
   visited: '#0ea5a4',
   correct: '#16a34a',
   wrong: '#dc2626',
