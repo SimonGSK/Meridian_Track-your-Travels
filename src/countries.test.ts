@@ -87,6 +87,9 @@ describe('findCountryAt', () => {
     ['Buenos Aires', -34.6, -58.38, 'Argentina'],
     ['Maseru (enclave inside South Africa)', -29.31, 27.48, 'Lesotho'],
     ['Johannesburg', -26.2, 28.05, 'South Africa'],
+    ['Laayoune', 27.15, -13.2, 'W. Sahara'],
+    ['inland from Dakhla', 23, -15, 'W. Sahara'],
+    ['Marrakesh', 31.63, -8, 'Morocco'],
   ])('finds the country at %s', (_, lat, lng, expected) => {
     expect(nameAt(lat, lng)).toBe(expected)
   })

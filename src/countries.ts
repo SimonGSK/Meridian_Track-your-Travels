@@ -4,6 +4,7 @@ import type { Feature, MultiLineString, MultiPolygon, Polygon } from 'geojson'
 import { geoArea, geoBounds, geoCentroid, geoContains } from 'd3-geo'
 import { numericToAlpha2 } from 'i18n-iso-countries'
 import worldData from 'world-atlas/countries-50m.json'
+import { fixWesternSahara, westernSaharaBorder } from './data/westernSahara'
 
 export type CountryFeature = Feature<
   Polygon | MultiPolygon,
@@ -42,8 +43,12 @@ const nameOf = (geometry: { properties?: object }) => (geometry.properties as { 
 export const MAP_COLOR_COUNT = 5
 const mapColors = assignMapColors(topology.objects.countries.geometries)
 
-export const countries: CountryFeature[] = feature(topology, topology.objects.countries)
-  .features.map((f, i) => ({ f, mapColor: mapColors[i] }))
+type Shape = Feature<Polygon | MultiPolygon, { name: string }>
+
+const shapes = fixWesternSahara(feature(topology, topology.objects.countries).features as Shape[])
+
+export const countries: CountryFeature[] = shapes
+  .map((f, i) => ({ f, mapColor: mapColors[i] }))
   .filter(({ f }) => isShown(f.properties.name))
   .map(({ f, mapColor }) => ({
     ...f,
@@ -96,12 +101,19 @@ function extentOf(polygon: Polygon) {
   return Math.max(height, width * Math.cos(midLatitude))
 }
 
+const isMoroccoSaharaBorder = (a: string, b: string) =>
+  (a === 'Morocco' && b === 'W. Sahara') || (a === 'W. Sahara' && b === 'Morocco')
+
 /** Every border and coastline exactly once, so shared borders aren't drawn twice. */
-export const borders: MultiLineString = mesh(
-  topology,
-  topology.objects.countries,
-  (a, b) => isShown(nameOf(a)) && isShown(nameOf(b)),
-)
+export const borders: MultiLineString = (() => {
+  const lines = mesh(topology, topology.objects.countries, (a, b) => {
+    const [nameA, nameB] = [nameOf(a), nameOf(b)]
+    // The data's Morocco–Western Sahara border is replaced, see data/westernSahara.ts
+    return isShown(nameA) && isShown(nameB) && !isMoroccoSaharaBorder(nameA, nameB)
+  })
+  const saharaBorder = westernSaharaBorder(shapes)
+  return saharaBorder ? { ...lines, coordinates: [...lines.coordinates, saharaBorder.coordinates] } : lines
+})()
 
 const bounds = new Map<CountryFeature, Bounds>(
   countries.map((c) => [c, geoBounds(c) as Bounds]),
