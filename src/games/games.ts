@@ -36,7 +36,8 @@ export type GameState = {
 type Random = () => number
 
 const areaKm2 = (country: CountryFeature) => (geoArea(country) / (4 * Math.PI)) * EARTH_AREA_KM2
-const isCountry = (country: CountryFeature) => country.properties.isoCode !== null
+const isCountry = (country: CountryFeature) =>
+  country.properties.isoCode !== null && country.properties.name !== 'Antarctica'
 
 /** The countries a game can ask about. */
 export function gamePool(id: GameId): CountryFeature[] {

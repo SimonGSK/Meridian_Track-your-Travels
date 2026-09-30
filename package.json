@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "data:extra": "node scripts/extract-extra-countries.mjs"
   },
   "dependencies": {
     "d3-geo": "^3.1.1",

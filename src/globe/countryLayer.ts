@@ -7,18 +7,25 @@ import {
   Group,
   LineBasicMaterial,
   LineSegments,
+  CanvasTexture,
   Mesh,
   MeshLambertMaterial,
+  Points,
+  PointsMaterial,
   type ColorRepresentation,
 } from 'three'
 import GeoJsonGeometry from 'three-geojson-geometry'
 import type { MultiLineString } from 'geojson'
 import type { CountryFeature } from '../countries'
-import { densifyRing, triangulatePolygon } from './sphereMesh'
+import { densifyRing, toUnitVector, triangulatePolygon } from './sphereMesh'
 import { LAND_ALTITUDE } from './style'
 
 /** How far borders float above the land, as a fraction of its radius */
 const BORDER_LIFT = 0.0004
+/** Tiny places are drawn a hair above the rest, as some overlap a bigger neighbor (Gibraltar and Spain) */
+const TINY_LIFT = 0.0002
+/** On-screen size of the ring marking tiny places, in pixels */
+export const MARKER_SIZE_PX = 12
 
 export type CountryLayer = {
   object: Group
@@ -49,11 +56,12 @@ export function createCountryLayer(
   const indices: number[] = []
   for (const country of countries) {
     const start = positions.length / 3
+    const radius = top * (country.properties.tiny ? 1 + TINY_LIFT : 1)
     for (const rings of polygonsOf(country)) {
       const offset = positions.length / 3
       const { vertices, indices: triangles } = triangulatePolygon(rings)
       for (const v of vertices) {
-        positions.push(v[0] * top, v[1] * top, v[2] * top)
+        positions.push(v[0] * radius, v[1] * radius, v[2] * radius)
         normals.push(...v)
       }
       for (const i of triangles) indices.push(offset + i)
@@ -78,9 +86,32 @@ export function createCountryLayer(
     new LineBasicMaterial({ transparent: true }),
   )
 
+  // A ring around each tiny place, the same size on screen at any zoom
+  const tiny = countries.filter((c) => c.properties.tiny)
+  const markerIndex = new Map(tiny.map((c, i) => [c, i]))
+  const markerRadius = top * (1 + BORDER_LIFT * 2)
+  const markerGeometry = new BufferGeometry()
+  markerGeometry.setAttribute(
+    'position',
+    new Float32BufferAttribute(tiny.flatMap((c) => toUnitVector(c.properties.centroid).map((v) => v * markerRadius)), 3),
+  )
+  const markerColors = new BufferAttribute(new Float32Array(tiny.length * 3).fill(1), 3)
+  markerGeometry.setAttribute('color', markerColors)
+  const markers = new Points(
+    markerGeometry,
+    new PointsMaterial({
+      size: MARKER_SIZE_PX,
+      sizeAttenuation: false,
+      vertexColors: true,
+      map: ringTexture(),
+      alphaTest: 0.5,
+      transparent: true,
+    }),
+  )
+
   const object = new Group()
   object.name = 'countries'
-  object.add(land, lines)
+  object.add(land, lines, markers)
 
   const paintColor = new Color()
   return {
@@ -95,6 +126,12 @@ export function createCountryLayer(
       // Only re-upload this country's colors to the GPU (three.js clears the ranges after uploading)
       colors.addUpdateRange(range.start * 3, range.count * 3)
       colors.needsUpdate = true
+
+      const marker = markerIndex.get(country)
+      if (marker !== undefined) {
+        markerColors.setXYZ(marker, paintColor.r, paintColor.g, paintColor.b)
+        markerColors.needsUpdate = true
+      }
     },
     setBorders(color, opacity) {
       lines.material.color.set(color)
@@ -105,8 +142,26 @@ export function createCountryLayer(
       land.material.dispose()
       lines.geometry.dispose()
       lines.material.dispose()
+      markerGeometry.dispose()
+      markers.material.map?.dispose()
+      markers.material.dispose()
     },
   }
+}
+
+/** A white ring on transparency, tinted per marker by its vertex color. */
+function ringTexture() {
+  const size = 64
+  const canvas = document.createElement('canvas')
+  canvas.width = canvas.height = size
+  const context = canvas.getContext('2d')
+  if (!context) return null // no canvas (tests): markers draw as squares
+  context.strokeStyle = '#fff'
+  context.lineWidth = 12
+  context.beginPath()
+  context.arc(size / 2, size / 2, size / 2 - context.lineWidth / 2 - 1, 0, Math.PI * 2)
+  context.stroke()
+  return new CanvasTexture(canvas)
 }
 
 const polygonsOf = ({ geometry }: CountryFeature) =>

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { BufferAttribute, BufferGeometry, Color, LineBasicMaterial, LineSegments, Mesh, MeshLambertMaterial, Vector3 } from 'three'
+import { BufferAttribute, BufferGeometry, Color, LineBasicMaterial, LineSegments, Mesh, MeshLambertMaterial, Points, Vector3 } from 'three'
 import { borders, countries } from '../countries'
 import { createCountryLayer, createRaisedCountry } from './countryLayer'
 
@@ -16,10 +16,23 @@ describe('createCountryLayer', () => {
   const allColors = () => Array.from({ length: colors.count }, (_, i) => colorAt(i))
   const hex = (color: string) => new Color(color).getHexString()
 
-  it('draws all countries as one mesh and one set of lines', () => {
-    expect(layer.object.children).toHaveLength(2)
+  it('draws all countries as one mesh, one set of lines and one set of markers', () => {
+    expect(layer.object.children).toHaveLength(3)
     expect(layer.object.children.filter((c) => c instanceof Mesh)).toHaveLength(1)
     expect(layer.object.children.filter((c) => c instanceof LineSegments)).toHaveLength(1)
+    expect(layer.object.children.filter((c) => c instanceof Points)).toHaveLength(1)
+  })
+
+  it('marks every tiny place, in its own color', () => {
+    const markers = layer.object.children.find((c): c is Points<BufferGeometry> => c instanceof Points)!
+    const tiny = countries.filter((c) => c.properties.tiny)
+    expect(markers.geometry.getAttribute('position').count).toBe(tiny.length)
+    const grenada = tiny.findIndex((c) => c.properties.name === 'Grenada')
+    layer.paint(tiny[grenada], HOVER)
+    const markerColors = markers.geometry.getAttribute('color')
+    const color = new Color(markerColors.getX(grenada), markerColors.getY(grenada), markerColors.getZ(grenada))
+    expect(color.getHexString()).toBe(hex(HOVER))
+    layer.paint(tiny[grenada], LAND)
   })
 
   for (const country of countries) layer.paint(country, LAND)

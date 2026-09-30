@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { neighbors } from 'topojson-client'
 import type { GeometryCollection, Topology } from 'topojson-specification'
 import worldData from 'world-atlas/countries-50m.json'
-import { MAP_COLOR_COUNT, borders, countries, findCountryAt } from './countries'
+import { MAP_COLOR_COUNT, TINY_KM2, borders, countries, findCountryAt, findCountryNear } from './countries'
 
 const nameAt = (lat: number, lng: number) => findCountryAt(lat, lng)?.properties.name ?? null
 
@@ -33,8 +33,19 @@ describe('countries', () => {
     }
   })
 
-  it('leaves out Antarctica', () => {
-    expect(countries.find((c) => c.properties.name === 'Antarctica')).toBeUndefined()
+  it('includes Antarctica, and small places missing from the 1:50m map', () => {
+    for (const name of ['Antarctica', 'Tuvalu', 'Gibraltar', 'Maldives']) {
+      expect(countries.find((c) => c.properties.name === name)).toBeDefined()
+    }
+  })
+
+  it('marks places too small to see as tiny', () => {
+    const tiny = (name: string) => countries.find((c) => c.properties.name === name)!.properties.tiny
+    expect(tiny('Maldives')).toBe(true)
+    expect(tiny('Grenada')).toBe(true)
+    expect(tiny('Tuvalu')).toBe(true)
+    expect(tiny('Denmark')).toBe(false)
+    for (const c of countries) expect(c.properties.tiny).toBe(c.properties.areaKm2 < TINY_KM2)
   })
 
   it('centers countries on their main landmass, not their overseas parts', () => {
@@ -94,6 +105,22 @@ describe('findCountryAt', () => {
     expect(nameAt(lat, lng)).toBe(expected)
   })
 
+  it('finds Antarctica, around the pole', () => {
+    expect(nameAt(-85, 30)).toBe('Antarctica')
+    expect(nameAt(-82, -120)).toBe('Antarctica')
+  })
+
+  it('finds the smaller place where two overlap', () => {
+    expect(nameAt(36.14, -5.35)).toBe('Gibraltar') // not cut out of Spain in the map
+    expect(nameAt(40.4, -3.7)).toBe('Spain')
+  })
+
+  it('finds Tuvalu', () => {
+    const tuvalu = countries.find((c) => c.properties.name === 'Tuvalu')!
+    const [lng, lat] = (tuvalu.geometry.coordinates.flat(2)[0] as number[]).map((v, i) => v + (i === 0 ? 0 : 0))
+    expect(findCountryNear(lat, lng, { markerRadius: 0.005, tolerance: 0.005 })?.properties.name).toBe('Tuvalu')
+  })
+
   it('handles countries spanning the antimeridian', () => {
     expect(nameAt(66, 175)).toBe('Russia') // Chukotka, east of 180° is still ...
     expect(nameAt(66, -175)).toBe('Russia') // ... Russia west of it
@@ -103,5 +130,41 @@ describe('findCountryAt', () => {
   it('returns null over the ocean', () => {
     expect(nameAt(30, -40)).toBeNull() // Atlantic
     expect(nameAt(0, -140)).toBeNull() // Pacific
+  })
+})
+
+describe('findCountryNear', () => {
+  const DEG = Math.PI / 180
+  const near = (lat: number, lng: number, tolerance = 0.3 * DEG) =>
+    findCountryNear(lat, lng, { markerRadius: tolerance, tolerance })?.properties.name ?? null
+
+  it('finds a country the point is inside, like findCountryAt', () => {
+    expect(near(56.17, 9.55)).toBe('Denmark')
+  })
+
+  it("finds a tiny island from its marker, even when the click misses the land", () => {
+    const grenada = countries.find((c) => c.properties.name === 'Grenada')!
+    const [lng, lat] = grenada.properties.centroid
+    expect(findCountryAt(lat + 0.2, lng + 0.2)).toBeNull()
+    expect(near(lat + 0.2, lng + 0.2)).toBe('Grenada')
+  })
+
+  it('finds the Maldives', () => {
+    expect(near(4.2, 73.5)).toBe('Maldives')
+  })
+
+  it('picks the marker of a microstate over the country around it', () => {
+    expect(near(43.94, 12.46, 0.05 * DEG)).toBe('San Marino')
+  })
+
+  it('finds a coast just missed', () => {
+    // Just off the coast of Portugal, in the Atlantic
+    expect(findCountryAt(39.5, -9.6)).toBeNull()
+    expect(near(39.5, -9.6)).toBe('Portugal')
+  })
+
+  it('returns null in the open ocean', () => {
+    expect(near(30, -40)).toBeNull()
+    expect(near(-40, -120)).toBeNull()
   })
 })

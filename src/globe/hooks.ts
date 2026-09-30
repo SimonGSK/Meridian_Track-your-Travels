@@ -2,12 +2,17 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { PointerEvent } from 'react'
 import type { GlobeMethods } from 'react-globe.gl'
 import type { PerspectiveCamera } from 'three'
-import { borders, countries, findCountryAt, type CountryFeature } from '../countries'
+import { geoDistance } from 'd3-geo'
+import { borders, countries, findCountryNear, type CountryFeature } from '../countries'
 import { createCountryLayer, createRaisedCountry, type CountryLayer } from './countryLayer'
 import { approach, isClick, type Point } from './interaction'
 import { screenToLatLng } from './picking'
 import { LAND_ALTITUDE, SELECTED_ALTITUDE } from './style'
 import type { Theme } from './themes'
+
+/** How close (in pixels) the pointer must be to a tiny country's marker, or to any country's coast */
+const MARKER_HIT_PX = 8
+const NEAR_MISS_PX = 6
 
 export const SPIN_SPEED = 0.4
 export const RESUME_DELAY_MS = 2500
@@ -190,7 +195,14 @@ export function useCountryPointer(globe: GlobeMethods | null, { onHover, onClick
   const countryAt = useCallback(
     ({ x, y }: Point) => {
       const pos = globe && screenToLatLng(globe, x, y)
-      return pos ? findCountryAt(pos.lat, pos.lng) : null
+      if (!pos) return null
+      // How far one pixel is on the globe here, to turn pixel tolerances into distances
+      const beside = screenToLatLng(globe, x + 1, y) ?? screenToLatLng(globe, x - 1, y)
+      const perPixel = beside ? geoDistance([pos.lng, pos.lat], [beside.lng, beside.lat]) : 0
+      return findCountryNear(pos.lat, pos.lng, {
+        markerRadius: MARKER_HIT_PX * perPixel,
+        tolerance: NEAR_MISS_PX * perPixel,
+      })
     },
     [globe],
   )

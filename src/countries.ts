@@ -1,9 +1,10 @@
 import { feature, mesh, neighbors } from 'topojson-client'
 import type { Topology, GeometryCollection } from 'topojson-specification'
 import type { Feature, MultiLineString, MultiPolygon, Polygon } from 'geojson'
-import { geoArea, geoBounds, geoCentroid, geoContains } from 'd3-geo'
+import { geoArea, geoBounds, geoCentroid, geoContains, geoDistance } from 'd3-geo'
 import { numericToAlpha2 } from 'i18n-iso-countries'
 import worldData from 'world-atlas/countries-50m.json'
+import extraCountries from './data/extra-countries.json'
 import { fixWesternSahara, westernSaharaBorder } from './data/westernSahara'
 
 export type CountryFeature = Feature<
@@ -24,6 +25,10 @@ export type CountryFeature = Feature<
     mapColor: number
     /** Rough size of the largest landmass in degrees, to zoom the camera to fit it */
     extent: number
+    /** Land area in km² (approximate, from the map) */
+    areaKm2: number
+    /** Too small to see or click on the globe, so it gets a marker */
+    tiny: boolean
   }
 >
 
@@ -36,8 +41,12 @@ const topology = worldData as unknown as Topology<{
 // Commonly used codes for places without an official one
 const UNOFFICIAL_ALPHA2: Record<string, string> = { Kosovo: 'XK' }
 
-// Antarctica clutters the south pole and isn't a country
-const isShown = (name: string) => name !== 'Antarctica'
+const DEG = Math.PI / 180
+
+/** Places smaller than this get a marker on the globe */
+export const TINY_KM2 = 2500
+const EARTH_KM2 = 510_072_000
+
 const nameOf = (geometry: { properties?: object }) => (geometry.properties as { name: string }).name
 
 export const MAP_COLOR_COUNT = 5
@@ -45,15 +54,19 @@ const mapColors = assignMapColors(topology.objects.countries.geometries)
 
 type Shape = Feature<Polygon | MultiPolygon, { name: string }>
 
-const shapes = fixWesternSahara(feature(topology, topology.objects.countries).features as Shape[])
+// The 1:50m map, plus the few places it's too coarse to include (see scripts/extract-extra-countries.mjs)
+const mapShapes = feature(topology, topology.objects.countries).features as Shape[]
+const extraShapes = extraCountries.features as Shape[]
+const shapes = fixWesternSahara([...mapShapes, ...extraShapes])
 
 export const countries: CountryFeature[] = shapes
-  .map((f, i) => ({ f, mapColor: mapColors[i] }))
-  .filter(({ f }) => isShown(f.properties.name))
+  .map((f, i) => ({ f, mapColor: mapColors[i] ?? extraMapColor(f, mapShapes, mapColors) }))
   .map(({ f, mapColor }) => ({
     ...f,
     properties: {
       name: f.properties.name,
+      areaKm2: (geoArea(f) / (4 * Math.PI)) * EARTH_KM2,
+      tiny: (geoArea(f) / (4 * Math.PI)) * EARTH_KM2 < TINY_KM2,
       extent: extentOf(largestPart(f.geometry as Polygon | MultiPolygon)),
       isoCode: f.id === undefined ? null : String(f.id),
       isoAlpha2:
@@ -62,6 +75,18 @@ export const countries: CountryFeature[] = shapes
       mapColor,
     },
   })) as CountryFeature[]
+
+/** A map color for an added place that differs from the countries around it. */
+function extraMapColor(shape: Shape, others: Shape[], colors: number[]) {
+  const [[west, south], [east, north]] = geoBounds(shape)
+  const taken = new Set(
+    others
+      .map((other, i) => ({ bounds: geoBounds(other), color: colors[i] }))
+      .filter(({ bounds: [[w, s], [e, n]] }) => w <= east + 1 && e >= west - 1 && s <= north + 1 && n >= south - 1)
+      .map(({ color }) => color),
+  )
+  return [0, 1, 2, 3, 4].find((c) => !taken.has(c)) ?? 0
+}
 
 /**
  * Colors countries so that no two neighbors match, like a political map.
@@ -106,31 +131,85 @@ const isMoroccoSaharaBorder = (a: string, b: string) =>
 
 /** Every border and coastline exactly once, so shared borders aren't drawn twice. */
 export const borders: MultiLineString = (() => {
-  const lines = mesh(topology, topology.objects.countries, (a, b) => {
-    const [nameA, nameB] = [nameOf(a), nameOf(b)]
-    // The data's Morocco–Western Sahara border is replaced, see data/westernSahara.ts
-    return isShown(nameA) && isShown(nameB) && !isMoroccoSaharaBorder(nameA, nameB)
-  })
+  // The data's Morocco–Western Sahara border is replaced, see data/westernSahara.ts
+  const lines = mesh(topology, topology.objects.countries, (a, b) => !isMoroccoSaharaBorder(nameOf(a), nameOf(b)))
   const saharaBorder = westernSaharaBorder(shapes)
-  return saharaBorder ? { ...lines, coordinates: [...lines.coordinates, saharaBorder.coordinates] } : lines
+  const extraCoasts = extraShapes.flatMap(({ geometry }) =>
+    geometry.type === 'Polygon' ? geometry.coordinates : geometry.coordinates.flat(),
+  )
+  return {
+    ...lines,
+    coordinates: [...lines.coordinates, ...(saharaBorder ? [saharaBorder.coordinates] : []), ...extraCoasts],
+  }
 })()
 
 const bounds = new Map<CountryFeature, Bounds>(
   countries.map((c) => [c, geoBounds(c) as Bounds]),
 )
 
-function inBounds([[west, south], [east, north]]: Bounds, lat: number, lng: number) {
-  if (lat < south || lat > north) return false
+/** `margin` (degrees) widens the box, for finding countries near a point */
+function inBounds([[west, south], [east, north]]: Bounds, lat: number, lng: number, margin = 0) {
+  if (lat < south - margin || lat > north + margin) return false
+  const lngMargin = margin / Math.max(Math.cos(lat * DEG), 0.05)
+  if (lngMargin >= 180 || east - west + 2 * lngMargin >= 360) return true
+  const [w, e] = [west - lngMargin, east + lngMargin]
+  const wrapped = ((lng - w + 540) % 360) - 180 + w // lng shifted into [w - 180, w + 180)
   // Countries spanning the antimeridian (Russia, Fiji, ...) have west > east
-  return west <= east ? lng >= west && lng <= east : lng >= west || lng <= east
+  return west <= east ? wrapped >= w && wrapped <= e : lng >= w || lng <= e
 }
 
-/** The country at a point on the globe, or null for ocean. */
+/**
+ * The country at a point on the globe, or null for ocean. Where two overlap
+ * (Gibraltar isn't cut out of Spain in the 1:50m map), the smaller one wins.
+ */
 export function findCountryAt(lat: number, lng: number): CountryFeature | null {
+  let found: CountryFeature | null = null
   for (const country of countries) {
-    if (inBounds(bounds.get(country)!, lat, lng) && geoContains(country, [lng, lat])) {
-      return country
+    if (found && country.properties.areaKm2 >= found.properties.areaKm2) continue
+    if (inBounds(bounds.get(country)!, lat, lng) && geoContains(country, [lng, lat])) found = country
+  }
+  return found
+}
+
+const tinyCountries = countries.filter((c) => c.properties.tiny)
+
+/**
+ * Like findCountryAt, but forgiving, so small islands can be hit with a
+ * mouse. Tiny places are found within `markerRadius` of their marker (even
+ * on top of a bigger country), and any country within `tolerance` of its
+ * outline. Both in radians.
+ */
+export function findCountryNear(
+  lat: number,
+  lng: number,
+  { markerRadius, tolerance }: { markerRadius: number; tolerance: number },
+): CountryFeature | null {
+  const point: [number, number] = [lng, lat]
+  let nearest: CountryFeature | null = null
+  let distance = markerRadius
+  for (const country of tinyCountries) {
+    const d = geoDistance(point, country.properties.centroid)
+    if (d <= distance) [nearest, distance] = [country, d]
+  }
+  if (nearest) return nearest
+
+  const exact = findCountryAt(lat, lng)
+  if (exact) return exact
+
+  distance = tolerance
+  const toleranceDeg = tolerance / DEG
+  for (const country of countries) {
+    if (!inBounds(bounds.get(country)!, lat, lng, toleranceDeg)) continue
+    for (const ring of polygonsOf(country).flat()) {
+      for (const vertex of ring) {
+        if (Math.abs(vertex[1] - lat) > toleranceDeg) continue
+        const d = geoDistance(point, vertex as [number, number])
+        if (d < distance) [nearest, distance] = [country, d]
+      }
     }
   }
-  return null
+  return nearest
 }
+
+const polygonsOf = ({ geometry }: CountryFeature) =>
+  geometry.type === 'Polygon' ? [geometry.coordinates] : geometry.coordinates
