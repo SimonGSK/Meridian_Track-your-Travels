@@ -50,6 +50,14 @@ describe('CountryInput', () => {
     expect(answered()[0][0]).toBe(second.textContent)
   })
 
+  it('moves back up the suggestions, and off them, with ArrowUp', async () => {
+    const { input } = setup()
+    await userEvent.type(input, 'nor{ArrowDown}{ArrowDown}{ArrowUp}')
+    expect(screen.getAllByRole('option')[0]).toHaveAttribute('aria-selected', 'true')
+    await userEvent.keyboard('{ArrowUp}')
+    expect(input).not.toHaveAttribute('aria-activedescendant')
+  })
+
   it('takes an exact name on Enter, even when another suggestion comes first', async () => {
     const { input, answered } = setup()
     await userEvent.type(input, 'niger{Enter}')

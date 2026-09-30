@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest'
-import { BufferAttribute, BufferGeometry, Color, LineBasicMaterial, LineSegments, Mesh, MeshLambertMaterial, Points, Vector3 } from 'three'
+import { describe, expect, it, vi } from 'vitest'
+import { BufferAttribute, BufferGeometry, Color, LineBasicMaterial, LineSegments, Mesh, MeshLambertMaterial, Points, PointsMaterial, Vector3 } from 'three'
 import { borders, countries } from '../countries'
 import { createCountryLayer, createRaisedCountry } from './countryLayer'
 
@@ -91,5 +91,29 @@ describe('createRaisedCountry', () => {
     raised.setColor('#ff7846')
     expect(cap.material.color.getHexString()).toBe('ff7846')
     expect(walls.material.color.getHSL({ h: 0, s: 0, l: 0 }).l).toBeLessThan(cap.material.color.getHSL({ h: 0, s: 0, l: 0 }).l)
+  })
+})
+
+describe('marker rings', () => {
+  it('draws a ring texture for the markers when a canvas is available', () => {
+    const context = { strokeStyle: '', lineWidth: 0, beginPath: vi.fn(), arc: vi.fn(), stroke: vi.fn() }
+    const spy = vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(context as never)
+    const layer = createCountryLayer(countries.slice(0, 5), borders, RADIUS)
+    const markers = layer.object.children.find((c): c is Points<BufferGeometry, PointsMaterial> => c instanceof Points)!
+    expect(markers.material.map).not.toBeNull()
+    expect(context.arc).toHaveBeenCalled()
+    expect(context.stroke).toHaveBeenCalled()
+    spy.mockRestore()
+    layer.dispose()
+  })
+})
+
+describe('disposing', () => {
+  it('frees the raised country', () => {
+    const raised = createRaisedCountry(countries.find((c) => c.properties.name === 'Denmark')!, RADIUS, RADIUS * 1.01)
+    const [cap] = raised.object.children as Mesh[]
+    const spy = vi.spyOn(cap.geometry, 'dispose')
+    raised.dispose()
+    expect(spy).toHaveBeenCalled()
   })
 })

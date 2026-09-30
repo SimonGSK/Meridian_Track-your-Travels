@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { useEffect, useImperativeHandle, useRef, type Ref } from 'react'
 import type { GlobeProps } from 'react-globe.gl'
 import App from './App'
-import { countries } from './countries'
+import { countries, findCountryAt } from './countries'
 import { DEFAULT_THEME, NIGHT, POLITICAL } from './globe/themes'
 
 // WebGL doesn't exist in jsdom, so the globe is replaced by a stand-in that
@@ -56,7 +56,9 @@ vi.mock('react-globe.gl', () => ({
   },
 }))
 vi.mock('./globe/picking', () => ({
-  screenToLatLng: (_: unknown, x: number) => PLACES[x] ?? null,
+  // x from 2000 to 2400 is a strip across the Caribbean, 0.02° per pixel, where neighboring pixels are neighboring places
+  screenToLatLng: (_: unknown, x: number) =>
+    PLACES[x] ?? (x >= 2000 && x < 2400 ? { lat: 12.3, lng: -64 + (x - 2000) * 0.02 } : null),
 }))
 vi.mock('./globe/countryLayer', () => ({
   createCountryLayer: () => layer,
@@ -190,6 +192,26 @@ describe('App', () => {
       fireEvent.pointerLeave(surface())
       await waitFor(() => expect(tooltip()).not.toBeInTheDocument())
       expect(surface()).toHaveStyle({ cursor: 'grab' })
+    })
+
+    it('forgives a near miss on a tiny island', async () => {
+      const grenada = countries.find((c) => c.properties.name === 'Grenada')!
+      const [lng] = grenada.properties.centroid
+      // 7 pixels east of Grenada's marker (its ring is 12 px across), over the sea
+      const x = 2000 + Math.round((lng + 64) / 0.02) + 7
+      expect(findCountryAt(12.3, -64 + (x - 2000) * 0.02)).toBeNull()
+      render(<App />)
+      hover(x)
+      await waitFor(() => expect(tooltip()).toHaveTextContent('Grenada'))
+      click(x)
+      expect(panelHeading()).toHaveTextContent('Grenada')
+    })
+
+    it('does not reach islands too far from the pointer', async () => {
+      render(<App />)
+      hover(2000) // 64°W, open sea between the islands
+      await act(() => new Promise((r) => setTimeout(r, 50)))
+      expect(tooltip()).not.toBeInTheDocument()
     })
 
     it('ignores touch, which has no hover', async () => {

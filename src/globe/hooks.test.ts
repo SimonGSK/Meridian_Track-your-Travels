@@ -1,8 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, renderHook } from '@testing-library/react'
-import { EventDispatcher } from 'three'
+import { BufferGeometry, EventDispatcher, Mesh, MeshLambertMaterial, PerspectiveCamera, Scene } from 'three'
 import type { GlobeMethods } from 'react-globe.gl'
-import { IDLE_DELAY_MS, SPIN_SPEED, useSmoothAutoRotate } from './hooks'
+import { countries, type CountryFeature } from '../countries'
+import { IDLE_DELAY_MS, SPIN_SPEED, useDepthPrecision, useSelectedCountry, useSmoothAutoRotate } from './hooks'
+import { SELECTED_ALTITUDE } from './style'
 
 type FakeControls = EventDispatcher<{ start: object; end: object }> & {
   autoRotate: boolean
@@ -98,5 +100,80 @@ describe('useSmoothAutoRotate', () => {
     act(() => controls.dispatchEvent({ type: 'start' }))
     advance(IDLE_DELAY_MS)
     expect(controls.autoRotateSpeed).toBe(0)
+  })
+})
+
+describe('useSelectedCountry', () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['requestAnimationFrame', 'cancelAnimationFrame', 'performance'] })
+  })
+  afterEach(() => vi.useRealTimers())
+
+  function setup() {
+    const scene = new Scene()
+    const globe = { scene: () => scene, getGlobeRadius: () => 100 } as unknown as GlobeMethods
+    const denmark = countries.find((c) => c.properties.name === 'Denmark')!
+    const france = countries.find((c) => c.properties.name === 'France')!
+    const hook = renderHook(({ selected, color }) => useSelectedCountry(globe, selected, color), {
+      initialProps: { selected: denmark as CountryFeature | null, color: '#ff0000' },
+    })
+    const raised = () => scene.children.filter((c) => c.name === 'selected-country')
+    return { scene, raised, denmark, france, ...hook }
+  }
+
+  it('raises the selected country, rising from the surface into place', () => {
+    const { raised } = setup()
+    expect(raised()).toHaveLength(1)
+    const start = raised()[0].scale.x
+    expect(start).toBeLessThan(1)
+    advance(1000)
+    expect(raised()[0].scale.x).toBe(1)
+  })
+
+  it('colors it', () => {
+    const { raised, rerender, denmark } = setup()
+    const cap = raised()[0].children[0] as Mesh<BufferGeometry, MeshLambertMaterial>
+    expect(cap.material.color.getHexString()).toBe('ff0000')
+    rerender({ selected: denmark, color: '#00ff00' })
+    expect(cap.material.color.getHexString()).toBe('00ff00')
+  })
+
+  it('swaps it for another country, and removes it when deselected', () => {
+    const { raised, rerender, france } = setup()
+    const first = raised()[0]
+    rerender({ selected: france, color: '#ff0000' })
+    expect(raised()).toHaveLength(1)
+    expect(raised()[0]).not.toBe(first)
+    rerender({ selected: null, color: '#ff0000' })
+    expect(raised()).toHaveLength(0)
+  })
+})
+
+describe('useDepthPrecision', () => {
+  function setup(distance: number) {
+    const camera = new PerspectiveCamera(50, 1, 0.05, 50_000)
+    camera.position.set(0, 0, distance)
+    const controls = Object.assign(new EventDispatcher<{ change: object }>(), { minDistance: 0 })
+    const globe = { camera: () => camera, controls: () => controls, getGlobeRadius: () => 100 } as unknown as GlobeMethods
+    renderHook(() => useDepthPrecision(globe))
+    return { camera, controls }
+  }
+
+  it('moves the near plane out with the camera', () => {
+    const { camera, controls } = setup(300)
+    expect(camera.near).toBe(100) // half the distance to the surface
+    camera.position.set(0, 0, 1100)
+    act(() => controls.dispatchEvent({ type: 'change' }))
+    expect(camera.near).toBe(500)
+  })
+
+  it('keeps the near plane close when zoomed right in', () => {
+    const { camera } = setup(100.1)
+    expect(camera.near).toBe(0.1)
+  })
+
+  it('stops the camera zooming into the raised countries', () => {
+    const { controls } = setup(300)
+    expect(controls.minDistance).toBeGreaterThan(100 * (1 + SELECTED_ALTITUDE))
   })
 })

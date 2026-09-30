@@ -11,7 +11,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
-    "data:extra": "node scripts/extract-extra-countries.mjs"
+    "data:extra": "node scripts/extract-extra-countries.mjs",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "d3-geo": "^3.1.1",
@@ -41,6 +42,7 @@
     "@types/topojson-client": "^3.1.5",
     "@types/topojson-specification": "^1.0.5",
     "@vitejs/plugin-react": "^6.1.1",
+    "@vitest/coverage-v8": "^5.0.3",
     "jsdom": "^30.1.1",
     "oxlint": "^1.81.0",
     "typescript": "~6.0.2",
