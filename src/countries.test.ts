@@ -64,6 +64,14 @@ describe('countries', () => {
     }
   })
 
+  it('measures the size of each main landmass', () => {
+    const extent = (name: string) => countries.find((c) => c.properties.name === name)!.properties.extent
+    expect(extent('Russia')).toBeGreaterThan(extent('France'))
+    expect(extent('France')).toBeGreaterThan(extent('Denmark'))
+    expect(extent('France')).toBeLessThan(15) // not stretched by French Guiana
+    expect(extent('Fiji')).toBeLessThan(5) // not stretched across the antimeridian
+  })
+
   it('builds a border line set', () => {
     expect(borders.type).toBe('MultiLineString')
     expect(borders.coordinates.length).toBeGreaterThan(100)

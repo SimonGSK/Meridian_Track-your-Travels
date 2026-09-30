@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { DRAG_THRESHOLD_PX, approach, flightAltitude, flightDuration, isClick } from './interaction'
+import { DRAG_THRESHOLD_PX, approach, fitAltitude, flightAltitude, flightDuration, isClick } from './interaction'
 
 describe('isClick', () => {
   it('treats a press and release at the same spot as a click', () => {
@@ -41,6 +41,17 @@ describe('flightAltitude', () => {
   it('zooms in when far away and out when very close', () => {
     expect(flightAltitude(4)).toBe(1.8)
     expect(flightAltitude(0.1)).toBe(0.4)
+  })
+})
+
+describe('fitAltitude', () => {
+  it('zooms out further for bigger countries', () => {
+    expect(fitAltitude(12)).toBeGreaterThan(fitAltitude(6))
+  })
+
+  it('stays within sensible limits', () => {
+    expect(fitAltitude(0.5)).toBe(0.4)
+    expect(fitAltitude(170)).toBe(1.8)
   })
 })
 
