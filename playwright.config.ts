@@ -5,6 +5,9 @@ const PORT = 5173
 export default defineConfig({
   testDir: './e2e',
   fullyParallel: true,
+  // Headless Chrome renders the globe in software, so tests are slow, and more so in parallel
+  workers: 3,
+  timeout: 60_000,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? 'github' : 'list',

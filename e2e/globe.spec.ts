@@ -130,7 +130,7 @@ test.describe('visited', () => {
     await page.reload()
     await page.getByRole('button', { name: 'Visited' }).click()
     await expect(list).toContainText('Denmark')
-    await expect(page.getByText('of 240 countries and territories')).toBeVisible()
+    await expect(page.getByText(/^1 of \d+ countries and territories$/)).toBeVisible()
   })
 
   test('marking the clicked country as visited', async ({ page }) => {
