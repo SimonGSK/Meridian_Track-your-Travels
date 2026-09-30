@@ -91,7 +91,8 @@ test.describe('mouse', () => {
     await page.mouse.click(x, y)
     await expect(panel(page)).toBeVisible()
 
-    await page.mouse.click(8, page.viewportSize()!.height - 8) // corner, outside the globe
+    const viewport = page.viewportSize()!
+    await page.mouse.click(viewport.width - 8, viewport.height - 8) // corner, outside the globe
     await expect(panel(page)).toBeHidden()
   })
 
@@ -114,6 +115,37 @@ test.describe('mouse', () => {
       const hidden = await tooltip(page).isHidden()
       expect(hidden || (await tooltip(page).textContent()) !== before).toBe(true)
     }).toPass()
+  })
+})
+
+test.describe('visited', () => {
+  test('adding a visited country keeps it after reloading', async ({ page }) => {
+    await openGlobe(page)
+    await page.getByRole('button', { name: 'Visited' }).click()
+    await page.getByRole('searchbox', { name: 'Add a country' }).fill('Denmark')
+    await page.keyboard.press('Enter')
+    const list = page.getByRole('list', { name: 'Visited countries' })
+    await expect(list).toContainText('Denmark')
+
+    await page.reload()
+    await page.getByRole('button', { name: 'Visited' }).click()
+    await expect(list).toContainText('Denmark')
+    await expect(page.getByText('of 240 countries and territories')).toBeVisible()
+  })
+
+  test('marking the clicked country as visited', async ({ page }) => {
+    await openGlobe(page)
+    const { x, y } = center(page)
+    await page.mouse.move(x, y)
+    await expect(tooltip(page)).toBeVisible()
+    await page.mouse.click(x, y)
+    const name = (await panel(page).getByRole('heading', { level: 2 }).textContent())!
+
+    await panel(page).getByRole('button', { name: 'Mark as visited' }).click()
+    await expect(panel(page).getByRole('button', { name: 'Visited' })).toHaveAttribute('aria-pressed', 'true')
+
+    await page.getByRole('button', { name: 'Visited', exact: true }).first().click()
+    await expect(page.getByRole('list', { name: 'Visited countries' })).toContainText(name)
   })
 })
 

@@ -4,6 +4,11 @@ import { MeshPhongMaterial } from 'three'
 import type { CountryFeature } from './countries'
 import CountryPanel from './CountryPanel'
 import FlagCorner from './FlagCorner'
+import NavRail from './nav/NavRail'
+import { VIEWS, type ViewId } from './nav/views'
+import SidePanel from './nav/SidePanel'
+import VisitedPanel from './visited/VisitedPanel'
+import { useVisited } from './visited/useVisited'
 import Tooltip from './Tooltip'
 import { useCountryLayer, useCountryPointer, useSmoothAutoRotate } from './globe/hooks'
 import { INITIAL_VIEW, flightAltitude, flightDuration } from './globe/interaction'
@@ -13,7 +18,6 @@ import { DEFAULT_THEME } from './globe/themes'
 
 const RENDERER_CONFIG = { antialias: true, alpha: true, powerPreference: 'high-performance' } as const
 
-const NO_VISITS: ReadonlySet<string> = new Set()
 const NO_HIGHLIGHTS: ReadonlyMap<CountryFeature, string> = new Map()
 
 function useWindowSize() {
@@ -31,6 +35,8 @@ export default function App() {
   const [globe, setGlobe] = useState<GlobeMethods | null>(null)
   const [hovered, setHovered] = useState<CountryFeature | null>(null)
   const [selected, setSelected] = useState<CountryFeature | null>(null)
+  const [view, setView] = useState<ViewId | null>(null)
+  const { visited, add: addVisited, remove: removeVisited, toggle: toggleVisited } = useVisited()
   const { width, height } = useWindowSize()
   const theme = DEFAULT_THEME
 
@@ -40,10 +46,9 @@ export default function App() {
   )
   useEffect(() => () => globeMaterial.dispose(), [globeMaterial])
 
-  const selectCountry = useCallback(
-    (country: CountryFeature | null) => {
-      setSelected(country)
-      if (!country || !globe) return
+  const flyTo = useCallback(
+    (country: CountryFeature) => {
+      if (!globe) return
       const from = globe.pointOfView()
       const [lng, lat] = country.properties.centroid
       globe.pointOfView({ lat, lng, altitude: flightAltitude(from.altitude) }, flightDuration(from, { lat, lng }))
@@ -51,20 +56,42 @@ export default function App() {
     [globe],
   )
 
+  const selectCountry = useCallback(
+    (country: CountryFeature | null) => {
+      setSelected(country)
+      if (country) flyTo(country)
+    },
+    [flyTo],
+  )
+
   const colorOf = useCallback(
     (country: CountryFeature) =>
-      countryColor(country, { theme, hovered, visited: NO_VISITS, highlights: NO_HIGHLIGHTS }),
-    [theme, hovered],
+      countryColor(country, { theme, hovered, visited, highlights: NO_HIGHLIGHTS }),
+    [theme, hovered, visited],
   )
   useCountryLayer(globe, theme, colorOf)
   useSmoothAutoRotate(globe, !selected && !hovered)
   const pointerHandlers = useCountryPointer(globe, { onHover: setHovered, onClick: selectCountry })
 
+  // From a list in the side panel. On phones the panel covers the country panel, so close it.
+  const showCountry = useCallback(
+    (country: CountryFeature) => {
+      selectCountry(country)
+      if (window.matchMedia?.('(max-width: 600px)').matches) setView(null)
+    },
+    [selectCountry],
+  )
+
+  // Escape closes the country panel first, then the side panel
   useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => e.key === 'Escape' && selectCountry(null)
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return
+      if (selected) selectCountry(null)
+      else setView(null)
+    }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [selectCountry])
+  }, [selected, selectCountry])
 
   // Hover is painted flat on the merged country mesh; only the selected
   // country goes through the globe's polygon layer, slightly raised.
@@ -111,10 +138,27 @@ export default function App() {
         <p>Drag to spin · scroll to zoom · click a country</p>
       </header>
 
+      <NavRail view={view} onChange={setView} />
+      {view && (
+        <SidePanel title={VIEWS.find((v) => v.id === view)!.label} onClose={() => setView(null)}>
+          {view === 'visited' && (
+            <VisitedPanel visited={visited} onAdd={addVisited} onRemove={removeVisited} onShow={showCountry} />
+          )}
+          {view !== 'visited' && <p className="muted">Coming soon.</p>}
+        </SidePanel>
+      )}
+
       <Tooltip text={hovered?.properties.name ?? null} />
       <FlagCorner country={hovered} />
 
-      {selected && <CountryPanel country={selected} onClose={() => selectCountry(null)} />}
+      {selected && (
+        <CountryPanel
+          country={selected}
+          visited={visited.has(selected.properties.name)}
+          onToggleVisited={() => toggleVisited(selected.properties.name)}
+          onClose={() => selectCountry(null)}
+        />
+      )}
     </div>
   )
 }

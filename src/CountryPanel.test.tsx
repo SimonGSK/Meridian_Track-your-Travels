@@ -8,21 +8,35 @@ const byName = (name: string) => countries.find((c) => c.properties.name === nam
 
 describe('CountryPanel', () => {
   it('shows the country name and ISO code', () => {
-    render(<CountryPanel country={byName('Denmark')} onClose={() => {}} />)
+    render(<CountryPanel country={byName('Denmark')} visited={false} onToggleVisited={() => {}} onClose={() => {}} />)
     expect(screen.getByRole('heading', { name: 'Denmark' })).toBeInTheDocument()
     expect(screen.getByText('ISO numeric code: 208')).toBeInTheDocument()
   })
 
   it('hides the ISO code when the country has none', () => {
-    render(<CountryPanel country={byName('Kosovo')} onClose={() => {}} />)
+    render(<CountryPanel country={byName('Kosovo')} visited={false} onToggleVisited={() => {}} onClose={() => {}} />)
     expect(screen.getByRole('heading', { name: 'Kosovo' })).toBeInTheDocument()
     expect(screen.queryByText(/ISO numeric code/)).not.toBeInTheDocument()
   })
 
   it('calls onClose when the close button is clicked', async () => {
     const onClose = vi.fn()
-    render(<CountryPanel country={byName('Denmark')} onClose={onClose} />)
+    render(<CountryPanel country={byName('Denmark')} visited={false} onToggleVisited={() => {}} onClose={onClose} />)
     await userEvent.click(screen.getByRole('button', { name: 'Close' }))
     expect(onClose).toHaveBeenCalledOnce()
+  })
+
+  it('marks a country as visited', async () => {
+    const onToggleVisited = vi.fn()
+    render(<CountryPanel country={byName('Denmark')} visited={false} onToggleVisited={onToggleVisited} onClose={() => {}} />)
+    const button = screen.getByRole('button', { name: 'Mark as visited' })
+    expect(button).toHaveAttribute('aria-pressed', 'false')
+    await userEvent.click(button)
+    expect(onToggleVisited).toHaveBeenCalledOnce()
+  })
+
+  it('shows when a country is visited', () => {
+    render(<CountryPanel country={byName('Denmark')} visited onToggleVisited={() => {}} onClose={() => {}} />)
+    expect(screen.getByRole('button', { name: 'Visited' })).toHaveAttribute('aria-pressed', 'true')
   })
 })

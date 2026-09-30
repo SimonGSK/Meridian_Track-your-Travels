@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { useEffect, useImperativeHandle, useRef, type Ref } from 'react'
 import type { GlobeProps } from 'react-globe.gl'
 import App from './App'
@@ -66,7 +67,9 @@ const click = (x: number) => {
   fireEvent.pointerUp(surface(), at(x))
 }
 const tooltip = () => screen.queryByRole('tooltip')
-const panelHeading = () => screen.queryByRole('heading', { level: 2 })
+const countryPanel = () => screen.queryByRole('complementary')
+const panelHeading = () => countryPanel()?.querySelector('h2') ?? null
+const sidePanel = () => screen.queryByRole('region')
 const raised = () => screen.getByRole('list', { name: 'raised countries' })
 const flag = () => screen.queryByRole('img', { name: /^Flag of/ })
 
@@ -216,6 +219,75 @@ describe('App', () => {
       expect(panelHeading()).toBeInTheDocument()
       act(close)
       expect(panelHeading()).not.toBeInTheDocument()
+    })
+  })
+
+  describe('menu', () => {
+    it('opens a side panel and closes it again', async () => {
+      render(<App />)
+      await userEvent.click(screen.getByRole('button', { name: 'Visited' }))
+      expect(sidePanel()).toHaveAccessibleName('Visited')
+      await userEvent.click(within(sidePanel()!).getByRole('button', { name: 'Close panel' }))
+      expect(sidePanel()).not.toBeInTheDocument()
+    })
+
+    it('switches between panels', async () => {
+      render(<App />)
+      await userEvent.click(screen.getByRole('button', { name: 'Visited' }))
+      await userEvent.click(screen.getByRole('button', { name: 'Design' }))
+      expect(sidePanel()).toHaveAccessibleName('Design')
+    })
+
+    it('closes the country panel first, then the side panel, on Escape', async () => {
+      render(<App />)
+      await userEvent.click(screen.getByRole('button', { name: 'Visited' }))
+      click(100)
+      fireEvent.keyDown(window, { key: 'Escape' })
+      expect(countryPanel()).not.toBeInTheDocument()
+      expect(sidePanel()).toBeInTheDocument()
+      fireEvent.keyDown(window, { key: 'Escape' })
+      expect(sidePanel()).not.toBeInTheDocument()
+    })
+  })
+
+  describe('visited countries', () => {
+    it('marks the selected country as visited and colors it on the globe', async () => {
+      render(<App />)
+      click(100)
+      await userEvent.click(within(countryPanel()!).getByRole('button', { name: 'Mark as visited' }))
+      expect(painted()).toEqual({ Denmark: DEFAULT_THEME.visited })
+      expect(within(countryPanel()!).getByRole('button', { name: 'Visited' })).toBeInTheDocument()
+
+      await userEvent.click(within(countryPanel()!).getByRole('button', { name: 'Visited' }))
+      expect(painted()).toEqual({})
+    })
+
+    it('adds countries from the Visited panel', async () => {
+      render(<App />)
+      await userEvent.click(screen.getByRole('button', { name: 'Visited' }))
+      await userEvent.type(screen.getByRole('searchbox'), 'japan{Enter}')
+      expect(within(sidePanel()!).getByRole('list', { name: 'Visited countries' })).toHaveTextContent('Japan')
+      expect(painted()).toEqual({ Japan: DEFAULT_THEME.visited })
+    })
+
+    it('shows a visited country on the globe when picked from the list', async () => {
+      render(<App />)
+      await userEvent.click(screen.getByRole('button', { name: 'Visited' }))
+      await userEvent.type(screen.getByRole('searchbox'), 'denmark{Enter}')
+      await userEvent.click(within(sidePanel()!).getByRole('button', { name: 'Denmark' }))
+      expect(panelHeading()).toHaveTextContent('Denmark')
+      expect(globe.pointOfView).toHaveBeenLastCalledWith(expect.objectContaining({ altitude: 1.8 }), expect.any(Number))
+    })
+
+    it('remembers visited countries after a reload', async () => {
+      const first = render(<App />)
+      click(100)
+      await userEvent.click(within(countryPanel()!).getByRole('button', { name: 'Mark as visited' }))
+      first.unmount()
+      layer.paint.mockClear()
+
+      render(<App />)
+      expect(painted()).toEqual({ Denmark: DEFAULT_THEME.visited })
     })
   })
 })
