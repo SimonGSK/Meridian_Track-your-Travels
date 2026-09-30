@@ -15,13 +15,19 @@ const search = () => screen.getByRole('searchbox', { name: 'Add a country' })
 const results = () => screen.queryByRole('list', { name: 'Search results' })
 
 describe('VisitedPanel', () => {
-  it('shows how much of the world has been visited', () => {
+  it("shows how many of the world's countries have been visited", () => {
     setup(['Denmark', 'Japan'])
-    expect(screen.getByText(`of ${countries.length} countries and territories`)).toBeInTheDocument()
-    expect(screen.getByRole('progressbar', { name: 'Share of the world visited' })).toHaveAttribute(
+    expect(screen.getByText('of 197 countries')).toBeInTheDocument()
+    expect(screen.getByRole('progressbar', { name: "Share of the world's countries visited" })).toHaveAttribute(
       'aria-valuenow',
       '2',
     )
+  })
+
+  it('counts territories separately', () => {
+    setup(['Denmark', 'Greenland', 'Faroe Islands'])
+    expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '1')
+    expect(screen.getByText(/plus 2 of \d+ territories/)).toBeInTheDocument()
   })
 
   it('invites you to add countries when none are visited', () => {
@@ -40,9 +46,18 @@ describe('VisitedPanel', () => {
 
   it('searches countries that are not visited yet', async () => {
     setup(['Denmark'])
-    await userEvent.type(search(), 'den')
+    await userEvent.type(search(), 'de')
     const names = within(results()!).getAllByRole('button').map((b) => b.textContent)
-    expect(names).toEqual(['SwedenAdd'])
+    expect(names).not.toContain('DenmarkAdd')
+    expect(names).toContain('Democratic Republic of the CongoAdd')
+  })
+
+  it('finds countries by their former names', async () => {
+    const { onAdd } = setup()
+    await userEvent.type(search(), 'Swaziland')
+    expect(within(results()!).getByRole('button')).toHaveTextContent('Eswatini (Swaziland)')
+    await userEvent.keyboard('{Enter}')
+    expect(onAdd).toHaveBeenCalledWith('Eswatini')
   })
 
   it('says when nothing matches', async () => {

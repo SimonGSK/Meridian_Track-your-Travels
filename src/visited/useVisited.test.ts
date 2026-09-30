@@ -38,4 +38,12 @@ describe('useVisited', () => {
     const { result } = renderHook(() => useVisited())
     expect(result.current.visited.size).toBe(0)
   })
+
+  it('reads names saved by earlier versions as today\'s names', () => {
+    localStorage.setItem(VISITED_STORAGE_KEY, JSON.stringify(['Dem. Rep. Congo', 'eSwatini', 'Denmark']))
+    const { result } = renderHook(() => useVisited())
+    expect([...result.current.visited]).toEqual(['Democratic Republic of the Congo', 'Eswatini', 'Denmark'])
+    act(() => result.current.remove('Eswatini'))
+    expect(JSON.parse(localStorage.getItem(VISITED_STORAGE_KEY)!)).toEqual(['Democratic Republic of the Congo', 'Denmark'])
+  })
 })

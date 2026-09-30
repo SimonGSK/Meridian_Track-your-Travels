@@ -130,7 +130,7 @@ test.describe('visited', () => {
     await page.reload()
     await page.getByRole('button', { name: 'Visited' }).click()
     await expect(list).toContainText('Denmark')
-    await expect(page.getByText(/^1 of \d+ countries and territories$/)).toBeVisible()
+    await expect(page.getByText('1 of 197 countries')).toBeVisible()
   })
 
   test('marking the clicked country as visited', async ({ page }) => {
@@ -233,9 +233,14 @@ test.describe('touch', { tag: '@touch' }, () => {
     expect(nav.width).toBeCloseTo(viewport.width, 0)
 
     await page.getByRole('button', { name: 'Visited' }).tap()
-    const sheet = (await page.getByRole('region', { name: 'Visited' }).boundingBox())!
-    expect(sheet.width).toBeCloseTo(viewport.width, 0)
-    expect(sheet.y + sheet.height).toBeCloseTo(nav.y, 0)
+    const sheet = page.getByRole('region', { name: 'Visited' })
+    // Let it finish sliding in before measuring
+    await sheet.evaluate((el) =>
+      Promise.all((el as unknown as { getAnimations(): { finished: Promise<unknown> }[] }).getAnimations().map((a) => a.finished)),
+    )
+    const box = (await sheet.boundingBox())!
+    expect(box.width).toBeCloseTo(viewport.width, 0)
+    expect(box.y + box.height).toBeCloseTo(nav.y, 0)
   })
 
   test('tapping a country opens its panel', async ({ page }) => {

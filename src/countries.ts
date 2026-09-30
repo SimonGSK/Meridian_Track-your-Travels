@@ -5,12 +5,20 @@ import { geoArea, geoBounds, geoCentroid, geoContains, geoDistance } from 'd3-ge
 import { numericToAlpha2 } from 'i18n-iso-countries'
 import worldData from 'world-atlas/countries-50m.json'
 import extraCountries from './data/extra-countries.json'
+import { aliasesOf, displayName, normalizeName, placeKind, type PlaceKind } from './data/names'
 import { fixWesternSahara, westernSaharaBorder } from './data/westernSahara'
 
 export type CountryFeature = Feature<
   Polygon | MultiPolygon,
   {
+    /** Display name, e.g. "Bosnia and Herzegovina" */
     name: string
+    /** Name in the map data, e.g. "Bosnia and Herz." */
+    mapName: string
+    /** Every name the place goes by, including former and alternative spellings */
+    aliases: string[]
+    /** Countries: UN members and observers, Kosovo and Taiwan (197). Everything else is a territory. */
+    kind: PlaceKind
     /**
      * ISO 3166-1 numeric code, e.g. "208" for Denmark. Null for disputed
      * areas without one (Kosovo, Somaliland, ...), and shared by some
@@ -61,20 +69,27 @@ const shapes = fixWesternSahara([...mapShapes, ...extraShapes])
 
 export const countries: CountryFeature[] = shapes
   .map((f, i) => ({ f, mapColor: mapColors[i] ?? extraMapColor(f, mapShapes, mapColors) }))
-  .map(({ f, mapColor }) => ({
+  .map(({ f, mapColor }) => ({ f, mapColor, isoAlpha2: alpha2Of(f) }))
+  .map(({ f, mapColor, isoAlpha2 }) => ({
     ...f,
     properties: {
-      name: f.properties.name,
+      name: displayName(f.properties.name),
+      mapName: f.properties.name,
+      aliases: aliasesOf(f.properties.name, isoAlpha2),
+      kind: placeKind(f.properties.name, isoAlpha2),
       areaKm2: (geoArea(f) / (4 * Math.PI)) * EARTH_KM2,
       tiny: (geoArea(f) / (4 * Math.PI)) * EARTH_KM2 < TINY_KM2,
       extent: extentOf(largestPart(f.geometry as Polygon | MultiPolygon)),
       isoCode: f.id === undefined ? null : String(f.id),
-      isoAlpha2:
-        (f.id === undefined ? UNOFFICIAL_ALPHA2[f.properties.name] : numericToAlpha2(f.id)) ?? null,
+      isoAlpha2,
       centroid: geoCentroid(largestPart(f.geometry as Polygon | MultiPolygon)),
       mapColor,
     },
   })) as CountryFeature[]
+
+function alpha2Of(f: Shape): string | null {
+  return (f.id === undefined ? UNOFFICIAL_ALPHA2[f.properties.name] : numericToAlpha2(f.id)) ?? null
+}
 
 /** A map color for an added place that differs from the countries around it. */
 function extraMapColor(shape: Shape, others: Shape[], colors: number[]) {
@@ -213,3 +228,45 @@ export function findCountryNear(
 
 const polygonsOf = ({ geometry }: CountryFeature) =>
   geometry.type === 'Polygon' ? [geometry.coordinates] : geometry.coordinates
+
+const byNormalizedName = new Map<string, CountryFeature>()
+for (const country of countries) {
+  for (const alias of country.properties.aliases) byNormalizedName.set(normalizeName(alias), country)
+}
+
+/** The place a typed name refers to, accepting any known spelling: "Swaziland" → Eswatini. */
+export function findCountryByName(name: string): CountryFeature | null {
+  return byNormalizedName.get(normalizeName(name)) ?? null
+}
+
+export type NameMatch = {
+  country: CountryFeature
+  /** The alternative name that matched, when it isn't the display name, e.g. "Swaziland" for Eswatini */
+  matchedAlias: string | null
+}
+
+/**
+ * Places whose name, or any alternative name, starts with what's typed (or
+ * has a word that does). Display-name matches come first.
+ */
+export function searchCountries(query: string, among: readonly CountryFeature[] = countries, limit = 8): NameMatch[] {
+  const q = normalizeName(query)
+  if (!q) return []
+  const scored: { match: NameMatch; score: number }[] = []
+  for (const country of among) {
+    let best: { match: NameMatch; score: number } | null = null
+    for (const alias of country.properties.aliases) {
+      const n = normalizeName(alias)
+      const isName = alias === country.properties.name
+      const score = n.startsWith(q) ? (isName ? 0 : 1) : n.split(' ').some((word) => word.startsWith(q)) ? (isName ? 2 : 3) : -1
+      if (score >= 0 && (!best || score < best.score)) {
+        best = { match: { country, matchedAlias: isName ? null : alias }, score }
+      }
+    }
+    if (best) scored.push(best)
+  }
+  return scored
+    .sort((a, b) => a.score - b.score || a.match.country.properties.name.localeCompare(b.match.country.properties.name))
+    .slice(0, limit)
+    .map(({ match }) => match)
+}

@@ -20,6 +20,6 @@ describe('flagUrl', () => {
 
   it('returns null for places without a flag', () => {
     expect(flagUrl(byName('Somaliland'))).toBeNull()
-    expect(flagUrl(byName('N. Cyprus'))).toBeNull()
+    expect(flagUrl(byName('Northern Cyprus'))).toBeNull()
   })
 })
