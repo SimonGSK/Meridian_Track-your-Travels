@@ -26,7 +26,10 @@ describe('VisitedPanel', () => {
 
   it('counts territories separately', () => {
     setup(['Denmark', 'Greenland', 'Faroe Islands'])
-    expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '1')
+    expect(screen.getByRole('progressbar', { name: "Share of the world's countries visited" })).toHaveAttribute(
+      'aria-valuenow',
+      '1',
+    )
     expect(screen.getByText(/plus 2 of \d+ territories/)).toBeInTheDocument()
   })
 
@@ -35,13 +38,49 @@ describe('VisitedPanel', () => {
     expect(screen.getByText(/None yet/)).toBeInTheDocument()
   })
 
-  it('lists visited countries alphabetically', () => {
-    setup(['Japan', 'Denmark', 'Brazil'])
-    const list = screen.getByRole('list', { name: 'Visited countries' })
-    const names = within(list)
-      .getAllByRole('button', { name: /^(?!Remove)/ })
-      .map((b) => b.textContent)
-    expect(names).toEqual(['Brazil', 'Denmark', 'Japan'])
+  it('groups visited countries by continent, alphabetically', () => {
+    setup(['Japan', 'Denmark', 'Brazil', 'Sweden', 'Argentina'])
+    const groups = within(screen.getByRole('list', { name: 'Visited countries' }))
+    const names = (continent: string) =>
+      within(groups.getByRole('list', { name: new RegExp(continent) }))
+        .getAllByRole('button', { name: /^(?!Remove)/ })
+        .map((b) => b.textContent)
+    expect(screen.getAllByRole('heading', { level: 4 }).map((h) => h.textContent)).toEqual([
+      'Asia 1',
+      'Europe 2',
+      'South America 2',
+    ])
+    expect(names('Europe')).toEqual(['Denmark', 'Sweden'])
+    expect(names('South America')).toEqual(['Argentina', 'Brazil'])
+  })
+
+  it('marks territories in the list', () => {
+    setup(['Denmark', 'Greenland'])
+    const northAmerica = screen.getByRole('list', { name: /North America/ })
+    expect(within(northAmerica).getByRole('button', { name: /^Greenland/ })).toHaveTextContent('territory')
+  })
+
+  it('shows how much of each continent has been visited', () => {
+    setup(['Denmark', 'Sweden', 'Norway', 'Japan', 'Greenland'])
+    const europe = screen.getByRole('progressbar', { name: 'Europe: 3 of 46 countries' })
+    expect(europe).toHaveAttribute('aria-valuenow', '3')
+    expect(europe).toHaveAttribute('aria-valuetext', '7%')
+    expect(screen.getByRole('progressbar', { name: 'Asia: 1 of 48 countries' })).toBeInTheDocument()
+    // Greenland is a territory, so North America stays at 0
+    expect(screen.getByRole('progressbar', { name: 'North America: 0 of 23 countries' })).toBeInTheDocument()
+  })
+
+  it('shows every inhabited continent, even with nothing visited', () => {
+    setup()
+    const stats = screen.getByRole('list', { name: 'Countries visited by continent' })
+    expect(within(stats).getAllByRole('listitem').map((li) => li.querySelector('.continent-name')!.textContent)).toEqual([
+      'Africa',
+      'Asia',
+      'Europe',
+      'North America',
+      'Oceania',
+      'South America',
+    ])
   })
 
   it('searches countries that are not visited yet', async () => {

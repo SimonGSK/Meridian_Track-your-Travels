@@ -5,6 +5,7 @@ import { geoArea, geoBounds, geoCentroid, geoContains, geoDistance } from 'd3-ge
 import { numericToAlpha2 } from 'i18n-iso-countries'
 import worldData from 'world-atlas/countries-50m.json'
 import extraCountries from './data/extra-countries.json'
+import { continentOf, type Continent } from './data/continents'
 import { aliasesOf, displayName, normalizeName, placeKind, type PlaceKind } from './data/names'
 import { fixWesternSahara, westernSaharaBorder } from './data/westernSahara'
 
@@ -19,6 +20,7 @@ export type CountryFeature = Feature<
     aliases: string[]
     /** Countries: UN members and observers, Kosovo and Taiwan (197). Everything else is a territory. */
     kind: PlaceKind
+    continent: Continent
     /**
      * ISO 3166-1 numeric code, e.g. "208" for Denmark. Null for disputed
      * areas without one (Kosovo, Somaliland, ...), and shared by some
@@ -77,6 +79,7 @@ export const countries: CountryFeature[] = shapes
       mapName: f.properties.name,
       aliases: aliasesOf(f.properties.name, isoAlpha2),
       kind: placeKind(f.properties.name, isoAlpha2),
+      continent: continentOf(f.properties.name, isoAlpha2),
       areaKm2: (geoArea(f) / (4 * Math.PI)) * EARTH_KM2,
       tiny: (geoArea(f) / (4 * Math.PI)) * EARTH_KM2 < TINY_KM2,
       extent: extentOf(largestPart(f.geometry as Polygon | MultiPolygon)),
