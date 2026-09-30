@@ -4,10 +4,10 @@ import userEvent from '@testing-library/user-event'
 import NavRail from './NavRail'
 
 describe('NavRail', () => {
-  it('has Visited, Games and Design', () => {
+  it('has Explore, Visited, Games and Design', () => {
     render(<NavRail view={null} onChange={() => {}} />)
     const nav = screen.getByRole('navigation', { name: 'Main' })
-    expect(nav).toHaveTextContent(/Visited.*Games.*Design/)
+    expect(nav).toHaveTextContent(/Explore.*Visited.*Games.*Design/)
   })
 
   it('opens a view', async () => {

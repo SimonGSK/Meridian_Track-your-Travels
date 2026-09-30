@@ -28,6 +28,7 @@ export function useCountryLayer(
   globe: GlobeMethods | null,
   theme: Theme,
   colorOf: (country: CountryFeature) => string,
+  { showMarkers = true } = {},
 ) {
   const layer = useRef<CountryLayer | null>(null)
   const painted = useRef(new Map<CountryFeature, string>())
@@ -49,6 +50,10 @@ export function useCountryLayer(
   useEffect(() => {
     layer.current?.setBorders(theme.border, theme.borderOpacity)
   }, [globe, theme])
+
+  useEffect(() => {
+    layer.current?.setMarkersVisible(showMarkers)
+  }, [globe, showMarkers])
 
   useEffect(() => {
     const current = layer.current
@@ -190,9 +195,11 @@ export function useSmoothAutoRotate(globe: GlobeMethods | null, allowed: boolean
   }, [globe, targetSpeed])
 }
 
-type PointerCallbacks = {
+type PointerOptions = {
   onHover: (country: CountryFeature | null) => void
   onClick: (country: CountryFeature | null) => void
+  /** Whether tiny places' markers are shown, and so can be pointed at */
+  markers?: boolean
 }
 
 /**
@@ -200,7 +207,7 @@ type PointerCallbacks = {
  * the element wrapping the globe. Hover is re-checked at most once per frame,
  * including while the globe moves under a still pointer.
  */
-export function useCountryPointer(globe: GlobeMethods | null, { onHover, onClick }: PointerCallbacks) {
+export function useCountryPointer(globe: GlobeMethods | null, { onHover, onClick, markers = true }: PointerOptions) {
   const pointer = useRef<Point | null>(null)
   const pressedAt = useRef<Point | null>(null)
   const frame = useRef(0)
@@ -213,11 +220,11 @@ export function useCountryPointer(globe: GlobeMethods | null, { onHover, onClick
       const beside = screenToLatLng(globe, x + 1, y) ?? screenToLatLng(globe, x - 1, y)
       const perPixel = beside ? geoDistance([pos.lng, pos.lat], [beside.lng, beside.lat]) : 0
       return findCountryNear(pos.lat, pos.lng, {
-        markerRadius: MARKER_HIT_PX * perPixel,
+        markerRadius: markers ? MARKER_HIT_PX * perPixel : 0,
         tolerance: NEAR_MISS_PX * perPixel,
       })
     },
-    [globe],
+    [globe, markers],
   )
 
   const scheduleHover = useCallback(() => {

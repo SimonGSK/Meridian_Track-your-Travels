@@ -163,6 +163,14 @@ describe('findCountryNear', () => {
     expect(near(39.5, -9.6)).toBe('Portugal')
   })
 
+  it('only uses markers when told they are shown', () => {
+    const grenada = countries.find((c) => c.properties.name === 'Grenada')!
+    const [lng, lat] = grenada.properties.centroid
+    const point = [lat + 0.25, lng + 0.25] as const
+    expect(findCountryNear(...point, { markerRadius: 0.5 * DEG, tolerance: 0 })?.properties.name).toBe('Grenada')
+    expect(findCountryNear(...point, { markerRadius: 0, tolerance: 0 })).toBeNull()
+  })
+
   it('returns null in the open ocean', () => {
     expect(near(30, -40)).toBeNull()
     expect(near(-40, -120)).toBeNull()

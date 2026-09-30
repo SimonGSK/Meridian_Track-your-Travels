@@ -32,6 +32,7 @@ export type CountryLayer = {
   /** Recolor one country */
   paint(country: CountryFeature, color: ColorRepresentation): void
   setBorders(color: ColorRepresentation, opacity: number): void
+  setMarkersVisible(visible: boolean): void
   dispose(): void
 }
 
@@ -136,6 +137,9 @@ export function createCountryLayer(
     setBorders(color, opacity) {
       lines.material.color.set(color)
       lines.material.opacity = opacity
+    },
+    setMarkersVisible(visible) {
+      markers.visible = visible
     },
     dispose() {
       landGeometry.dispose()

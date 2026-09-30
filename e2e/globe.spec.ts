@@ -149,6 +149,23 @@ test.describe('visited', () => {
   })
 })
 
+test.describe('explore', () => {
+  test('settings switch visited countries and markers off, and stay off after reloading', async ({ page }) => {
+    await openGlobe(page)
+    await page.getByRole('button', { name: 'Explore' }).click()
+    const visitedSwitch = page.getByRole('switch', { name: /Visited countries/ })
+    const markerSwitch = page.getByRole('switch', { name: /Island markers/ })
+    await expect(visitedSwitch).toBeChecked()
+    await visitedSwitch.uncheck()
+    await markerSwitch.uncheck()
+
+    await page.reload()
+    await page.getByRole('button', { name: 'Explore' }).click()
+    await expect(visitedSwitch).not.toBeChecked()
+    await expect(markerSwitch).not.toBeChecked()
+  })
+})
+
 test.describe('design', () => {
   test('switching design repaints the globe and is remembered', async ({ page }) => {
     test.slow() // compares screenshots of the software-rendered globe

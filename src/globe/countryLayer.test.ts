@@ -60,6 +60,14 @@ describe('createCountryLayer', () => {
     expect(colors.updateRanges).toHaveLength(2)
   })
 
+  it('shows and hides the markers', () => {
+    const markers = layer.object.children.find((c) => c instanceof Points)!
+    layer.setMarkersVisible(false)
+    expect(markers.visible).toBe(false)
+    layer.setMarkersVisible(true)
+    expect(markers.visible).toBe(true)
+  })
+
   it('recolors the borders', () => {
     const lines = layer.object.children.find((c): c is LineSegments<BufferGeometry, LineBasicMaterial> => c instanceof LineSegments)!
     layer.setBorders('#ff0000', 0.5)

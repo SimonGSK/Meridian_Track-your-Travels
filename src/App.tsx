@@ -4,6 +4,8 @@ import { MeshPhongMaterial } from 'three'
 import type { CountryFeature } from './countries'
 import CountryPanel from './CountryPanel'
 import DesignPanel from './design/DesignPanel'
+import ExplorePanel from './explore/ExplorePanel'
+import { useSettings } from './explore/useSettings'
 import GamesPanel from './games/GamesPanel'
 import type { GameId } from './games/games'
 import { flightTarget, gameHighlights, globeAnswers, isPlaying, overviewKey, showsGame } from './games/globeView'
@@ -53,6 +55,7 @@ export default function App() {
   const globeIsAnswer = globeAnswers(game)
   const { width, height } = useWindowSize()
   const [theme, setTheme] = useTheme()
+  const [settings, changeSettings] = useSettings()
 
   const globeMaterial = useMemo(
     () => new MeshPhongMaterial({ color: theme.ocean, shininess: theme.oceanShininess }),
@@ -84,13 +87,13 @@ export default function App() {
 
   // Games get a clean globe: no visited colors, and hover only where the globe is the answer
   const colorHovered = !playing || globeIsAnswer ? hovered : null
-  const colorVisited = showsGame(game) ? NO_VISITS : visited
+  const colorVisited = showsGame(game) || !settings.showVisited ? NO_VISITS : visited
   const colorOf = useCallback(
     (country: CountryFeature) =>
       countryColor(country, { theme, hovered: colorHovered, visited: colorVisited, highlights }),
     [theme, colorHovered, colorVisited, highlights],
   )
-  useCountryLayer(globe, theme, colorOf)
+  useCountryLayer(globe, theme, colorOf, { showMarkers: settings.showMarkers })
   useSelectedCountry(globe, selected, theme.selected)
   useDepthPrecision(globe)
   useSmoothAutoRotate(globe, !selected && !playing)
@@ -102,7 +105,11 @@ export default function App() {
     },
     [playing, globeIsAnswer, selectCountry, pick],
   )
-  const pointerHandlers = useCountryPointer(globe, { onHover: setHovered, onClick: onGlobeClick })
+  const pointerHandlers = useCountryPointer(globe, {
+    onHover: setHovered,
+    onClick: onGlobeClick,
+    markers: settings.showMarkers,
+  })
 
   const gameFlight = flightTarget(game)
   useEffect(() => {
@@ -185,6 +192,7 @@ export default function App() {
       <NavRail view={view} onChange={changeView} />
       {view && (
         <SidePanel title={VIEWS.find((v) => v.id === view)!.label} onClose={() => changeView(null)}>
+          {view === 'explore' && <ExplorePanel settings={settings} onChange={changeSettings} />}
           {view === 'visited' && (
             <VisitedPanel visited={visited} onAdd={addVisited} onRemove={removeVisited} onShow={showCountry} />
           )}

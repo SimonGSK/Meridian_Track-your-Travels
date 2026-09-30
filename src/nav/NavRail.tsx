@@ -1,4 +1,3 @@
-import { GlobeIcon } from '../icons'
 import { VIEWS, type ViewId } from './views'
 
 type Props = {
@@ -10,9 +9,6 @@ type Props = {
 export default function NavRail({ view, onChange }: Props) {
   return (
     <nav className="rail" aria-label="Main">
-      <div className="rail-logo">
-        <GlobeIcon size={28} />
-      </div>
       {VIEWS.map((item) => (
         <button
           key={item.id}

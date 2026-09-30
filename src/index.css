@@ -202,15 +202,6 @@ body,
   backdrop-filter: blur(12px);
 }
 
-.rail-logo {
-  display: grid;
-  place-items: center;
-  width: 44px;
-  height: 44px;
-  margin-bottom: 14px;
-  color: var(--accent);
-}
-
 .rail-item {
   display: flex;
   flex-direction: column;
@@ -507,6 +498,81 @@ body,
   border-color: transparent;
   background: #5b8def;
   color: #fff;
+}
+
+/* Explore */
+
+.tips {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--text-muted);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.with-icon {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.switches {
+  display: grid;
+  gap: 8px;
+}
+
+.switch {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface-raised);
+  cursor: pointer;
+}
+
+.switch strong {
+  display: block;
+  font-size: 15px;
+}
+
+.switch .muted {
+  font-size: 13px;
+}
+
+.switch input {
+  appearance: none;
+  flex: none;
+  position: relative;
+  width: 40px;
+  height: 24px;
+  margin: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.switch input::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform 0.2s;
+}
+
+.switch input:checked {
+  background: var(--accent);
+}
+
+.switch input:checked::after {
+  transform: translateX(16px);
 }
 
 /* Design */
@@ -952,9 +1018,6 @@ body,
     padding: 0 8px;
     border-right: none;
     border-top: 1px solid var(--line);
-  }
-  .rail-logo {
-    display: none;
   }
   .panel-open .globe {
     transform: translateY(-22vh);

@@ -42,7 +42,7 @@ const { PLACES, globe, layer, sceneObjects } = vi.hoisted(() => {
       getGlobeRadius: () => 100,
     },
     sceneObjects,
-    layer: { object: {}, paint: vi.fn(), setBorders: vi.fn(), dispose: vi.fn() },
+    layer: { object: {}, paint: vi.fn(), setBorders: vi.fn(), setMarkersVisible: vi.fn(), dispose: vi.fn() },
   }
 })
 
@@ -359,6 +359,35 @@ describe('App', () => {
 
       render(<App />)
       expect(painted()).toEqual({ Denmark: DEFAULT_THEME.visited })
+    })
+  })
+
+  describe('explore settings', () => {
+    const openExplore = () => userEvent.click(screen.getByRole('button', { name: 'Explore' }))
+
+    it('hides visited countries on the globe, keeping the list', async () => {
+      render(<App />)
+      click(100)
+      await userEvent.click(within(countryPanel()!).getByRole('button', { name: 'Mark as visited' }))
+      expect(painted()).toEqual({ Denmark: DEFAULT_THEME.visited })
+
+      await openExplore()
+      await userEvent.click(screen.getByRole('switch', { name: /Visited countries/ }))
+      expect(painted()).toEqual({})
+      await userEvent.click(within(screen.getByRole('navigation')).getByRole('button', { name: 'Visited' }))
+      expect(screen.getByRole('list', { name: 'Visited countries' })).toHaveTextContent('Denmark')
+    })
+
+    it('hides the island markers, and remembers it', async () => {
+      const first = render(<App />)
+      expect(layer.setMarkersVisible).toHaveBeenLastCalledWith(true)
+      await openExplore()
+      await userEvent.click(screen.getByRole('switch', { name: /Island markers/ }))
+      expect(layer.setMarkersVisible).toHaveBeenLastCalledWith(false)
+      first.unmount()
+
+      render(<App />)
+      expect(layer.setMarkersVisible).toHaveBeenLastCalledWith(false)
     })
   })
 
