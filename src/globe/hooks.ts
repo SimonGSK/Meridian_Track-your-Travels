@@ -15,7 +15,8 @@ const MARKER_HIT_PX = 8
 const NEAR_MISS_PX = 6
 
 export const SPIN_SPEED = 0.4
-export const RESUME_DELAY_MS = 2500
+/** How long the globe must be left alone before it starts spinning again */
+export const IDLE_DELAY_MS = 30_000
 /** Fraction of the remaining speed difference covered each frame */
 const SPIN_EASING = 0.04
 
@@ -129,39 +130,51 @@ export function useDepthPrecision(globe: GlobeMethods | null) {
 
 /**
  * Idle spin that eases in and out instead of starting and stopping abruptly.
- * Stops instantly when the user grabs the globe, and resumes a moment after
- * they let go.
+ * Any interaction with the globe (moving the pointer over it, dragging,
+ * zooming) stops it; it resumes once the globe has been left alone for
+ * IDLE_DELAY_MS. It spins right away when the page opens.
  */
-export function useSmoothAutoRotate(globe: GlobeMethods | null, active: boolean) {
-  const [interacting, setInteracting] = useState(false)
+export function useSmoothAutoRotate(globe: GlobeMethods | null, allowed: boolean) {
+  const [idle, setIdle] = useState(true)
 
   useEffect(() => {
     const controls = globe?.controls()
-    if (!controls) return
+    if (!globe || !controls) return
+    const element = globe.renderer().domElement
     controls.autoRotate = false
     controls.autoRotateSpeed = 0
 
-    let resumeTimer: ReturnType<typeof setTimeout> | undefined
-    const onStart = () => {
-      clearTimeout(resumeTimer)
+    let idleTimer: ReturnType<typeof setTimeout> | undefined
+    let held = false
+    const wake = () => {
+      clearTimeout(idleTimer)
+      setIdle(false)
+      // While the globe is held, the wait only starts once it's let go
+      if (!held) idleTimer = setTimeout(() => setIdle(true), IDLE_DELAY_MS)
+    }
+    // Grabbing stops the spin at once rather than easing out
+    const grab = () => {
+      held = true
       controls.autoRotate = false
       controls.autoRotateSpeed = 0
-      setInteracting(true)
+      wake()
     }
-    const onEnd = () => {
-      clearTimeout(resumeTimer)
-      resumeTimer = setTimeout(() => setInteracting(false), RESUME_DELAY_MS)
+    const release = () => {
+      held = false
+      wake()
     }
-    controls.addEventListener('start', onStart)
-    controls.addEventListener('end', onEnd)
+    controls.addEventListener('start', grab)
+    controls.addEventListener('end', release)
+    element.addEventListener('pointermove', wake)
     return () => {
-      clearTimeout(resumeTimer)
-      controls.removeEventListener('start', onStart)
-      controls.removeEventListener('end', onEnd)
+      clearTimeout(idleTimer)
+      controls.removeEventListener('start', grab)
+      controls.removeEventListener('end', release)
+      element.removeEventListener('pointermove', wake)
     }
   }, [globe])
 
-  const targetSpeed = active && !interacting ? SPIN_SPEED : 0
+  const targetSpeed = allowed && idle ? SPIN_SPEED : 0
 
   useEffect(() => {
     const controls = globe?.controls()

@@ -105,7 +105,7 @@ export default function App() {
   useCountryLayer(globe, theme, colorOf)
   useSelectedCountry(globe, selected, theme.selected)
   useDepthPrecision(globe)
-  useSmoothAutoRotate(globe, !selected && !hovered && !playing)
+  useSmoothAutoRotate(globe, !selected && !playing)
 
   const onGlobeClick = useCallback(
     (country: CountryFeature | null) => {

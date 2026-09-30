@@ -38,6 +38,7 @@ const { PLACES, globe, layer, sceneObjects } = vi.hoisted(() => {
       pointOfView: vi.fn((..._args: unknown[]) => ({ lat: 25, lng: 10, altitude: 1.9 })),
       scene: () => ({ add: (o: object) => sceneObjects.add(o), remove: (o: object) => sceneObjects.delete(o) }),
       camera: () => ({ position: { length: () => 290 }, near: 0.05, updateProjectionMatrix: () => {} }),
+      renderer: () => ({ domElement: document.createElement('canvas') }),
       getGlobeRadius: () => 100,
     },
     sceneObjects,
