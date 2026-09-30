@@ -32,6 +32,11 @@ export function flightAltitude(currentAltitude: number) {
   return clamp(currentAltitude, MIN_FLIGHT_ALTITUDE, MAX_FLIGHT_ALTITUDE)
 }
 
+/** An altitude that fits a country of this size (in degrees) comfortably in view. */
+export function fitAltitude(extent: number) {
+  return clamp(extent * 0.09, MIN_FLIGHT_ALTITUDE, MAX_FLIGHT_ALTITUDE)
+}
+
 /** Move `current` a fraction of the way to `target`, snapping when close. */
 export function approach(current: number, target: number, factor: number) {
   const next = current + (target - current) * factor

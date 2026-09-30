@@ -10,11 +10,11 @@ export type ColorState = {
   highlights: ReadonlyMap<CountryFeature, string>
 }
 
-/** The color a country is drawn in. Hover wins, then highlights, then visited. */
+/** The color a country is drawn in. Highlights (game answers) win, then hover, then visited. */
 export function countryColor(country: CountryFeature, { theme, hovered, visited, highlights }: ColorState) {
-  if (country === hovered) return theme.hover
   const highlight = highlights.get(country)
   if (highlight) return highlight
+  if (country === hovered) return theme.hover
   if (visited.has(country.properties.name)) return theme.visited
   return landColor(theme, country.properties.mapColor)
 }

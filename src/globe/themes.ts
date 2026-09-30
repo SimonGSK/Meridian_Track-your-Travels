@@ -13,6 +13,9 @@ export type Theme = {
   selected: string
   selectedSide: string
   visited: string
+  /** Game feedback */
+  correct: string
+  wrong: string
   background: string
   atmosphere: string
 }
@@ -30,6 +33,8 @@ export const CLASSIC: Theme = {
   selected: '#ff7846',
   selectedSide: 'rgba(20, 60, 50, 0.6)',
   visited: '#5b8def',
+  correct: '#b4f25c',
+  wrong: '#ff5a5f',
   background: '#02040a',
   atmosphere: '#5fb3ff',
 }
@@ -47,6 +52,8 @@ export const POLITICAL: Theme = {
   selected: '#e63946',
   selectedSide: 'rgba(90, 40, 40, 0.5)',
   visited: '#2f6fdb',
+  correct: '#15803d',
+  wrong: '#dc2626',
   background: '#050a14',
   atmosphere: '#bfe3ff',
 }
@@ -64,6 +71,8 @@ export const NIGHT: Theme = {
   selected: '#ffd166',
   selectedSide: 'rgba(56, 225, 255, 0.35)',
   visited: '#7b5cff',
+  correct: '#39ff88',
+  wrong: '#ff3b5c',
   background: '#000000',
   atmosphere: '#38e1ff',
 }
@@ -81,6 +90,8 @@ export const VINTAGE: Theme = {
   selected: '#9c3d22',
   selectedSide: 'rgba(107, 79, 42, 0.6)',
   visited: '#5f8f6e',
+  correct: '#2f7d3a',
+  wrong: '#b83227',
   background: '#120d08',
   atmosphere: '#e8c78f',
 }
@@ -98,6 +109,8 @@ export const MINIMAL: Theme = {
   selected: '#2563eb',
   selectedSide: 'rgba(37, 99, 235, 0.4)',
   visited: '#0ea5a4',
+  correct: '#16a34a',
+  wrong: '#dc2626',
   background: '#0b0f14',
   atmosphere: '#ffffff',
 }

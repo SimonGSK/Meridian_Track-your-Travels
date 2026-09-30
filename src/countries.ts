@@ -21,6 +21,8 @@ export type CountryFeature = Feature<
     centroid: [number, number]
     /** 0–4, never shared with a neighboring country, for multi-colored map designs */
     mapColor: number
+    /** Rough size of the largest landmass in degrees, to zoom the camera to fit it */
+    extent: number
   }
 >
 
@@ -47,6 +49,7 @@ export const countries: CountryFeature[] = feature(topology, topology.objects.co
     ...f,
     properties: {
       name: f.properties.name,
+      extent: extentOf(largestPart(f.geometry as Polygon | MultiPolygon)),
       isoCode: f.id === undefined ? null : String(f.id),
       isoAlpha2:
         (f.id === undefined ? UNOFFICIAL_ALPHA2[f.properties.name] : numericToAlpha2(f.id)) ?? null,
@@ -83,6 +86,14 @@ function largestPart(geometry: Polygon | MultiPolygon): Polygon {
   if (geometry.type === 'Polygon') return geometry
   const parts = geometry.coordinates.map((coordinates) => ({ type: 'Polygon' as const, coordinates }))
   return parts.reduce((a, b) => (geoArea(b) > geoArea(a) ? b : a))
+}
+
+function extentOf(polygon: Polygon) {
+  const [[west, south], [east, north]] = geoBounds(polygon)
+  const width = (east - west + 360) % 360
+  const height = north - south
+  const midLatitude = ((north + south) / 2) * (Math.PI / 180)
+  return Math.max(height, width * Math.cos(midLatitude))
 }
 
 /** Every border and coastline exactly once, so shared borders aren't drawn twice. */

@@ -66,8 +66,26 @@ body,
   opacity: 0.6;
 }
 
+.globe {
+  /* Center the globe in the space not covered by the menu and side panel */
+  transform: translateX(calc(var(--rail-width) / 2));
+  transition: transform 0.35s ease;
+}
+
+.panel-open .globe {
+  transform: translateX(calc((var(--rail-width) + var(--side-panel-width)) / 2));
+}
+
 .globe:active {
   cursor: grabbing !important;
+}
+
+.title {
+  transition: opacity 0.2s;
+}
+
+.panel-open .title {
+  opacity: 0;
 }
 
 .tooltip {
@@ -487,6 +505,204 @@ body,
   height: 56px;
 }
 
+/* Games */
+
+.game-list {
+  display: grid;
+  gap: 10px;
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.game-card {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface-raised);
+  text-align: left;
+  cursor: pointer;
+}
+
+.game-card:hover {
+  background: var(--surface-hover);
+  border-color: rgba(95, 179, 255, 0.4);
+}
+
+.game-card strong {
+  font-size: 16px;
+}
+
+.game-card .muted {
+  font-size: 13px;
+}
+
+.best-score {
+  margin-top: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.game {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.game-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.game-status {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.game-prompt {
+  margin: 8px 0 0;
+  font-size: 15px;
+  color: var(--text-muted);
+}
+
+.game-target {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.game-flag {
+  width: 100%;
+  max-width: 220px;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: 8px;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.12),
+    0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.options {
+  display: grid;
+  gap: 8px;
+}
+
+.option {
+  padding: 11px 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface-raised);
+  text-align: left;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    border-color 0.15s,
+    opacity 0.15s;
+}
+
+.option:hover:not(:disabled) {
+  background: var(--surface-hover);
+  border-color: rgba(95, 179, 255, 0.5);
+}
+
+.option:disabled {
+  cursor: default;
+}
+
+.option.correct {
+  border-color: var(--good);
+  background: rgba(62, 207, 142, 0.18);
+}
+
+.option.wrong {
+  border-color: var(--bad);
+  background: rgba(242, 95, 92, 0.18);
+}
+
+.option.dimmed {
+  opacity: 0.45;
+}
+
+.feedback {
+  min-height: 1.4em;
+  margin: 0;
+  font-weight: 600;
+}
+
+.feedback.correct {
+  color: var(--good);
+}
+
+.feedback.wrong {
+  color: var(--bad);
+}
+
+.primary-button {
+  padding: 11px 16px;
+  border: none;
+  border-radius: 10px;
+  background: var(--accent);
+  color: #04121f;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.primary-button:hover {
+  filter: brightness(1.08);
+}
+
+.text-button {
+  align-self: flex-start;
+  padding: 4px 0;
+  border: none;
+  background: none;
+  color: var(--text-muted);
+  font-size: 13px;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.text-button:hover {
+  color: #fff;
+}
+
+.game-results {
+  text-align: center;
+}
+
+.game-results .text-button {
+  align-self: center;
+}
+
+.big-score {
+  margin: 8px 0 0;
+  font-size: 48px;
+  font-weight: 800;
+}
+
+.game-results p {
+  margin: 0;
+}
+
+.new-best {
+  color: var(--good);
+  font-weight: 700;
+}
+
 @keyframes slide-from-left {
   from {
     opacity: 0;
@@ -529,6 +745,9 @@ body,
   }
   .rail-logo {
     display: none;
+  }
+  .panel-open .globe {
+    transform: translateY(-22vh);
   }
   .side-panel {
     top: auto;

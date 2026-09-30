@@ -21,18 +21,17 @@ describe('countryColor', () => {
     expect(countryColor(denmark, state({ visited: new Set(['Denmark']) }))).toBe(CLASSIC.visited)
   })
 
-  it('lets highlights override visited', () => {
-    const s = state({ visited: new Set(['Denmark']), highlights: new Map([[denmark, '#00ff00']]) })
-    expect(countryColor(denmark, s)).toBe('#00ff00')
+  it('lets hover override visited', () => {
+    expect(countryColor(denmark, state({ hovered: denmark, visited: new Set(['Denmark']) }))).toBe(CLASSIC.hover)
   })
 
-  it('lets hover override everything', () => {
+  it('lets highlights, like game answers, override everything', () => {
     const s = state({
       hovered: denmark,
       visited: new Set(['Denmark']),
       highlights: new Map([[denmark, '#00ff00']]),
     })
-    expect(countryColor(denmark, s)).toBe(CLASSIC.hover)
+    expect(countryColor(denmark, s)).toBe('#00ff00')
   })
 
   it('picks the map color from multi-colored designs', () => {

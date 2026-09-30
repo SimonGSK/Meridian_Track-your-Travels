@@ -10,7 +10,7 @@ describe('themes', () => {
   })
 
   it.each(THEMES.map((t) => [t.name, t]))('%s uses valid colors', (_, theme) => {
-    const colors = [theme.ocean, theme.border, theme.hover, theme.selected, theme.visited, theme.background, theme.atmosphere]
+    const colors = [theme.ocean, theme.border, theme.hover, theme.selected, theme.visited, theme.correct, theme.wrong, theme.background, theme.atmosphere]
     const land = typeof theme.land === 'string' ? [theme.land] : theme.land
     for (const color of [...colors, ...land]) expect(() => new Color(color)).not.toThrow()
   })
@@ -19,6 +19,12 @@ describe('themes', () => {
     const land = new Set(typeof theme.land === 'string' ? [theme.land] : theme.land)
     for (const color of [theme.hover, theme.selected, theme.visited]) expect(land.has(color)).toBe(false)
     expect(new Set([theme.hover, theme.selected, theme.visited]).size).toBe(3)
+  })
+
+  it.each(THEMES.map((t) => [t.name, t]))('%s shows game answers in colors distinct from land and hover', (_, theme) => {
+    const others = new Set([...(typeof theme.land === 'string' ? [theme.land] : theme.land), theme.hover, theme.selected])
+    for (const color of [theme.correct, theme.wrong]) expect(others.has(color)).toBe(false)
+    expect(theme.correct).not.toBe(theme.wrong)
   })
 
   it('has enough colors in every palette so neighbors never match', () => {

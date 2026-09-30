@@ -26,6 +26,9 @@ const { PLACES, globe, layer } = vi.hoisted(() => {
       200: { lat: 46.6, lng: 2.4 }, // France
       300: { lat: 30, lng: -40 }, // Atlantic Ocean
       400: { lat: 9.56, lng: 44.06 }, // Somaliland, which has no flag
+      500: { lat: -10, lng: -52 }, // Brazil
+      600: { lat: 36.2, lng: 138.25 }, // Japan
+      700: { lat: 0, lng: 37.9 }, // Kenya
       // anything else: outer space
     } as Record<number, { lat: number; lng: number }>,
     globe: {
@@ -58,6 +61,16 @@ vi.mock('./globe/picking', () => ({
   screenToLatLng: (_: unknown, x: number) => PLACES[x] ?? null,
 }))
 vi.mock('./globe/countryLayer', () => ({ createCountryLayer: () => layer }))
+// Games ask about a small, known set of countries in a fixed order
+vi.mock('./games/games', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('./games/games')>()
+  const { countries } = await import('./countries')
+  const pool = ['Denmark', 'France', 'Brazil', 'Japan', 'Kenya'].map(
+    (name) => countries.find((c) => c.properties.name === name)!,
+  )
+  return { ...actual, newGame: (id: import('./games/games').GameId) => actual.newGame(id, () => 0.5, pool) }
+})
+const PLACE_OF: Record<string, number> = { Denmark: 100, France: 200, Brazil: 500, Japan: 600, Kenya: 700 }
 
 const at = (x: number) => ({ clientX: x, clientY: 0 })
 const surface = () => screen.getByTestId('globe')
@@ -325,6 +338,122 @@ describe('App', () => {
 
       render(<App />)
       expect(new Set(Object.values(lastColors()))).toEqual(new Set([NIGHT.land]))
+    })
+  })
+
+  describe('games', () => {
+    const byName = (name: string) => countries.find((c) => c.properties.name === name)!
+    const startGame = async (title: RegExp) => {
+      render(<App />)
+      await userEvent.click(screen.getByRole('button', { name: 'Games' }))
+      await userEvent.click(screen.getByRole('button', { name: title }))
+    }
+    const findTarget = () => screen.getByText('Find this country on the globe').nextElementSibling!.textContent!
+    const feedback = () => screen.getByRole('status')
+    const lastFlight = () => globe.pointOfView.mock.calls.filter((call) => call.length === 2).at(-1)
+
+    it('hides names and flags while playing', async () => {
+      await startGame(/Find the country/)
+      hover(100)
+      await act(() => new Promise((r) => setTimeout(r, 50)))
+      expect(tooltip()).not.toBeInTheDocument()
+      expect(flag()).not.toBeInTheDocument()
+    })
+
+    it('does not show visited countries while playing', async () => {
+      render(<App />)
+      click(100)
+      await userEvent.click(within(countryPanel()!).getByRole('button', { name: 'Mark as visited' }))
+      await userEvent.click(screen.getByRole('button', { name: 'Games' }))
+      await userEvent.click(screen.getByRole('button', { name: /Flag quiz/ }))
+      expect(painted()).toEqual({})
+    })
+
+    describe('find the country', () => {
+      it('scores a click on the right country', async () => {
+        await startGame(/Find the country/)
+        const target = findTarget()
+        click(PLACE_OF[target])
+        expect(feedback()).toHaveTextContent('Correct!')
+        expect(screen.getByText('Score 1')).toBeInTheDocument()
+        expect(painted()).toEqual({ [target]: DEFAULT_THEME.correct })
+        expect(countryPanel()).not.toBeInTheDocument()
+      })
+
+      it('shows the wrong and the right country after a miss, and flies to the answer', async () => {
+        await startGame(/Find the country/)
+        const target = findTarget()
+        const wrong = Object.keys(PLACE_OF).find((name) => name !== target)!
+        click(PLACE_OF[wrong])
+        expect(feedback()).toHaveTextContent(`That's ${wrong}. The answer is ${target}.`)
+        expect(painted()).toEqual({ [wrong]: DEFAULT_THEME.wrong, [target]: DEFAULT_THEME.correct })
+        const [lng, lat] = byName(target).properties.centroid
+        expect(lastFlight()?.[0]).toMatchObject({ lat, lng })
+      })
+
+      it('ignores clicks on the ocean and after answering', async () => {
+        await startGame(/Find the country/)
+        click(300)
+        expect(feedback()).toBeEmptyDOMElement()
+        const target = findTarget()
+        click(PLACE_OF[target])
+        click(PLACE_OF[Object.keys(PLACE_OF).find((name) => name !== target)!])
+        expect(screen.getByText('Score 1')).toBeInTheDocument()
+      })
+
+      it('plays to the end and saves the best score', async () => {
+        await startGame(/Find the country/)
+        for (let round = 0; round < 5; round++) {
+          click(PLACE_OF[findTarget()])
+          await userEvent.click(screen.getByRole('button', { name: round < 4 ? 'Next' : 'See results' }))
+        }
+        expect(screen.getByText('5 / 5')).toBeInTheDocument()
+        await userEvent.click(screen.getByRole('button', { name: 'All games' }))
+        expect(screen.getByRole('button', { name: /Find the country/ })).toHaveTextContent('Best: 5 / 10')
+      })
+    })
+
+    describe('flag quiz', () => {
+      it('checks the chosen country against the flag', async () => {
+        await startGame(/Flag quiz/)
+        const src = screen.getByRole('img', { name: 'The flag to identify' }).getAttribute('src')!
+        const code = src.match(/\/(\w\w)\.svg/)![1].toUpperCase()
+        const target = countries.find((c) => c.properties.isoAlpha2 === code)!.properties.name
+        await userEvent.click(screen.getByRole('button', { name: target }))
+        expect(feedback()).toHaveTextContent('Correct!')
+        expect(painted()).toEqual({ [target]: DEFAULT_THEME.correct })
+      })
+
+      it('does not open the country panel when clicking the globe', async () => {
+        await startGame(/Flag quiz/)
+        click(100)
+        expect(countryPanel()).not.toBeInTheDocument()
+        expect(feedback()).toBeEmptyDOMElement()
+      })
+    })
+
+    describe('name that country', () => {
+      it('highlights the country in question and flies there, zoomed to fit', async () => {
+        await startGame(/Name that country/)
+        const highlighted = Object.entries(painted())
+        expect(highlighted).toHaveLength(1)
+        const [name, color] = highlighted[0]
+        expect(color).toBe(DEFAULT_THEME.selected)
+        const [lng, lat] = byName(name).properties.centroid
+        expect(lastFlight()?.[0]).toMatchObject({ lat, lng })
+
+        await userEvent.click(screen.getByRole('button', { name }))
+        expect(feedback()).toHaveTextContent('Correct!')
+        expect(painted()).toEqual({ [name]: DEFAULT_THEME.correct })
+      })
+    })
+
+    it('ends the game when the panel is closed', async () => {
+      await startGame(/Name that country/)
+      await userEvent.click(screen.getByRole('button', { name: 'Close panel' }))
+      expect(painted()).toEqual({})
+      await userEvent.click(screen.getByRole('button', { name: 'Games' }))
+      expect(screen.getByRole('button', { name: /Name that country/ })).toBeInTheDocument()
     })
   })
 })

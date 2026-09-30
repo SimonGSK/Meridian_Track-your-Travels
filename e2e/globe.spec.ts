@@ -151,6 +151,7 @@ test.describe('visited', () => {
 
 test.describe('design', () => {
   test('switching design repaints the globe and is remembered', async ({ page }) => {
+    test.slow() // compares screenshots of the software-rendered globe
     await openGlobe(page)
     const { x, y } = center(page)
     const globeArea = { x: x - 150, y: y - 150, width: 300, height: 300 }
@@ -172,7 +173,71 @@ test.describe('design', () => {
   })
 })
 
+test.describe('games', () => {
+  const feedback = (page: Page) => page.getByRole('status')
+
+  test('find the country: clicking the globe answers the round', async ({ page }) => {
+    await openGlobe(page)
+    await page.getByRole('button', { name: 'Games' }).click()
+    await page.getByRole('button', { name: /Find the country/ }).click()
+    await expect(page.getByText('Round 1 of 10')).toBeVisible()
+
+    // The middle of the globe, which sits beside the side panel
+    const box = (await page.locator('.globe canvas').boundingBox())!
+    const x = box.x + box.width / 2
+    const y = box.y + box.height / 2
+    await page.mouse.move(x, y)
+    await expect(tooltip(page)).toBeHidden() // no giveaways
+    await page.mouse.click(x, y)
+    await expect(feedback(page)).toHaveText(/Correct!|The answer is/)
+    await expect(panel(page)).toBeHidden()
+
+    await page.getByRole('button', { name: 'Next' }).click()
+    await expect(page.getByText('Round 2 of 10')).toBeVisible()
+  })
+
+  test('flag quiz: picking a country gives feedback', async ({ page }) => {
+    await openGlobe(page)
+    await page.getByRole('button', { name: 'Games' }).click()
+    await page.getByRole('button', { name: /Flag quiz/ }).click()
+    const flag = page.getByRole('img', { name: 'The flag to identify' })
+    await expect.poll(() => flag.evaluate((img) => (img as { naturalWidth: number }).naturalWidth)).toBeGreaterThan(0)
+
+    await page.locator('.option').first().click()
+    await expect(feedback(page)).toHaveText(/Correct!|The answer is/)
+    await expect(page.locator('.option.correct')).toHaveCount(1)
+  })
+
+  test('name that country: can be played to the end', async ({ page }) => {
+    test.slow() // ten rounds, each with a camera flight
+    await openGlobe(page)
+    await page.getByRole('button', { name: 'Games' }).click()
+    await page.getByRole('button', { name: /Name that country/ }).click()
+    for (let round = 1; round <= 10; round++) {
+      await expect(page.getByText(`Round ${round} of 10`)).toBeVisible()
+      await page.locator('.option').first().click()
+      await page.getByRole('button', { name: round < 10 ? 'Next' : 'See results' }).click()
+    }
+    await expect(page.getByText(/^\d+ \/ 10$/)).toBeVisible()
+    await page.getByRole('button', { name: 'All games' }).click()
+    await expect(page.getByRole('button', { name: /Name that country/ })).toContainText('Best:')
+  })
+})
+
 test.describe('touch', { tag: '@touch' }, () => {
+  test('the menu is a tab bar and panels open as bottom sheets', async ({ page }) => {
+    await openGlobe(page)
+    const viewport = page.viewportSize()!
+    const nav = (await page.getByRole('navigation', { name: 'Main' }).boundingBox())!
+    expect(nav.y + nav.height).toBeCloseTo(viewport.height, 0)
+    expect(nav.width).toBeCloseTo(viewport.width, 0)
+
+    await page.getByRole('button', { name: 'Visited' }).tap()
+    const sheet = (await page.getByRole('region', { name: 'Visited' }).boundingBox())!
+    expect(sheet.width).toBeCloseTo(viewport.width, 0)
+    expect(sheet.y + sheet.height).toBeCloseTo(nav.y, 0)
+  })
+
   test('tapping a country opens its panel', async ({ page }) => {
     await openGlobe(page)
     const { x, y } = center(page)
