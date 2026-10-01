@@ -1,13 +1,14 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { searchCountries, type CountryFeature } from '../countries'
 import { countryOfCity, type City } from '../data/cities'
 import { normalizeName } from '../data/names'
 import { THEMES, type Theme } from '../globe/themes'
 import { GAMES, type GameId } from '../games/games'
 import type { BestScores } from '../games/useGame'
-import { EyeIcon, EyeOffIcon, SearchIcon } from '../icons'
+import { CloseIcon, SearchIcon } from '../icons'
 import Card from '../ui/Card'
 import { gameSummary } from './gameSummary'
+import LayerList from './LayerList'
 import type { Settings } from './useSettings'
 
 type Props = {
@@ -25,18 +26,54 @@ type Props = {
 
 /** The Explore tab: games at a glance, the design and layers, and a search of the atlas. */
 export default function ExplorePanel(props: Props) {
+  const { settings, onChange } = props
+  const hidden = CARDS.filter((card) => !settings[card.setting])
   return (
     <>
-      <GamesCard best={props.best} onOpenGame={props.onOpenGame} />
-      <LayersCard {...props} />
+      {settings.showGamesCard && (
+        <GamesCard {...props} actions={<HideButton label="Games" onHide={() => onChange({ showGamesCard: false })} />} />
+      )}
+      {settings.showDesignCard && (
+        <LayersCard
+          {...props}
+          actions={<HideButton label="Design & layers" onHide={() => onChange({ showDesignCard: false })} />}
+        />
+      )}
       <AtlasSearch cities={props.cities} onFind={props.onFind} />
+      {hidden.length > 0 && (
+        <p className="restore-cards">
+          Show again:{' '}
+          {hidden.map((card, i) => (
+            <span key={card.setting}>
+              {i > 0 && ' · '}
+              <button type="button" className="link-button" onClick={() => onChange({ [card.setting]: true })}>
+                {card.label}
+              </button>
+            </span>
+          ))}
+        </p>
+      )}
     </>
   )
 }
 
-function GamesCard({ best, onOpenGame }: Pick<Props, 'best' | 'onOpenGame'>) {
+/** The cards that can be hidden from Explore */
+const CARDS = [
+  { setting: 'showGamesCard', label: 'Games' },
+  { setting: 'showDesignCard', label: 'Design & layers' },
+] as const
+
+function HideButton({ label, onHide }: { label: string; onHide: () => void }) {
   return (
-    <Card letter="B" label="Games" meta={String(GAMES.length).padStart(2, '0')}>
+    <button type="button" className="card-hide" onClick={onHide} aria-label={`Hide ${label}`} title={`Hide ${label}`}>
+      <CloseIcon size={14} />
+    </button>
+  )
+}
+
+function GamesCard({ best, onOpenGame, actions }: Props & { actions: ReactNode }) {
+  return (
+    <Card letter="B" label="Games" meta={String(GAMES.length).padStart(2, '0')} actions={actions}>
       <ul className="row-list">
         {GAMES.map((game) => (
           <li key={game.id}>
@@ -51,16 +88,9 @@ function GamesCard({ best, onOpenGame }: Pick<Props, 'best' | 'onOpenGame'>) {
   )
 }
 
-const LAYERS: { key: keyof Settings; label: string; description: string; dot: 'accent' | 'blue' }[] = [
-  { key: 'showVisited', label: 'Visited countries', description: "Color the countries you've visited", dot: 'accent' },
-  { key: 'showRegions', label: 'Visited states', description: "Color the states you've visited, a shade darker", dot: 'accent' },
-  { key: 'showCities', label: 'City pins', description: "A pin on each city you've visited", dot: 'accent' },
-  { key: 'showMarkers', label: 'Small islands', description: 'Rings around small islands and territories', dot: 'blue' },
-]
-
-function LayersCard({ settings, onChange, theme, onThemeChange }: Props) {
+function LayersCard({ settings, onChange, theme, onThemeChange, actions }: Props & { actions: ReactNode }) {
   return (
-    <Card letter="C" label="Design & layers" meta={theme.name.toUpperCase()}>
+    <Card letter="C" label="Design & layers" meta={theme.name.toUpperCase()} actions={actions}>
       <div className="swatches" role="group" aria-label="Design">
         {THEMES.map((t) => (
           <button
@@ -75,26 +105,7 @@ function LayersCard({ settings, onChange, theme, onThemeChange }: Props) {
           />
         ))}
       </div>
-      <ul className="row-list layers">
-        {LAYERS.map(({ key, label, description, dot }) => (
-          <li key={key}>
-            <button
-              type="button"
-              role="switch"
-              aria-checked={settings[key]}
-              className="row-button layer"
-              title={description}
-              onClick={() => onChange({ [key]: !settings[key] })}
-            >
-              <span className={`dot ${dot}`} aria-hidden="true" />
-              <span>{label}</span>
-              <span className="eye" aria-hidden="true">
-                {settings[key] ? <EyeIcon /> : <EyeOffIcon />}
-              </span>
-            </button>
-          </li>
-        ))}
-      </ul>
+      <LayerList settings={settings} onChange={onChange} />
     </Card>
   )
 }

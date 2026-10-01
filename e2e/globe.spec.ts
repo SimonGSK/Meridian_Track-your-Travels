@@ -265,14 +265,14 @@ test.describe('design', () => {
     await expect(tooltip(page)).toBeVisible()
 
     const before = await page.screenshot({ clip: globeArea })
-    await page.getByRole('button', { name: 'Design' }).click()
+    await page.getByRole('button', { name: 'Design', exact: true }).click()
     await page.getByRole('button', { name: /Night/ }).click()
     await expect(page.getByRole('button', { name: /Night/ })).toHaveAttribute('aria-pressed', 'true')
     await page.mouse.move(x, y)
     await expect.poll(async () => (await page.screenshot({ clip: globeArea })).equals(before)).toBe(false)
 
     await page.reload()
-    await page.getByRole('button', { name: 'Design' }).click()
+    await page.getByRole('button', { name: 'Design', exact: true }).click()
     await expect(page.getByRole('button', { name: /Night/ })).toHaveAttribute('aria-pressed', 'true')
   })
 })
@@ -282,7 +282,7 @@ test.describe('games', () => {
 
   test('find the country: clicking the globe answers the round', async ({ page }) => {
     await openGlobe(page)
-    await page.getByRole('button', { name: 'Games' }).click()
+    await page.getByRole('button', { name: 'Games', exact: true }).click()
     await page.getByRole('button', { name: /Find the country/ }).click()
     await page.getByRole('button', { name: /^Easy/ }).click()
     await expect(page.getByText('Round 1 of 10')).toBeVisible()
@@ -301,7 +301,7 @@ test.describe('games', () => {
 
   test('flag quiz: picking a country gives feedback', async ({ page }) => {
     await openGlobe(page)
-    await page.getByRole('button', { name: 'Games' }).click()
+    await page.getByRole('button', { name: 'Games', exact: true }).click()
     await page.getByRole('button', { name: /Flag quiz/ }).click()
     await page.getByRole('button', { name: /^Easy/ }).click()
     const flag = page.getByRole('img', { name: 'The flag to identify' })
@@ -314,7 +314,7 @@ test.describe('games', () => {
 
   test('letter hunt: clicking the globe checks the letter', async ({ page }) => {
     await openGlobe(page)
-    await page.getByRole('button', { name: 'Games' }).click()
+    await page.getByRole('button', { name: 'Games', exact: true }).click()
     await page.getByRole('button', { name: /Letter hunt/ }).click()
     await page.getByRole('button', { name: /^K:/ }).click()
     await expect(page.getByText('Found 0 of 6')).toBeVisible()
@@ -331,7 +331,7 @@ test.describe('games', () => {
 
   test('shape quiz on medium: type an answer', async ({ page }) => {
     await openGlobe(page)
-    await page.getByRole('button', { name: 'Games' }).click()
+    await page.getByRole('button', { name: 'Games', exact: true }).click()
     await page.getByRole('button', { name: /Shape quiz/ }).click()
     await page.getByRole('button', { name: /^Medium/ }).click()
     await expect(page.getByRole('img', { name: 'The outline to identify' })).toBeVisible()
@@ -347,7 +347,7 @@ test.describe('games', () => {
 
   test('name them all: type countries until giving up', async ({ page }) => {
     await openGlobe(page)
-    await page.getByRole('button', { name: 'Games' }).click()
+    await page.getByRole('button', { name: 'Games', exact: true }).click()
     await page.getByRole('button', { name: /Name them all/ }).click()
     await page.getByRole('button', { name: /^Oceania/ }).click()
     const input = page.getByRole('textbox', { name: 'Name a country' })
@@ -364,7 +364,7 @@ test.describe('games', () => {
 
   test('all countries: 197 rounds, which can be stopped early', async ({ page }) => {
     await openGlobe(page)
-    await page.getByRole('button', { name: 'Games' }).click()
+    await page.getByRole('button', { name: 'Games', exact: true }).click()
     await page.getByRole('button', { name: /Flag quiz/ }).click()
     await page.getByRole('button', { name: /^All countries/ }).click()
     await expect(page.getByText('Round 1 of 197')).toBeVisible()
@@ -379,7 +379,7 @@ test.describe('games', () => {
   test('name that country: can be played to the end', async ({ page }) => {
     test.slow() // ten rounds, each with a camera flight
     await openGlobe(page)
-    await page.getByRole('button', { name: 'Games' }).click()
+    await page.getByRole('button', { name: 'Games', exact: true }).click()
     await page.getByRole('button', { name: /Name that country/ }).click()
     await page.getByRole('button', { name: /^Easy/ }).click()
     for (let round = 1; round <= 10; round++) {

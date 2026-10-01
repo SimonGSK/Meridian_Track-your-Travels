@@ -7,6 +7,7 @@ import { findRegionAt, hasRegions, regionsLabel, regionsOf, type RegionFeature }
 import CountryPanel from './CountryPanel'
 import DesignPanel from './design/DesignPanel'
 import ExplorePanel from './explore/ExplorePanel'
+import LayerList from './explore/LayerList'
 import { useSettings } from './explore/useSettings'
 import GamesPanel from './games/GamesPanel'
 import { GAMES, type Difficulty, type GameId, type RoundGameId } from './games/games'
@@ -382,9 +383,14 @@ export default function App() {
             </Card>
           )}
           {view === 'design' && (
-            <Card letter="B" label="Design" meta={theme.name.toUpperCase()}>
-              <DesignPanel theme={theme} onChange={setTheme} />
-            </Card>
+            <>
+              <Card letter="B" label="Design" meta={theme.name.toUpperCase()}>
+                <DesignPanel theme={theme} onChange={setTheme} />
+              </Card>
+              <Card letter="C" label="Layers">
+                <LayerList settings={settings} onChange={changeSettings} />
+              </Card>
+            </>
           )}
           {view === 'games' && (
             <Card letter="B" label="Games" meta={String(GAMES.length).padStart(2, '0')}>

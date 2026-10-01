@@ -29,7 +29,7 @@ describe('ExplorePanel', () => {
     it('lists every game, opening the one clicked', async () => {
       const { onOpenGame } = setup()
       const games = screen.getByRole('region', { name: /Games/ })
-      expect(within(games).getAllByRole('button')).toHaveLength(6)
+      expect(within(games).getAllByRole('listitem')).toHaveLength(6)
       await userEvent.click(within(games).getByRole('button', { name: /^Flag quiz/ }))
       expect(onOpenGame).toHaveBeenCalledWith('flags')
     })
@@ -65,6 +65,32 @@ describe('ExplorePanel', () => {
       expect(onChange).toHaveBeenCalledWith({ showCities: false })
       await userEvent.click(screen.getByRole('switch', { name: /Small islands/ }))
       expect(onChange).toHaveBeenCalledWith({ showMarkers: true })
+    })
+  })
+
+  describe('hiding cards', () => {
+    it('hides the games or the design card', async () => {
+      const { onChange } = setup()
+      await userEvent.click(screen.getByRole('button', { name: 'Hide Games' }))
+      expect(onChange).toHaveBeenCalledWith({ showGamesCard: false })
+      await userEvent.click(screen.getByRole('button', { name: 'Hide Design & layers' }))
+      expect(onChange).toHaveBeenCalledWith({ showDesignCard: false })
+    })
+
+    it('leaves hidden cards out, with a way to show them again', async () => {
+      const { onChange } = setup({ settings: { ...DEFAULT_SETTINGS, showGamesCard: false, showDesignCard: false } })
+      expect(screen.queryByRole('region', { name: /Games/ })).not.toBeInTheDocument()
+      expect(screen.queryByRole('switch')).not.toBeInTheDocument()
+      expect(screen.getByRole('searchbox', { name: 'Search the atlas' })).toBeInTheDocument()
+      await userEvent.click(screen.getByRole('button', { name: 'Games' }))
+      expect(onChange).toHaveBeenCalledWith({ showGamesCard: true })
+      await userEvent.click(screen.getByRole('button', { name: 'Design & layers' }))
+      expect(onChange).toHaveBeenCalledWith({ showDesignCard: true })
+    })
+
+    it('has nothing to show again when every card is there', () => {
+      setup()
+      expect(screen.queryByText(/Show again/)).not.toBeInTheDocument()
     })
   })
 

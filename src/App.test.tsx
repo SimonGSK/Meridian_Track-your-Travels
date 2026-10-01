@@ -332,6 +332,25 @@ describe('App', () => {
       expect(globe.pointOfView).toHaveBeenLastCalledWith(expect.objectContaining({ lat: expect.any(Number) }), expect.any(Number))
     })
 
+    it('hides the games card, and remembers it', async () => {
+      const first = render(<App />)
+      await userEvent.click(screen.getByRole('button', { name: 'Hide Games' }))
+      expect(screen.queryByRole('region', { name: /Games/ })).not.toBeInTheDocument()
+      first.unmount()
+
+      render(<App />)
+      expect(screen.queryByRole('region', { name: /Games/ })).not.toBeInTheDocument()
+      // "Show again", in the column (the tab is also called Games)
+      await userEvent.click(within(sidePanel()!).getByRole('button', { name: 'Games' }))
+      expect(screen.getByRole('region', { name: /Games/ })).toBeInTheDocument()
+    })
+
+    it('has the layers in the Design tab too', async () => {
+      render(<App />)
+      await userEvent.click(screen.getByRole('button', { name: 'Design' }))
+      expect(within(sidePanel()!).getByRole('switch', { name: /City pins/ })).toBeChecked()
+    })
+
     it('switches design with the swatches', async () => {
       render(<App />)
       await userEvent.click(within(screen.getByRole('group', { name: 'Design' })).getByRole('button', { name: 'Night' }))

@@ -5,7 +5,14 @@ import { DEFAULT_SETTINGS, SETTINGS_KEY, useSettings } from './useSettings'
 describe('useSettings', () => {
   it('shows everything by default', () => {
     const { result } = renderHook(() => useSettings())
-    expect(result.current[0]).toEqual({ showVisited: true, showMarkers: true, showRegions: true, showCities: true })
+    expect(result.current[0]).toEqual({
+      showVisited: true,
+      showMarkers: true,
+      showRegions: true,
+      showCities: true,
+      showGamesCard: true,
+      showDesignCard: true,
+    })
   })
 
   it('changes and remembers settings', () => {
