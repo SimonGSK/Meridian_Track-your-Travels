@@ -18,12 +18,35 @@ const center = (page: Page) => {
   return { x: width / 2, y: height / 2 }
 }
 const tooltip = (page: Page) => page.getByRole('tooltip')
+
+/**
+ * Points at a spot on a still globe, so the same country stays under the
+ * pointer: grabbing the globe (here, a click in the space beside it) stops
+ * the idle spin, and the test waits out the last of the drift. The top bar
+ * shows where the globe looks.
+ */
+async function pointAt(page: Page, x: number, y: number) {
+  await page.mouse.click(24, page.viewportSize()!.height / 2)
+  await page.mouse.move(x, y)
+  const readings: string[] = []
+  await expect
+    .poll(
+      async () => {
+        const where = await page.locator('.view-center').textContent()
+        const what = await tooltip(page).textContent()
+        readings.push(`${where} ${what}`)
+        return readings.length >= 3 && readings.slice(-3).every((r) => r === readings.at(-1))
+      },
+      { intervals: [400], timeout: 20_000 },
+    )
+    .toBe(true)
+}
 const panel = (page: Page) => page.locator('aside.panel')
 
 test.describe('mouse', () => {
   test('loads the globe without errors', async ({ page }) => {
     const { errors } = await openGlobe(page)
-    await expect(page.getByRole('heading', { name: 'Countries of the World' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Meridian' })).toBeVisible()
     expect(errors).toEqual([])
   })
 
@@ -31,7 +54,7 @@ test.describe('mouse', () => {
     await openGlobe(page)
     const { x, y } = center(page)
 
-    await page.mouse.move(x, y)
+    await pointAt(page, x, y)
     await expect(tooltip(page)).toBeVisible()
     const name = (await tooltip(page).textContent())!.trim()
     expect(name.length).toBeGreaterThan(0)
@@ -46,7 +69,7 @@ test.describe('mouse', () => {
     const { x, y } = center(page)
     const flag = page.getByRole('img', { name: /^Flag of/ })
 
-    await page.mouse.move(x, y)
+    await pointAt(page, x, y)
     await expect(tooltip(page)).toBeVisible()
     const name = (await tooltip(page).textContent())!.trim()
     await expect(flag).toHaveAccessibleName(`Flag of ${name}`)
@@ -121,14 +144,14 @@ test.describe('mouse', () => {
 test.describe('visited', () => {
   test('adding a visited country keeps it after reloading', async ({ page }) => {
     await openGlobe(page)
-    await page.getByRole('button', { name: 'Visited' }).click()
+    await page.getByRole('button', { name: 'Visited', exact: true }).click()
     await page.getByRole('searchbox', { name: 'Add a country' }).fill('Denmark')
     await page.keyboard.press('Enter')
     const list = page.getByRole('list', { name: 'Visited countries' })
     await expect(list).toContainText('Denmark')
 
     await page.reload()
-    await page.getByRole('button', { name: 'Visited' }).click()
+    await page.getByRole('button', { name: 'Visited', exact: true }).click()
     await expect(list).toContainText('Denmark')
     await expect(page.getByText('1 of 197 countries')).toBeVisible()
   })
@@ -136,13 +159,13 @@ test.describe('visited', () => {
   test('marking the clicked country as visited', async ({ page }) => {
     await openGlobe(page)
     const { x, y } = center(page)
-    await page.mouse.move(x, y)
+    await pointAt(page, x, y)
     await expect(tooltip(page)).toBeVisible()
     await page.mouse.click(x, y)
     const name = (await panel(page).getByRole('heading', { level: 2 }).textContent())!
 
-    await panel(page).getByRole('button', { name: 'Mark as visited' }).click()
-    await expect(panel(page).getByRole('button', { name: 'Visited' })).toHaveAttribute('aria-pressed', 'true')
+    await panel(page).getByRole('button', { name: 'Add to visited atlas' }).click()
+    await expect(panel(page).getByRole('button', { name: 'In visited atlas' })).toHaveAttribute('aria-pressed', 'true')
 
     await page.getByRole('button', { name: 'Visited', exact: true }).first().click()
     await expect(page.getByRole('list', { name: 'Visited countries' })).toContainText(name)
@@ -158,19 +181,23 @@ test.describe('visited states', () => {
     await page.getByRole('button', { name: /^Australia/ }).first().click() // show it
     await expect(panel(page).getByRole('heading', { name: 'Australia' })).toBeVisible()
 
+    const statesLine = panel(page).getByRole('button', { name: /explored$/ })
+    await statesLine.click()
     await panel(page).getByRole('checkbox', { name: 'Tasmania' }).check()
-    await expect(panel(page).getByText('of 9 visited')).toContainText('1 of 9')
+    await expect(statesLine).toHaveText('1 of 9 states and territories explored')
+    await expect(panel(page).getByRole('button', { name: 'In visited atlas' })).toBeVisible()
 
     await page.reload()
     await page.getByRole('button', { name: 'Visited', exact: true }).click()
     await expect(page.getByRole('button', { name: /^Australia/ })).toContainText('1 of 9 states and territories')
     await page.getByRole('button', { name: /^Australia/ }).click()
+    await statesLine.click()
     await expect(panel(page).getByRole('checkbox', { name: 'Tasmania' })).toBeChecked()
   })
 })
 
 test.describe('visited cities', () => {
-  test('ticking a city pins it and marks the country, and both stay after reloading', async ({ page }) => {
+  test('adding a city pins it and marks the country, and both stay after reloading', async ({ page }) => {
     const { errors } = await openGlobe(page)
     await page.getByRole('button', { name: 'Visited', exact: true }).click()
     await page.getByRole('searchbox', { name: 'Add a country' }).fill('Japan')
@@ -178,38 +205,52 @@ test.describe('visited cities', () => {
     await page.getByRole('button', { name: /^Japan/ }).first().click() // show it
     await expect(panel(page).getByRole('heading', { name: 'Japan' })).toBeVisible()
 
-    await panel(page).getByRole('checkbox', { name: 'Kyoto' }).check()
-    await panel(page).getByRole('searchbox', { name: 'Filter cities' }).fill('osa')
-    await panel(page).getByRole('checkbox', { name: 'Osaka' }).check()
-    await expect(panel(page).getByText(/of \d+ visited/).last()).toContainText('2 of')
+    const addCity = panel(page).getByRole('searchbox', { name: 'Add a city' })
+    await addCity.fill('Kyoto')
+    await addCity.press('Enter')
+    await addCity.fill('osa')
+    await panel(page).getByRole('button', { name: 'Osaka' }).click()
+    const visitedCities = panel(page).getByRole('list', { name: 'Visited cities' })
+    await expect(visitedCities).toHaveText(/Kyoto.*Osaka|Osaka.*Kyoto/)
+    await expect(panel(page).getByRole('button', { name: 'In visited atlas' })).toBeVisible()
 
     await page.reload()
     await page.getByRole('button', { name: 'Visited', exact: true }).click()
     await expect(page.getByRole('button', { name: /^Japan/ })).toContainText('2 cities')
     await page.getByRole('button', { name: /^Japan/ }).click()
-    await expect(panel(page).getByRole('checkbox', { name: 'Kyoto' })).toBeChecked()
+    await expect(visitedCities).toContainText('Kyoto')
     // The pins' shader compiled and drew without complaints
     expect(errors).toEqual([])
   })
 })
 
 test.describe('explore', () => {
-  test('settings switch visited countries, markers and pins off, and stay off after reloading', async ({ page }) => {
+  test('layers switch off, and stay off after reloading', async ({ page }) => {
     await openGlobe(page)
-    await page.getByRole('button', { name: 'Explore' }).click()
+    // Explore is open from the start on big screens
     const visitedSwitch = page.getByRole('switch', { name: /Visited countries/ })
-    const markerSwitch = page.getByRole('switch', { name: /Island markers/ })
+    const markerSwitch = page.getByRole('switch', { name: /Small islands/ })
     const pinSwitch = page.getByRole('switch', { name: /City pins/ })
     await expect(visitedSwitch).toBeChecked()
-    await visitedSwitch.uncheck()
-    await markerSwitch.uncheck()
-    await pinSwitch.uncheck()
+    await visitedSwitch.click()
+    await markerSwitch.click()
+    await pinSwitch.click()
 
     await page.reload()
-    await page.getByRole('button', { name: 'Explore' }).click()
     await expect(visitedSwitch).not.toBeChecked()
     await expect(markerSwitch).not.toBeChecked()
     await expect(pinSwitch).not.toBeChecked()
+  })
+
+  test('searching the atlas shows the country, and a game card opens the game', async ({ page }) => {
+    await openGlobe(page)
+    await page.getByRole('searchbox', { name: 'Search the atlas' }).fill('kyoto')
+    await page.getByRole('button', { name: /^Kyoto/ }).click()
+    await expect(panel(page).getByRole('heading', { name: 'Japan' })).toBeVisible()
+
+    await page.getByRole('region', { name: /Games/ }).getByRole('button', { name: /^Flag quiz/ }).click()
+    await expect(page.getByRole('heading', { name: 'Flag quiz' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Games', exact: true })).toHaveAttribute('aria-expanded', 'true')
   })
 })
 
@@ -227,7 +268,6 @@ test.describe('design', () => {
     await page.getByRole('button', { name: 'Design' }).click()
     await page.getByRole('button', { name: /Night/ }).click()
     await expect(page.getByRole('button', { name: /Night/ })).toHaveAttribute('aria-pressed', 'true')
-    await page.getByRole('button', { name: 'Close panel' }).click()
     await page.mouse.move(x, y)
     await expect.poll(async () => (await page.screenshot({ clip: globeArea })).equals(before)).toBe(false)
 
@@ -363,7 +403,7 @@ test.describe('touch', { tag: '@touch' }, () => {
     expect(nav.width).toBeCloseTo(viewport.width, 0)
 
     await page.getByRole('button', { name: 'Visited' }).tap()
-    const sheet = page.getByRole('region', { name: 'Visited' })
+    const sheet = page.getByRole('region', { name: 'Visited', exact: true })
     // Let it finish sliding in before measuring
     await sheet.evaluate((el) =>
       Promise.all((el as unknown as { getAnimations(): { finished: Promise<unknown> }[] }).getAnimations().map((a) => a.finished)),

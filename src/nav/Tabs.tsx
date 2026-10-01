@@ -2,21 +2,21 @@ import { VIEWS, type ViewId } from './views'
 
 type Props = {
   view: ViewId | null
-  onChange: (view: ViewId | null) => void
+  onChange: (view: ViewId) => void
 }
 
-/** The menu on the left (a tab bar at the bottom on phones). */
-export default function NavRail({ view, onChange }: Props) {
+/** The tabs at the top (a tab bar at the bottom on phones). */
+export default function Tabs({ view, onChange }: Props) {
   return (
-    <nav className="rail" aria-label="Main">
+    <nav className="tabs" aria-label="Main">
       {VIEWS.map((item) => (
         <button
           key={item.id}
           type="button"
-          className="rail-item"
+          className="tab"
           aria-expanded={view === item.id}
           aria-controls="side-panel"
-          onClick={() => onChange(view === item.id ? null : item.id)}
+          onClick={() => onChange(item.id)}
         >
           {item.icon}
           <span>{item.label}</span>

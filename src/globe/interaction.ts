@@ -6,7 +6,7 @@ export type LatLng = { lat: number; lng: number }
 /** Pointer movement (px) above which a press counts as a drag, not a click */
 export const DRAG_THRESHOLD_PX = 5
 
-export const INITIAL_VIEW = { lat: 25, lng: 10, altitude: 1.9 }
+export const INITIAL_VIEW = { lat: 25, lng: 10, altitude: 2.2 }
 
 /** Closest and farthest the camera flies to when selecting a country */
 const MIN_FLIGHT_ALTITUDE = 0.4

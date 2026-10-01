@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { countries } from '../countries'
-import { factsOf, formatArea, formatPopulation } from './facts'
+import { factsOf, formatArea, formatAreaShort, formatPopulation, formatPopulationShort } from './facts'
 
 const byName = (name: string) => countries.find((c) => c.properties.name === name)!
 
@@ -55,5 +55,20 @@ describe('formatArea', () => {
     expect(formatArea(42_920)).toBe('42,920 km²')
     expect(formatArea(2.5)).toBe('2.5 km²')
     expect(formatArea(0.49)).toBe('0.49 km²')
+  })
+})
+
+describe('short formats', () => {
+  it('shortens populations to three digits', () => {
+    expect(formatPopulationShort(45_696_159)).toBe('45.7M')
+    expect(formatPopulationShort(1_450_935_791)).toBe('1.45B')
+    expect(formatPopulationShort(103_267)).toBe('103K')
+    expect(formatPopulationShort(764)).toBe('764')
+  })
+
+  it('shortens only areas of a million km² or more', () => {
+    expect(formatAreaShort(2_780_400)).toBe('2.78M km²')
+    expect(formatAreaShort(42_920)).toBe('42,920 km²')
+    expect(formatAreaShort(0.49)).toBe('0.49 km²')
   })
 })

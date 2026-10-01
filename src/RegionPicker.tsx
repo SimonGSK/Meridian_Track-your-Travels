@@ -12,65 +12,69 @@ type Props = {
   onToggle: (region: RegionFeature) => void
 }
 
-/** The states or provinces of a country, to tick off the ones visited. */
+/**
+ * "3 of 51 states explored · California, New York, Texas", opening the list
+ * of states to tick off. They can also be clicked on the globe.
+ */
 export default function RegionPicker({ regions, label, visited, onToggle }: Props) {
+  const [open, setOpen] = useState(false)
   const [filter, setFilter] = useState('')
+  const name = label.toLowerCase()
 
-  if (!regions) {
-    return (
-      <section className="regions" aria-label={label}>
-        <h3>{label}</h3>
-        <p className="muted">Loading…</p>
-      </section>
-    )
-  }
+  if (!regions) return <p className="regions-line muted">Loading {name}…</p>
 
-  const count = regions.filter((r) => visited.has(r.properties.id)).length
+  const visitedRegions = regions.filter((r) => visited.has(r.properties.id))
   const query = normalizeName(filter)
   const shown = query ? regions.filter((r) => normalizeName(r.properties.name).includes(query)) : regions
 
   return (
-    <section className="regions" aria-labelledby="regions-heading">
-      <h3 id="regions-heading">{label}</h3>
-      <p className="regions-count">
-        <strong>{count}</strong> of {regions.length} visited
+    <div className="regions">
+      <p className="regions-line">
+        <button type="button" className="link-button" aria-expanded={open} onClick={() => setOpen(!open)}>
+          {visitedRegions.length} of {regions.length} {name} explored
+        </button>
+        {visitedRegions.length > 0 && <span> · {visitedRegions.map((r) => r.properties.name).join(', ')}</span>}
       </p>
-      <div
-        className="progress small"
-        role="progressbar"
-        aria-label={`${label} visited`}
-        aria-valuemin={0}
-        aria-valuemax={regions.length}
-        aria-valuenow={count}
-        aria-valuetext={percentLabel(count, regions.length)}
-      >
-        <div style={{ width: `${(count / regions.length) * 100}%` }} />
-      </div>
-      <p className="muted">Click them on the globe, or tick them here.</p>
-      {regions.length > 12 && (
-        <input
-          type="search"
-          className="regions-filter"
-          aria-label={`Filter ${label.toLowerCase()}`}
-          placeholder={`Filter ${label.toLowerCase()}…`}
-          value={filter}
-          onChange={(e) => setFilter(e.target.value)}
-        />
+      {open && (
+        <section className="region-picker" aria-label={label}>
+          <div
+            className="progress small"
+            role="progressbar"
+            aria-label={`${label} visited`}
+            aria-valuemin={0}
+            aria-valuemax={regions.length}
+            aria-valuenow={visitedRegions.length}
+            aria-valuetext={percentLabel(visitedRegions.length, regions.length)}
+          >
+            <div style={{ width: `${(visitedRegions.length / regions.length) * 100}%` }} />
+          </div>
+          <p className="muted">Tick them here, or click them on the globe.</p>
+          {regions.length > 12 && (
+            <input
+              type="search"
+              className="regions-filter"
+              aria-label={`Filter ${name}`}
+              placeholder={`Filter ${name}…`}
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+            />
+          )}
+          <ul className="region-list">
+            {shown.map((region) => (
+              <li key={region.properties.id}>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={visited.has(region.properties.id)}
+                    onChange={() => onToggle(region)}
+                  />
+                  {region.properties.name}
+                </label>
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
-      <ul className="region-list">
-        {shown.map((region) => (
-          <li key={region.properties.id}>
-            <label>
-              <input
-                type="checkbox"
-                checked={visited.has(region.properties.id)}
-                onChange={() => onToggle(region)}
-              />
-              {region.properties.name}
-            </label>
-          </li>
-        ))}
-      </ul>
-    </section>
+    </div>
   )
 }

@@ -5,6 +5,8 @@ export type Theme = {
   id: string
   name: string
   description: string
+  /** The color that stands for the design in the swatch picker */
+  swatch: string
   ocean: string
   oceanShininess: number
   /** One color for all land, or at least 5 so neighboring countries always differ */
@@ -23,10 +25,31 @@ export type Theme = {
   atmosphere: string
 }
 
+export const MIDNIGHT: Theme = {
+  id: 'midnight',
+  name: 'Midnight',
+  description: 'Slate land on a midnight sea, with amber for your places',
+  swatch: '#0f2133',
+  ocean: '#0c1b2b',
+  oceanShininess: 10,
+  land: '#1f3a52',
+  border: '#07111b',
+  borderOpacity: 0.75,
+  hover: '#f2843a',
+  selected: '#f5be5b',
+  visited: '#e1a03e',
+  pin: '#e5553a',
+  correct: '#8fd694',
+  wrong: '#ff5f56',
+  background: '#08131e',
+  atmosphere: '#3b82c8',
+}
+
 export const CLASSIC: Theme = {
   id: 'classic',
   name: 'Classic',
   description: 'Green land on a deep blue ocean',
+  swatch: '#1f6b52',
   ocean: '#0b2a4a',
   oceanShininess: 12,
   land: '#48a078',
@@ -46,6 +69,7 @@ export const POLITICAL: Theme = {
   id: 'political',
   name: 'Political',
   description: 'Like a school atlas: every neighbor in its own color',
+  swatch: '#9b3a2c',
   ocean: '#8ec3e6',
   oceanShininess: 6,
   land: ['#f3d58b', '#b9d98f', '#f2b39b', '#c3b1e1', '#94d2c4'],
@@ -65,6 +89,7 @@ export const NIGHT: Theme = {
   id: 'night',
   name: 'Night',
   description: 'Dark land with glowing neon borders',
+  swatch: '#2a1d4f',
   ocean: '#03060d',
   oceanShininess: 30,
   land: '#0d1b2a',
@@ -84,6 +109,7 @@ export const VINTAGE: Theme = {
   id: 'vintage',
   name: 'Vintage',
   description: 'Parchment land on a faded sea, like an old map',
+  swatch: '#e6d6ae',
   ocean: '#9fb5a4',
   oceanShininess: 2,
   land: '#ead9b0',
@@ -103,6 +129,7 @@ export const MINIMAL: Theme = {
   id: 'minimal',
   name: 'Minimal',
   description: 'Quiet greys with crisp white borders',
+  swatch: '#aab6c3',
   ocean: '#dfe6ee',
   oceanShininess: 4,
   land: '#aab6c3',
@@ -118,8 +145,8 @@ export const MINIMAL: Theme = {
   atmosphere: '#ffffff',
 }
 
-export const THEMES: readonly Theme[] = [CLASSIC, POLITICAL, NIGHT, VINTAGE, MINIMAL]
-export const DEFAULT_THEME = CLASSIC
+export const THEMES: readonly Theme[] = [MIDNIGHT, CLASSIC, VINTAGE, POLITICAL, NIGHT, MINIMAL]
+export const DEFAULT_THEME = MIDNIGHT
 
 export const themeById = (id: string) => THEMES.find((t) => t.id === id) ?? DEFAULT_THEME
 

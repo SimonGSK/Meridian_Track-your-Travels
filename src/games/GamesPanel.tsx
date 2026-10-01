@@ -44,6 +44,9 @@ type Props = {
   /** End a game played in rounds early */
   onStop: () => void
   onQuit: () => void
+  /** Whose setup is open, when the caller keeps track (the Explore tab opens games) */
+  chosen?: GameId | null
+  onChoose?: (id: GameId | null) => void
 }
 
 const titleOf = (id: GameId) => GAMES.find((g) => g.id === id)!.title
@@ -56,8 +59,11 @@ type Chosen = { chosen: GameId | null; setChosen: (id: GameId | null) => void }
 export default function GamesPanel(props: Props) {
   const { game } = props
   // Which game's setup is open; kept while playing so "Another letter" can return to it
-  const [chosen, setChosen] = useState<GameId | null>(null)
-  const choice = { chosen, setChosen }
+  const [ownChoice, setOwnChoice] = useState<GameId | null>(null)
+  const choice = {
+    chosen: props.chosen !== undefined ? props.chosen : ownChoice,
+    setChosen: props.onChoose ?? setOwnChoice,
+  }
   if (!game) return <GameList {...props} {...choice} />
   if (game.finished) return <Results {...props} {...choice} game={game} />
   if (game.kind === 'letter') return <LetterHunt {...props} game={game} />

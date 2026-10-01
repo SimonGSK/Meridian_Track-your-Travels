@@ -2,7 +2,8 @@ import { useMemo } from 'react'
 import { usePersistentState } from '../storage'
 import { DEFAULT_THEME, THEMES, themeById } from '../globe/themes'
 
-export const THEME_STORAGE_KEY = 'countries-app.theme'
+// Renamed with the Midnight redesign, so everyone starts out in it once
+export const THEME_STORAGE_KEY = 'countries-app.design'
 
 const isThemeId = (value: unknown): value is string => THEMES.some((t) => t.id === value)
 

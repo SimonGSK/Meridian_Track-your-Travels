@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import Globe, { type GlobeMethods } from 'react-globe.gl'
 import { MeshPhongMaterial } from 'three'
 import type { CountryFeature } from './countries'
@@ -9,15 +9,18 @@ import DesignPanel from './design/DesignPanel'
 import ExplorePanel from './explore/ExplorePanel'
 import { useSettings } from './explore/useSettings'
 import GamesPanel from './games/GamesPanel'
-import type { Difficulty, RoundGameId } from './games/games'
+import { GAMES, type Difficulty, type GameId, type RoundGameId } from './games/games'
 import type { Scope } from './games/allGame'
 import { flightTarget, gameHighlights, globeAnswers, isPlaying, overviewKey, showsGame } from './games/globeView'
 import { useGame } from './games/useGame'
 import { useTheme } from './design/useTheme'
 import FlagCorner from './FlagCorner'
-import NavRail from './nav/NavRail'
+import Tabs from './nav/Tabs'
+import TopBar from './nav/TopBar'
+import ViewCenter from './nav/ViewCenter'
 import { VIEWS, type ViewId } from './nav/views'
 import SidePanel from './nav/SidePanel'
+import Card from './ui/Card'
 import VisitedPanel from './visited/VisitedPanel'
 import { useVisited } from './visited/useVisited'
 import { useVisitedRegions } from './visited/useVisitedRegions'
@@ -45,6 +48,10 @@ const RENDERER_CONFIG = { antialias: true, alpha: true, powerPreference: 'high-p
 
 const NO_VISITS: ReadonlySet<string> = new Set()
 
+/** Phones show one panel at a time, as a sheet over the globe */
+const PHONE = '(max-width: 640px)'
+const isPhone = () => !!window.matchMedia?.(PHONE).matches
+
 function useWindowSize() {
   const [size, setSize] = useState({ width: window.innerWidth, height: window.innerHeight })
   useEffect(() => {
@@ -60,7 +67,10 @@ export default function App() {
   const [globe, setGlobe] = useState<GlobeMethods | null>(null)
   const [hovered, setHovered] = useState<CountryFeature | null>(null)
   const [selected, setSelected] = useState<CountryFeature | null>(null)
-  const [view, setView] = useState<ViewId | null>(null)
+  // Big screens start with the Explore cards open; phones with just the globe
+  const [view, setView] = useState<ViewId | null>(() => (isPhone() ? null : 'explore'))
+  /** The game whose setup is open in the Games tab */
+  const [chosenGame, setChosenGame] = useState<GameId | null>(null)
   const { visited, add: addVisited, remove: removeVisited, toggle: toggleVisited } = useVisited()
   const { game, best, previousBest, start: startGame, startLetter, startAll, pick, advance, stop, quit: quitGame } =
     useGame()
@@ -252,15 +262,22 @@ export default function App() {
 
   // Leaving the Games panel ends the game
   const changeView = (next: ViewId | null) => {
-    if (view === 'games' && next !== 'games') quitGame()
+    if (view === 'games' && next !== 'games') {
+      quitGame()
+      setChosenGame(null)
+    }
     setView(next)
+  }
+  const openGame = (id: GameId) => {
+    setChosenGame(id)
+    changeView('games')
   }
 
   // From a list in the side panel. On phones the panel covers the country panel, so close it.
   const showCountry = useCallback(
     (country: CountryFeature) => {
       selectCountry(country)
-      if (window.matchMedia?.('(max-width: 600px)').matches) setView(null)
+      if (isPhone()) setView(null)
     },
     [selectCountry],
   )
@@ -281,7 +298,11 @@ export default function App() {
 
 
   return (
-    <div className={`app${view ? ' panel-open' : ''}`}>
+    <div
+      className={`app${view ? ' panel-open' : ''}${selected ? ' country-open' : ''}`}
+      // The page behind the globe, with a glow drawn in CSS
+      style={{ '--scene': theme.background } as CSSProperties}
+    >
       <div
         className="globe"
         data-testid="globe"
@@ -294,7 +315,7 @@ export default function App() {
           width={width}
           height={height}
           rendererConfig={RENDERER_CONFIG}
-          backgroundColor={theme.background}
+          backgroundColor="rgba(0, 0, 0, 0)"
           globeMaterial={globeMaterial}
           atmosphereColor={theme.atmosphere}
           atmosphereAltitude={0.18}
@@ -307,48 +328,79 @@ export default function App() {
         />
       </div>
 
-      <header className="title">
-        <h1>Countries of the World</h1>
-        <p>Drag to spin · scroll to zoom · click a country</p>
-      </header>
+      <TopBar
+        tabs={<Tabs view={view} onChange={changeView} />}
+        status={
+          <>
+            <ViewCenter globe={globe} />
+            <span className="status-dot" aria-hidden="true" />
+            <span>{visited.size} visited</span>
+          </>
+        }
+      />
 
-      <NavRail view={view} onChange={changeView} />
+      <p className="hint" aria-hidden="true">
+        <span>drag to spin</span>
+        <span>{isPhone() ? 'pinch to zoom' : 'scroll to zoom'}</span>
+      </p>
+
       {view && (
         <SidePanel title={VIEWS.find((v) => v.id === view)!.label} onClose={() => changeView(null)}>
-          {view === 'explore' && <ExplorePanel settings={settings} onChange={changeSettings} />}
-          {view === 'visited' && (
-            <VisitedPanel
-              visited={visited}
-              onAdd={addVisited}
-              onRemove={removeVisited}
-              onShow={showCountry}
-              note={(country) => {
-                const notes = []
-                if (regions && hasRegions(country)) {
-                  const { visited: count, total } = regionProgress(regions, visitedRegions, country)
-                  if (count > 0) notes.push(`${count} of ${total} ${regionsLabel(country).toLowerCase()}`)
-                }
-                const cityCount = cities ? citiesOf(cities, country).filter((c) => visitedCities.has(c.id)).length : 0
-                if (cityCount > 0) notes.push(citiesLabel(cityCount))
-                return notes.join(' · ') || null
-              }}
-              cityCount={cities ? cities.filter((c) => visitedCities.has(c.id)).length : 0}
+          {view === 'explore' && (
+            <ExplorePanel
+              settings={settings}
+              onChange={changeSettings}
+              theme={theme}
+              onThemeChange={setTheme}
+              best={best}
+              onOpenGame={openGame}
+              onFind={showCountry}
+              cities={cities}
             />
           )}
-          {view === 'design' && <DesignPanel theme={theme} onChange={setTheme} />}
+          {view === 'visited' && (
+            <Card letter="B" label="Visited atlas" meta={`${visited.size} places`}>
+              <VisitedPanel
+                visited={visited}
+                onAdd={addVisited}
+                onRemove={removeVisited}
+                onShow={showCountry}
+                note={(country) => {
+                  const notes = []
+                  if (regions && hasRegions(country)) {
+                    const { visited: count, total } = regionProgress(regions, visitedRegions, country)
+                    if (count > 0) notes.push(`${count} of ${total} ${regionsLabel(country).toLowerCase()}`)
+                  }
+                  const cityCount = cities ? citiesOf(cities, country).filter((c) => visitedCities.has(c.id)).length : 0
+                  if (cityCount > 0) notes.push(citiesLabel(cityCount))
+                  return notes.join(' · ') || null
+                }}
+                cityCount={cities ? cities.filter((c) => visitedCities.has(c.id)).length : 0}
+              />
+            </Card>
+          )}
+          {view === 'design' && (
+            <Card letter="B" label="Design" meta={theme.name.toUpperCase()}>
+              <DesignPanel theme={theme} onChange={setTheme} />
+            </Card>
+          )}
           {view === 'games' && (
-            <GamesPanel
-              game={game}
-              best={best}
-              previousBest={previousBest}
-              onStart={playGame}
-              onStartLetter={playLetter}
-              onStartAll={playAll}
-              onPick={pick}
-              onNext={advance}
-              onStop={stop}
-              onQuit={quitGame}
-            />
+            <Card letter="B" label="Games" meta={String(GAMES.length).padStart(2, '0')}>
+              <GamesPanel
+                game={game}
+                best={best}
+                previousBest={previousBest}
+                onStart={playGame}
+                onStartLetter={playLetter}
+                onStartAll={playAll}
+                onPick={pick}
+                onNext={advance}
+                onStop={stop}
+                onQuit={quitGame}
+                chosen={chosenGame}
+                onChoose={setChosenGame}
+              />
+            </Card>
           )}
         </SidePanel>
       )}

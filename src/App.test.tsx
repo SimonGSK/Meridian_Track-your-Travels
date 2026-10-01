@@ -112,7 +112,7 @@ const click = (x: number) => {
 const tooltip = () => screen.queryByRole('tooltip')
 const countryPanel = () => screen.queryByRole('complementary')
 const panelHeading = () => countryPanel()?.querySelector('h2') ?? null
-const sidePanel = () => screen.queryByRole('region')
+const sidePanel = () => document.getElementById('side-panel')
 /** Names of countries currently raised on the globe */
 const raised = () => [...sceneObjects].flatMap((o) => ('raised' in o ? [o.raised as string] : []))
 const flag = () => screen.queryByRole('img', { name: /^Flag of/ })
@@ -138,15 +138,15 @@ describe('App', () => {
     pinLayer.show.mockClear()
   })
 
-  it('shows the title and how to use the globe', () => {
+  it('shows the brand and how to use the globe', () => {
     render(<App />)
-    expect(screen.getByRole('heading', { name: 'Countries of the World' })).toBeInTheDocument()
-    expect(screen.getByText(/click a country/)).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Meridian' })).toBeInTheDocument()
+    expect(screen.getByText('drag to spin')).toBeInTheDocument()
   })
 
   it('starts from the initial view', () => {
     render(<App />)
-    expect(globe.pointOfView).toHaveBeenCalledWith({ lat: 25, lng: 10, altitude: 1.9 })
+    expect(globe.pointOfView).toHaveBeenCalledWith({ lat: 25, lng: 10, altitude: 2.2 })
   })
 
   describe('hovering', () => {
@@ -299,6 +299,47 @@ describe('App', () => {
     })
   })
 
+  describe('top bar and Explore', () => {
+    it('starts with the Explore cards open', () => {
+      render(<App />)
+      expect(sidePanel()).toHaveAccessibleName('Explore')
+      expect(screen.getByRole('button', { name: 'Explore' })).toHaveAttribute('aria-expanded', 'true')
+      expect(screen.getByRole('region', { name: /Games/ })).toBeInTheDocument()
+      expect(screen.getByRole('region', { name: /Design & layers/ })).toBeInTheDocument()
+    })
+
+    it('shows where the globe is looking, and how many places are visited', async () => {
+      render(<App />)
+      expect(await screen.findByText('25.0°N · 10.0°E')).toBeInTheDocument()
+      expect(screen.getByText('0 visited')).toBeInTheDocument()
+      click(100)
+      await userEvent.click(within(countryPanel()!).getByRole('button', { name: 'Add to visited atlas' }))
+      expect(screen.getByText('1 visited')).toBeInTheDocument()
+    })
+
+    it('opens a game from its card, ready to choose the difficulty', async () => {
+      render(<App />)
+      await userEvent.click(within(screen.getByRole('region', { name: /Games/ })).getByRole('button', { name: /^Shape quiz/ }))
+      expect(sidePanel()).toHaveAccessibleName('Games')
+      expect(screen.getByRole('heading', { name: 'Shape quiz' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /^Easy/ })).toBeInTheDocument()
+    })
+
+    it('finds a country with the atlas search and shows it', async () => {
+      render(<App />)
+      await userEvent.type(screen.getByRole('searchbox', { name: 'Search the atlas' }), 'denm{Enter}')
+      expect(panelHeading()).toHaveTextContent('Denmark')
+      expect(globe.pointOfView).toHaveBeenLastCalledWith(expect.objectContaining({ lat: expect.any(Number) }), expect.any(Number))
+    })
+
+    it('switches design with the swatches', async () => {
+      render(<App />)
+      await userEvent.click(within(screen.getByRole('group', { name: 'Design' })).getByRole('button', { name: 'Night' }))
+      expect(layer.setBorders).toHaveBeenLastCalledWith(NIGHT.border, NIGHT.borderOpacity)
+      expect(screen.getByRole('region', { name: /Design & layers/ })).toHaveTextContent('NIGHT')
+    })
+  })
+
   describe('menu', () => {
     it('opens a side panel and closes it again', async () => {
       render(<App />)
@@ -331,11 +372,11 @@ describe('App', () => {
     it('marks the selected country as visited and colors it on the globe', async () => {
       render(<App />)
       click(100)
-      await userEvent.click(within(countryPanel()!).getByRole('button', { name: 'Mark as visited' }))
+      await userEvent.click(within(countryPanel()!).getByRole('button', { name: 'Add to visited atlas' }))
       expect(painted()).toEqual({ Denmark: DEFAULT_THEME.visited })
-      expect(within(countryPanel()!).getByRole('button', { name: 'Visited' })).toBeInTheDocument()
+      expect(within(countryPanel()!).getByRole('button', { name: 'In visited atlas' })).toBeInTheDocument()
 
-      await userEvent.click(within(countryPanel()!).getByRole('button', { name: 'Visited' }))
+      await userEvent.click(within(countryPanel()!).getByRole('button', { name: 'In visited atlas' }))
       expect(painted()).toEqual({})
     })
 
@@ -359,7 +400,7 @@ describe('App', () => {
     it('remembers visited countries after a reload', async () => {
       const first = render(<App />)
       click(100)
-      await userEvent.click(within(countryPanel()!).getByRole('button', { name: 'Mark as visited' }))
+      await userEvent.click(within(countryPanel()!).getByRole('button', { name: 'Add to visited atlas' }))
       first.unmount()
       layer.paint.mockClear()
 
@@ -376,10 +417,12 @@ describe('App', () => {
         [...(fills as Map<{ properties: { name: string } }, string>)].map(([r, color]) => [r.properties.name, color]),
       )
     }
+    const statesLine = () => within(countryPanel()!).getByRole('button', { name: /states explored$/ })
+    /** Selects the United States and opens its list of states */
     const openUnitedStates = async () => {
       render(<App />)
       click(800)
-      await screen.findByText('of 51 visited')
+      await userEvent.click(await within(countryPanel()!).findByRole('button', { name: /states explored$/ }))
     }
 
     it('lists the states of a selected country, which stays flat in the selected color', async () => {
@@ -394,7 +437,7 @@ describe('App', () => {
       await openUnitedStates()
       click(800)
       expect(within(countryPanel()!).getByRole('checkbox', { name: 'California' })).toBeChecked()
-      expect(within(countryPanel()!).getByRole('button', { name: 'Visited' })).toHaveAttribute('aria-pressed', 'true')
+      expect(within(countryPanel()!).getByRole('button', { name: 'In visited atlas' })).toHaveAttribute('aria-pressed', 'true')
       expect(shownRegions()).toEqual({ California: visitedRegionColor(DEFAULT_THEME) })
       click(800)
       expect(within(countryPanel()!).getByRole('checkbox', { name: 'California' })).not.toBeChecked()
@@ -404,7 +447,7 @@ describe('App', () => {
       await openUnitedStates()
       await userEvent.click(within(countryPanel()!).getByRole('checkbox', { name: 'Texas' }))
       expect(shownRegions()).toEqual({ Texas: visitedRegionColor(DEFAULT_THEME) })
-      expect(screen.getByText('of 51 visited')).toHaveTextContent('1 of 51 visited')
+      expect(statesLine()).toHaveTextContent('1 of 51 states explored')
     })
 
     it('names and highlights the state pointed at', async () => {
@@ -460,29 +503,40 @@ describe('App', () => {
       ((pinLayer.show.mock.calls.at(-1)?.[0] ?? []) as { city: { name: string }; raised: boolean }[]).map(
         ({ city, raised }) => city.name + (raised ? ' (raised)' : ''),
       )
-    const city = (name: string | RegExp) => within(countryPanel()!).getByRole('checkbox', { name })
+    const visitedCities = () =>
+      within(countryPanel()!)
+        .queryAllByRole('listitem')
+        .filter((li) => li.closest('ul')?.getAttribute('aria-label') === 'Visited cities')
+        .map((li) => li.querySelector('.city-name')!.textContent)
+    const addCity = async (name: string) => {
+      await userEvent.type(within(countryPanel()!).getByRole('searchbox', { name: 'Add a city' }), name)
+      await userEvent.click(within(countryPanel()!).getByRole('button', { name: new RegExp(`^${name}`) }))
+    }
+    const removeCity = (name: string) =>
+      userEvent.click(within(countryPanel()!).getByRole('button', { name: `Remove ${name}` }))
     const openDenmark = async () => {
       render(<App />)
       click(100)
-      await within(countryPanel()!).findByRole('checkbox', { name: 'Aarhus' }) // once the cities have loaded
+      await within(countryPanel()!).findByRole('searchbox', { name: 'Add a city' }) // once the cities have loaded
     }
-    const tickAarhusAndClose = async () => {
+    const addAarhusAndClose = async () => {
       await openDenmark()
-      await userEvent.click(city('Aarhus'))
+      await addCity('Aarhus')
       fireEvent.keyDown(window, { key: 'Escape' })
     }
 
-    it('lists the cities of a selected country, capital first', async () => {
+    it('suggests the cities of a selected country, capital first', async () => {
       await openDenmark()
-      const names = within(countryPanel()!).getAllByRole('checkbox').map((c) => c.closest('label')!.textContent)
-      expect(names.slice(0, 2)).toEqual(['Copenhagencapital', 'Aarhus'])
+      await userEvent.click(within(countryPanel()!).getByRole('searchbox', { name: 'Add a city' }))
+      const suggested = within(within(countryPanel()!).getByRole('list', { name: 'Cities to add' })).getAllByRole('button')
+      expect(suggested.slice(0, 2).map((b) => b.textContent)).toEqual(['Copenhagencapital', 'Aarhus'])
     })
 
     it('marks a city, and its country with it, and pins it on the globe', async () => {
       await openDenmark()
-      await userEvent.click(city('Aarhus'))
-      expect(city('Aarhus')).toBeChecked()
-      expect(within(countryPanel()!).getByRole('button', { name: 'Visited' })).toHaveAttribute('aria-pressed', 'true')
+      await addCity('Aarhus')
+      expect(visitedCities()).toEqual(['Aarhus'])
+      expect(within(countryPanel()!).getByRole('button', { name: 'In visited atlas' })).toHaveAttribute('aria-pressed', 'true')
       expect(pinned()).toEqual(['Aarhus (raised)'])
 
       fireEvent.keyDown(window, { key: 'Escape' })
@@ -490,27 +544,28 @@ describe('App', () => {
       expect(painted()).toEqual({ Denmark: DEFAULT_THEME.visited })
     })
 
-    it('unpins a city ticked off again, keeping its country visited', async () => {
+    it('unpins a city removed again, keeping its country visited', async () => {
       await openDenmark()
-      await userEvent.click(city('Aarhus'))
-      await userEvent.click(city('Aarhus'))
+      await addCity('Aarhus')
+      await removeCity('Aarhus')
+      expect(visitedCities()).toEqual([])
       expect(pinned()).toEqual([])
-      expect(within(countryPanel()!).getByRole('button', { name: 'Visited' })).toHaveAttribute('aria-pressed', 'true')
+      expect(within(countryPanel()!).getByRole('button', { name: 'In visited atlas' })).toHaveAttribute('aria-pressed', 'true')
     })
 
     it('marks the state a city is in', async () => {
       render(<App />)
       click(800)
-      await screen.findByText('of 51 visited')
-      await userEvent.click(city('Los Angeles'))
-      expect(city('California')).toBeChecked()
-      await userEvent.click(city('Los Angeles'))
-      expect(city('California')).toBeChecked()
+      await within(countryPanel()!).findByRole('searchbox', { name: 'Add a city' })
+      await addCity('Los Angeles')
+      expect(within(countryPanel()!).getByRole('button', { name: /states explored$/ })).toHaveTextContent('1 of 51')
+      await removeCity('Los Angeles')
+      expect(within(countryPanel()!).getByRole('button', { name: /states explored$/ })).toHaveTextContent('1 of 51')
     })
 
     it("names the city of a pin pointed at, and shows its country's flag", async () => {
       await openDenmark()
-      await userEvent.click(city(/^Copenhagen/))
+      await addCity('Copenhagen')
       fireEvent.keyDown(window, { key: 'Escape' })
       hover(900)
       await waitFor(() => expect(tooltip()).toHaveTextContent('Copenhagen'))
@@ -519,20 +574,20 @@ describe('App', () => {
 
     it('opens the country of a pin clicked', async () => {
       await openDenmark()
-      await userEvent.click(city(/^Copenhagen/))
+      await addCity('Copenhagen')
       fireEvent.keyDown(window, { key: 'Escape' })
       click(900)
       expect(panelHeading()).toHaveTextContent('Denmark')
     })
 
     it('notes the cities visited in the Visited list', async () => {
-      await tickAarhusAndClose()
+      await addAarhusAndClose()
       await userEvent.click(within(screen.getByRole('navigation')).getByRole('button', { name: 'Visited' }))
       expect(screen.getByRole('button', { name: /^Denmark/ })).toHaveTextContent('1 city')
     })
 
     it('hides the pins when switched off, and during games', async () => {
-      await tickAarhusAndClose()
+      await addAarhusAndClose()
       await userEvent.click(screen.getByRole('button', { name: 'Explore' }))
       await userEvent.click(screen.getByRole('switch', { name: /City pins/ }))
       expect(pinned()).toEqual([])
@@ -548,7 +603,8 @@ describe('App', () => {
     it('remembers visited cities after a reload', async () => {
       const first = render(<App />)
       click(100)
-      await userEvent.click(await within(countryPanel()!).findByRole('checkbox', { name: 'Aarhus' }))
+      await within(countryPanel()!).findByRole('searchbox', { name: 'Add a city' })
+      await addCity('Aarhus')
       first.unmount()
       pinLayer.show.mockClear()
 
@@ -563,7 +619,7 @@ describe('App', () => {
     it('hides visited countries on the globe, keeping the list', async () => {
       render(<App />)
       click(100)
-      await userEvent.click(within(countryPanel()!).getByRole('button', { name: 'Mark as visited' }))
+      await userEvent.click(within(countryPanel()!).getByRole('button', { name: 'Add to visited atlas' }))
       expect(painted()).toEqual({ Denmark: DEFAULT_THEME.visited })
 
       await openExplore()
@@ -577,7 +633,7 @@ describe('App', () => {
       const first = render(<App />)
       expect(layer.setMarkersVisible).toHaveBeenLastCalledWith(true)
       await openExplore()
-      await userEvent.click(screen.getByRole('switch', { name: /Island markers/ }))
+      await userEvent.click(screen.getByRole('switch', { name: /Small islands/ }))
       expect(layer.setMarkersVisible).toHaveBeenLastCalledWith(false)
       first.unmount()
 
@@ -645,7 +701,7 @@ describe('App', () => {
     it('does not show visited countries while playing', async () => {
       render(<App />)
       click(100)
-      await userEvent.click(within(countryPanel()!).getByRole('button', { name: 'Mark as visited' }))
+      await userEvent.click(within(countryPanel()!).getByRole('button', { name: 'Add to visited atlas' }))
       await userEvent.click(screen.getByRole('button', { name: 'Games' }))
       await userEvent.click(screen.getByRole('button', { name: /Flag quiz/ }))
       await userEvent.click(screen.getByRole('button', { name: /^Easy/ }))

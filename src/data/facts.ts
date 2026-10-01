@@ -45,3 +45,11 @@ export function formatArea(km2: number) {
   const format = km2 < 1 ? twoDecimals : km2 < 10 ? oneDecimal : whole
   return `${format.format(km2)} km²`
 }
+
+const compact = new Intl.NumberFormat('en', { notation: 'compact', maximumSignificantDigits: 3 })
+
+/** "45.7M", "1.45B", "103K", "764" */
+export const formatPopulationShort = (population: number) => compact.format(population)
+
+/** "2.78M km²" for the biggest countries, else as formatArea */
+export const formatAreaShort = (km2: number) => (km2 >= 1e6 ? `${compact.format(km2)} km²` : formatArea(km2))
