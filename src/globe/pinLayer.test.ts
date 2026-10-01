@@ -45,9 +45,12 @@ describe('pinPosition', () => {
 describe('pinAt', () => {
   const front = { name: 'front', lat: 0, lng: 0 } // right in the middle of the screen
 
-  it('finds the pin whose head or stem is pointed at', () => {
+  it("finds the pin whose head is pointed at, leaving what's beside its tip free", () => {
     expect(pinAt(fakeGlobe(), [front], { x: CENTER, y: CENTER - HEAD_ABOVE_TIP })).toBe(front)
-    expect(pinAt(fakeGlobe(), [front], { x: CENTER, y: CENTER - 2 })).toBe(front)
+    expect(pinAt(fakeGlobe(), [front], { x: CENTER + 4, y: CENTER - HEAD_ABOVE_TIP - 4 })).toBe(front)
+    // Beside the tip: Vatican City, next to Rome's pin
+    expect(pinAt(fakeGlobe(), [front], { x: CENTER + 5, y: CENTER })).toBeNull()
+    expect(pinAt(fakeGlobe(), [front], { x: CENTER - 5, y: CENTER - 1 })).toBeNull()
   })
 
   it('finds nothing beside or below a pin', () => {

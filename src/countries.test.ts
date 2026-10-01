@@ -3,6 +3,7 @@ import { neighbors } from 'topojson-client'
 import type { GeometryCollection, Topology } from 'topojson-specification'
 import worldData from './data/countries-50m.json'
 import { MAP_COLOR_COUNT, TINY_KM2, borders, countries, findCountryAt, findCountryNear } from './countries'
+import { TINY_REACH_KM } from './globe/hooks'
 
 const nameAt = (lat: number, lng: number) => findCountryAt(lat, lng)?.properties.name ?? null
 
@@ -197,6 +198,13 @@ describe('findCountryNear', () => {
     const point = [lat + 0.25, lng + 0.25] as const
     expect(findCountryNear(...point, { markerRadius: 0.5 * DEG, tolerance: 0 })?.properties.name).toBe('Grenada')
     expect(findCountryNear(...point, { markerRadius: 0, tolerance: 0 })).toBeNull()
+  })
+
+  it('finds Vatican City from where it really is, though the map draws it 1.6 km off', () => {
+    const closeUp = { markerRadius: TINY_REACH_KM / 6371, tolerance: 0.001 } // as when zoomed in on Rome
+    expect(findCountryAt(41.9029, 12.4534)).toBe(countries.find((c) => c.properties.name === 'Italy'))
+    expect(findCountryNear(41.9029, 12.4534, closeUp)?.properties.name).toBe('Vatican City')
+    expect(findCountryNear(41.8902, 12.4922, closeUp)?.properties.name).toBe('Italy') // the Colosseum
   })
 
   it('returns null in the open ocean', () => {

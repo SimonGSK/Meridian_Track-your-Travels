@@ -141,7 +141,7 @@ function drawPin(canvas: HTMLCanvasElement, color: ColorRepresentation) {
   context.fill()
 }
 
-/** The pin under a point on the screen, if any: the one whose head is closest. */
+/** The pin whose head is under a point on the screen, if any: the closest. */
 export function pinAt<P extends Pin>(globe: GlobeMethods, pins: readonly P[], { x, y }: Point): P | null {
   const camera = globe.camera() as PerspectiveCamera
   const rect = globe.renderer().domElement.getBoundingClientRect()
@@ -154,10 +154,10 @@ export function pinAt<P extends Pin>(globe: GlobeMethods, pins: readonly P[], { 
     const { x: ndcX, y: ndcY } = position.project(camera)
     const tipX = rect.left + ((ndcX + 1) / 2) * rect.width
     const tipY = rect.top + ((1 - ndcY) / 2) * rect.height
+    // Only the head: the stem and tip stand on the map, and what's under them (Vatican City, under
+    // Rome's pin) must stay clickable
     const head = Math.hypot(x - tipX, y - (tipY - (TIP_Y - HEAD_Y) * SCALE))
-    const onHead = head <= HEAD_RADIUS * SCALE + HIT_SLOP_PX
-    const onStem = Math.abs(x - tipX) <= HIT_SLOP_PX + 1 && y <= tipY + HIT_SLOP_PX && y >= tipY - (TIP_Y - HEAD_Y) * SCALE
-    if ((onHead || onStem) && head < closestDistance) {
+    if (head <= HEAD_RADIUS * SCALE + HIT_SLOP_PX && head < closestDistance) {
       closest = pin
       closestDistance = head
     }

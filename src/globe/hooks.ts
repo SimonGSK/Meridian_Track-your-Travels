@@ -19,10 +19,17 @@ const MARKER_HIT_PX = 8
 const NEAR_MISS_PX = 6
 /** With the rings hidden, tiny places still answer to a smaller circle, or Monaco couldn't be clicked at all */
 const HIDDEN_MARKER_HIT_PX = 5
+/**
+ * Zoomed in, tiny places reach at least this far (km), so pointing near
+ * Vatican City finds it: it's a few pixels wide even then, and drawn 1.6 km
+ * from where it is at this map's scale.
+ */
+export const TINY_REACH_KM = 3.5
+const EARTH_KM = 6371
 
 /** How far from a tiny place's middle, and from any coast, the pointer counts as on it (radians) */
 export const hitDistances = (perPixel: number, markersShown: boolean) => ({
-  markerRadius: (markersShown ? MARKER_HIT_PX : HIDDEN_MARKER_HIT_PX) * perPixel,
+  markerRadius: Math.max((markersShown ? MARKER_HIT_PX : HIDDEN_MARKER_HIT_PX) * perPixel, TINY_REACH_KM / EARTH_KM),
   tolerance: NEAR_MISS_PX * perPixel,
 })
 

@@ -6,6 +6,7 @@ import { countries, type CountryFeature } from '../countries'
 import {
   IDLE_DELAY_MS,
   SPIN_SPEED,
+  TINY_REACH_KM,
   hitDistances,
   stopGlide,
   useDepthPrecision,
@@ -190,6 +191,13 @@ describe('useDepthPrecision', () => {
 })
 
 describe('hitDistances', () => {
+  it('reaches at least a few km around tiny places when zoomed in', () => {
+    const closeUp = 0.1 / 6371 // a pixel is 100 m
+    expect(hitDistances(closeUp, true).markerRadius * 6371).toBeCloseTo(TINY_REACH_KM)
+    expect(hitDistances(closeUp, false).markerRadius * 6371).toBeCloseTo(TINY_REACH_KM)
+    expect(hitDistances(closeUp, false).tolerance * 6371).toBeLessThan(1) // coasts don't reach further
+  })
+
   it('keeps tiny places clickable when their rings are hidden, in a smaller circle', () => {
     const shown = hitDistances(0.001, true)
     const hidden = hitDistances(0.001, false)
