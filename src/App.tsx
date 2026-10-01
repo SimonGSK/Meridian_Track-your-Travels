@@ -77,8 +77,19 @@ export default function App() {
   /** The game whose setup is open in the Games tab */
   const [chosenGame, setChosenGame] = useState<GameId | null>(null)
   const { visited, add: addVisited, remove: removeVisited, toggle: toggleVisited } = useVisited()
-  const { game, best, previousBest, start: startGame, startLetter, startAll, pick, advance, stop, quit: quitGame } =
-    useGame()
+  const {
+    game,
+    best,
+    previousBest,
+    start: startGame,
+    startLetter,
+    startAll,
+    pick,
+    giveUpRound,
+    advance,
+    stop,
+    quit: quitGame,
+  } = useGame()
   const playing = isPlaying(game)
   const globeIsAnswer = globeAnswers(game)
   const { width, height } = useWindowSize()
@@ -130,7 +141,9 @@ export default function App() {
   }, [game, theme, editing])
 
   // Games get a clean globe: no visited colors, and hover only where the globe is the answer
-  const colorHovered = !playing || globeIsAnswer ? hovered : null
+  // In games only countries are answers, so territories don't light up
+  const hoverable = !!hovered && (!playing || (globeIsAnswer && hovered.properties.kind === 'country'))
+  const colorHovered = hoverable ? hovered : null
   const colorVisited = showsGame(game) || !settings.showVisited ? NO_VISITS : visited
   const colorOf = useCallback(
     (country: CountryFeature) =>
@@ -343,7 +356,7 @@ export default function App() {
         className="globe"
         data-testid="globe"
         aria-busy={!globe}
-        style={{ cursor: hovered && (!playing || globeIsAnswer) ? 'pointer' : 'grab' }}
+        style={{ cursor: hoverable ? 'pointer' : 'grab' }}
         {...pointerHandlers}
       >
         {globeView}
@@ -421,6 +434,7 @@ export default function App() {
                 onStartLetter={playLetter}
                 onStartAll={playAll}
                 onPick={pick}
+                onDontKnow={giveUpRound}
                 onNext={advance}
                 onStop={stop}
                 onQuit={quitGame}

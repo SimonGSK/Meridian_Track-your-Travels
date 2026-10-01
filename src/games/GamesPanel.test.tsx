@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import GamesPanel from './GamesPanel'
-import { answer, newRoundGame, next, stopEarly, type Difficulty, type RoundGameId, type RoundGameState } from './games'
+import { answer, dontKnow, newRoundGame, next, stopEarly, type Difficulty, type RoundGameId, type RoundGameState } from './games'
 import { giveUp, newLetterGame, pickCountry, type LetterGameState } from './letterGame'
 import type { GameState } from './useGame'
 import { giveUpAll, nameCountry, newAllGame } from './allGame'
@@ -21,6 +21,7 @@ function setup(overrides: Partial<Parameters<typeof GamesPanel>[0]> = {}) {
     onStartLetter: vi.fn(),
     onStartAll: vi.fn(),
     onPick: vi.fn(),
+    onDontKnow: vi.fn(),
     onNext: vi.fn(),
     onStop: vi.fn(),
     onQuit: vi.fn(),
@@ -121,6 +122,30 @@ describe('GamesPanel: rounds', () => {
     expect(onPick).toHaveBeenCalledWith(g.rounds[0].options[2])
   })
 
+  it("has an \"I don't know\" button while a round is open", async () => {
+    const g = roundGame('find')
+    const { onDontKnow } = setup({ game: g })
+    await userEvent.click(screen.getByRole('button', { name: "I don't know" }))
+    expect(onDontKnow).toHaveBeenCalled()
+  })
+
+  it("shows the answer after \"I don't know\", as a wrong round", () => {
+    const g = roundGame('shape')
+    setup({ game: dontKnow(g) })
+    expect(screen.getByRole('status')).toHaveTextContent(`The answer is ${g.rounds[0].target.properties.name}.`)
+    expect(screen.getByRole('status')).toHaveClass('wrong')
+    expect(screen.queryByRole('button', { name: "I don't know" })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Next' })).toBeInTheDocument()
+  })
+
+  it('says a territory is not a country, without counting it wrong', () => {
+    const g = roundGame('find')
+    setup({ game: answer(g, countries.find((c) => c.properties.name === 'Greenland')!) })
+    expect(screen.getByRole('status')).toHaveTextContent('Greenland is a territory, not a country. Try again.')
+    expect(screen.getByRole('status')).not.toHaveClass('wrong')
+    expect(screen.getByLabelText(/^Try 1 of/)).toBeInTheDocument() // still on the first try
+  })
+
   it('shows only the outline in the shape quiz', () => {
     setup({ game: roundGame('shape') })
     expect(screen.getByRole('img', { name: 'The outline to identify' })).toBeInTheDocument()
@@ -215,10 +240,10 @@ describe('GamesPanel: rounds', () => {
 
   it('lets you stop an "all countries" game once you have played a round', async () => {
     const fresh = newRoundGame('shape', 'all')
-    const { rerender } = render(<GamesPanel game={fresh} best={{}} previousBest={undefined} onStart={vi.fn()} onStartLetter={vi.fn()} onStartAll={vi.fn()} onPick={vi.fn()} onNext={vi.fn()} onStop={vi.fn()} onQuit={vi.fn()} />)
+    const { rerender } = render(<GamesPanel game={fresh} best={{}} previousBest={undefined} onStart={vi.fn()} onStartLetter={vi.fn()} onStartAll={vi.fn()} onPick={vi.fn()} onDontKnow={vi.fn()} onNext={vi.fn()} onStop={vi.fn()} onQuit={vi.fn()} />)
     expect(screen.queryByRole('button', { name: 'Stop and see results' })).not.toBeInTheDocument()
     const onStop = vi.fn()
-    rerender(<GamesPanel game={answer(fresh, fresh.rounds[0].target)} best={{}} previousBest={undefined} onStart={vi.fn()} onStartLetter={vi.fn()} onStartAll={vi.fn()} onPick={vi.fn()} onNext={vi.fn()} onStop={onStop} onQuit={vi.fn()} />)
+    rerender(<GamesPanel game={answer(fresh, fresh.rounds[0].target)} best={{}} previousBest={undefined} onStart={vi.fn()} onStartLetter={vi.fn()} onStartAll={vi.fn()} onPick={vi.fn()} onDontKnow={vi.fn()} onNext={vi.fn()} onStop={onStop} onQuit={vi.fn()} />)
     await userEvent.click(screen.getByRole('button', { name: 'Stop and see results' }))
     expect(onStop).toHaveBeenCalled()
   })
@@ -290,6 +315,7 @@ describe('GamesPanel: letter hunt', () => {
       onStartLetter: vi.fn(),
       onStartAll: vi.fn(),
       onPick: vi.fn(),
+      onDontKnow: vi.fn(),
       onNext: vi.fn(),
       onStop: vi.fn(),
       onQuit: vi.fn(),

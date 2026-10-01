@@ -778,6 +778,29 @@ describe('App', () => {
         expect(painted()).toEqual({ [wrong]: DEFAULT_THEME.wrong, [target]: DEFAULT_THEME.correct })
       })
 
+      it('does not count a territory clicked, nor light it up', async () => {
+        await startGame(/Find the country/)
+        // A country lights up; moving on to a territory turns it off, and lights nothing
+        hover(100)
+        await waitFor(() => expect(painted()).toEqual({ Denmark: DEFAULT_THEME.hover }))
+        hover(400) // Somaliland
+        await waitFor(() => expect(painted().Denmark).toBeUndefined())
+        expect(painted()).toEqual({})
+        click(400)
+        expect(feedback()).toHaveTextContent('Somaliland is a territory, not a country. Try again.')
+        expect(screen.getByLabelText(`Try 1 of 3`)).toBeInTheDocument()
+        expect(painted()).toEqual({})
+      })
+
+      it("shows the answer after \"I don't know\", with no points", async () => {
+        await startGame(/Find the country/)
+        const target = findTarget()
+        await userEvent.click(screen.getByRole('button', { name: "I don't know" }))
+        expect(feedback()).toHaveTextContent(`The answer is ${target}.`)
+        expect(painted()).toEqual({ [target]: DEFAULT_THEME.correct })
+        expect(screen.getByText('0 points')).toBeInTheDocument()
+      })
+
       it('shows the answer and flies there after three misses', async () => {
         await startGame(/Find the country/)
         const target = findTarget()

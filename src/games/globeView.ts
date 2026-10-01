@@ -31,15 +31,13 @@ export function gameHighlights(game: GameState | null, theme: Theme): ReadonlyMa
   if (game.kind === 'letter') {
     for (const country of game.found) colors.set(country, theme.correct)
     if (game.finished) for (const country of missing(game)) colors.set(country, theme.selected)
-    else if (game.last && game.last.result !== 'found' && game.last.result !== 'again') {
-      colors.set(game.last.country, theme.wrong)
-    }
+    else if (game.last?.result === 'wrong-letter') colors.set(game.last.country, theme.wrong)
     return colors
   }
   const { target } = currentRound(game)
   for (const miss of game.misses) colors.set(miss, theme.wrong)
   if (game.answer) {
-    if (!game.answer.correct) colors.set(game.answer.picked, theme.wrong)
+    if (!game.answer.correct && game.answer.picked) colors.set(game.answer.picked, theme.wrong)
     colors.set(target, theme.correct)
   } else if (game.id === 'name') {
     colors.set(target, theme.selected)

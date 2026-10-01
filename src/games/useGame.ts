@@ -3,6 +3,7 @@ import type { CountryFeature } from '../countries'
 import { usePersistentState } from '../storage'
 import {
   answer,
+  dontKnow,
   newRoundGame,
   next,
   stopEarly,
@@ -102,6 +103,11 @@ export function useGame() {
     else update(next(game))
   }, [game, update])
 
+  /** "I don't know": lose the round and see the answer */
+  const giveUpRound = useCallback(() => {
+    if (game?.kind === 'rounds') update(dontKnow(game))
+  }, [game, update])
+
   /** End a game played in rounds now, scoring the rounds played */
   const stop = useCallback(() => {
     if (game?.kind === 'rounds') update(stopEarly(game))
@@ -109,5 +115,5 @@ export function useGame() {
 
   const quit = useCallback(() => setGame(null), [])
 
-  return { game, best, previousBest, start, startLetter, startAll, pick, advance, stop, quit }
+  return { game, best, previousBest, start, startLetter, startAll, pick, giveUpRound, advance, stop, quit }
 }

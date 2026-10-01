@@ -65,15 +65,16 @@ export function newLetterGame(letter: string): LetterGameState {
   }
 }
 
-/** A click on a country: found if it starts with the letter, a mistake if not. */
+/**
+ * A click on a country: found if it starts with the letter, a mistake if
+ * not. Territories aren't countries, so they're no mistake either way.
+ */
 export function pickCountry(game: LetterGameState, country: CountryFeature): LetterGameState {
   if (game.finished) return game
+  if (country.properties.kind !== 'country') return { ...game, last: { country, result: 'territory' } }
   if (game.found.includes(country)) return { ...game, last: { country, result: 'again' } }
   if (!startsWith(country, game.letter)) {
     return { ...game, mistakes: game.mistakes + 1, last: { country, result: 'wrong-letter' } }
-  }
-  if (country.properties.kind !== 'country') {
-    return { ...game, mistakes: game.mistakes + 1, last: { country, result: 'territory' } }
   }
   const found = [...game.found, country]
   return { ...game, found, last: { country, result: 'found' }, finished: found.length === game.targets.length }

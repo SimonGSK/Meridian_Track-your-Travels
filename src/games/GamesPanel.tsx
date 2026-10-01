@@ -40,6 +40,8 @@ type Props = {
   onStartLetter: (letter: string) => void
   onStartAll: (scope: Scope) => void
   onPick: (country: CountryFeature, alias?: string | null) => void
+  /** "I don't know" in a game played in rounds */
+  onDontKnow: () => void
   onNext: () => void
   /** End a game played in rounds early */
   onStop: () => void
@@ -145,7 +147,7 @@ function GameHeader({ game }: { game: GameState }) {
   )
 }
 
-function RoundPlay({ game, onPick, onNext, onStop, onQuit }: Props & { game: RoundGameState }) {
+function RoundPlay({ game, onPick, onDontKnow, onNext, onStop, onQuit }: Props & { game: RoundGameState }) {
   const { target, options } = currentRound(game)
   const { answer } = game
   const isLast = game.index === game.rounds.length - 1
@@ -165,14 +167,17 @@ function RoundPlay({ game, onPick, onNext, onStop, onQuit }: Props & { game: Rou
   const feedback = () => {
     const name = target.properties.name
     if (!answer) {
+      if (game.notACountry) return `${game.notACountry.properties.name} is a territory, not a country. Try again.`
       if (!lastMiss) return ''
       return `That's ${lastMiss.properties.name}. Try again: ${triesLeft} ${triesLeft === 1 ? 'try' : 'tries'} left.`
     }
     const points = isFind ? ` +${answer.points} ${answer.points === 1 ? 'point' : 'points'}` : ''
     if (answer.correct) return answer.alias ? `Correct: ${name} (you wrote ${answer.alias})${points}` : `Correct!${points}`
-    const picked = answer.picked.properties.name
-    return mode === 'choices' ? `The answer is ${name}.` : `That's ${picked}. The answer is ${name}.`
+    if (!answer.picked || mode === 'choices') return `The answer is ${name}.`
+    return `That's ${answer.picked.properties.name}. The answer is ${name}.`
   }
+  // A territory is neither right nor wrong
+  const tone = answer?.correct ? ' correct' : answer || (lastMiss && !game.notACountry) ? ' wrong' : ''
 
   return (
     <div className="game">
@@ -226,12 +231,15 @@ function RoundPlay({ game, onPick, onNext, onStop, onQuit }: Props & { game: Rou
       )}
       {mode === 'typing' && !answer && <CountryInput key={game.index} onAnswer={onPick} />}
 
-      <p
-        className={`feedback${answer?.correct ? ' correct' : answer || lastMiss ? ' wrong' : ''}`}
-        role="status"
-      >
+      <p className={`feedback${tone}`} role="status">
         {feedback()}
       </p>
+
+      {!answer && (
+        <button type="button" className="primary-button secondary" onClick={onDontKnow}>
+          I don't know
+        </button>
+      )}
 
       {answer && (
         // Focus moves here so Enter continues to the next round

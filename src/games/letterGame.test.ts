@@ -71,10 +71,14 @@ describe('letter hunt', () => {
     expect(game.last).toMatchObject({ result: 'wrong-letter' })
   })
 
-  it('does not count territories', () => {
-    const game = pickCountry(newLetterGame('G'), byName('Greenland'))
-    expect(game.found).toEqual([])
-    expect(game.last).toMatchObject({ result: 'territory' })
+  it('does not count territories, as found or as mistakes, whatever their letter', () => {
+    const sameLetter = pickCountry(newLetterGame('G'), byName('Greenland'))
+    expect(sameLetter.found).toEqual([])
+    expect(sameLetter.mistakes).toBe(0)
+    expect(sameLetter.last).toMatchObject({ result: 'territory' })
+    const otherLetter = pickCountry(newLetterGame('K'), byName('Greenland'))
+    expect(otherLetter.mistakes).toBe(0)
+    expect(otherLetter.last).toMatchObject({ result: 'territory' })
   })
 
   it('ignores a country found twice, without a mistake', () => {

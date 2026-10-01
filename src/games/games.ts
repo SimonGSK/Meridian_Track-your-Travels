@@ -81,7 +81,8 @@ export type Round = {
 }
 
 export type Answer = {
-  picked: CountryFeature
+  /** Null when you said you didn't know */
+  picked: CountryFeature | null
   correct: boolean
   /** The name typed, when it's an older or alternative name, e.g. "Swaziland" */
   alias: string | null
@@ -100,6 +101,8 @@ export type RoundGameState = {
   answer: Answer | null
   /** Wrong tries so far this round ("find the country" allows MAX_TRIES) */
   misses: CountryFeature[]
+  /** A territory just picked: it isn't a country, so it doesn't count either way */
+  notACountry: CountryFeature | null
   finished: boolean
   /** Ended before the last round, scoring the rounds played */
   stoppedEarly: boolean
@@ -136,6 +139,7 @@ export function newRoundGame(
     score: 0,
     answer: null,
     misses: [],
+    notACountry: null,
     finished: false,
     stoppedEarly: false,
   }
@@ -159,21 +163,29 @@ export const currentRound = (game: RoundGameState) => game.rounds[game.index]
 /**
  * Answer the current round. In "find the country" a wrong country is a
  * miss and you try again, up to MAX_TRIES, for fewer points each time.
+ * Territories aren't countries, so picking one doesn't count either way.
  * Answers after the round is over are ignored.
  */
 export function answer(game: RoundGameState, picked: CountryFeature, alias: string | null = null): RoundGameState {
   if (game.answer || game.finished || game.misses.includes(picked)) return game
+  if (picked.properties.kind !== 'country') return { ...game, notACountry: picked }
   const correct = picked === currentRound(game).target
   const tries = game.id === 'find' ? MAX_TRIES : 1
-  if (!correct && game.misses.length + 1 < tries) return { ...game, misses: [...game.misses, picked] }
+  if (!correct && game.misses.length + 1 < tries) return { ...game, misses: [...game.misses, picked], notACountry: null }
   const points = correct ? tries - game.misses.length : 0
   const misses = correct ? game.misses : [...game.misses, picked]
-  return { ...game, answer: { picked, correct, alias, points }, misses, score: game.score + points }
+  return { ...game, answer: { picked, correct, alias, points }, misses, notACountry: null, score: game.score + points }
+}
+
+/** "I don't know": the round is over and lost, showing the answer. Misses so far stay. */
+export function dontKnow(game: RoundGameState): RoundGameState {
+  if (game.answer || game.finished) return game
+  return { ...game, answer: { picked: null, correct: false, alias: null, points: 0 }, notACountry: null }
 }
 
 /** Move on to the next round once the current one is answered. */
 export function next(game: RoundGameState): RoundGameState {
   if (!game.answer) return game
   if (game.index + 1 >= game.rounds.length) return { ...game, finished: true }
-  return { ...game, index: game.index + 1, answer: null, misses: [] }
+  return { ...game, index: game.index + 1, answer: null, misses: [], notACountry: null }
 }

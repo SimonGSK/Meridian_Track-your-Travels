@@ -8,6 +8,7 @@ import {
   answer,
   answerMode,
   currentRound,
+  dontKnow,
   difficultyDescription,
   gamePool,
   maxScore,
@@ -159,6 +160,29 @@ describe('find the country: tries and points', () => {
     expect(game.answer).toMatchObject({ correct: false, points: 0 })
     expect(game.misses).toHaveLength(MAX_TRIES)
     expect(game.score).toBe(0)
+  })
+
+  it('does not count a territory: no miss, but a note that it is not a country', () => {
+    const game = start()
+    const greenland = answer(game, byName('Greenland'))
+    expect(greenland.misses).toEqual([])
+    expect(greenland.answer).toBeNull()
+    expect(greenland.notACountry?.properties.name).toBe('Greenland')
+    // The next answer clears the note, and still scores in full
+    const after = answer(greenland, currentRound(game).target)
+    expect(after.notACountry).toBeNull()
+    expect(after.answer?.points).toBe(MAX_TRIES)
+  })
+
+  it("ends the round on \"I don't know\", with no points, keeping the misses so far", () => {
+    const game = start()
+    const missed = answer(game, wrongOnes(game)[0])
+    const gaveUp = dontKnow(missed)
+    expect(gaveUp.answer).toEqual({ picked: null, correct: false, alias: null, points: 0 })
+    expect(gaveUp.misses).toEqual(missed.misses)
+    expect(gaveUp.score).toBe(0)
+    expect(dontKnow(gaveUp)).toBe(gaveUp) // only once per round
+    expect(next(gaveUp).index).toBe(1)
   })
 
   it('does not count the same wrong country twice', () => {

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { countries } from '../countries'
 import { CLASSIC } from '../globe/themes'
-import { answer, newRoundGame, next, type RoundGameId } from './games'
+import { answer, dontKnow, newRoundGame, next, type RoundGameId } from './games'
 import { flightTarget, gameHighlights, globeAnswers, isPlaying, overviewKey, showsGame } from './globeView'
 import { giveUp, newLetterGame, pickCountry } from './letterGame'
 import { giveUpAll, nameCountry, newAllGame } from './allGame'
@@ -50,6 +50,13 @@ describe('round games', () => {
     expect(flightTarget(answered)).toBe(target)
   })
 
+  it("shows the answer after \"I don't know\", and flies there", () => {
+    const game = dontKnow(round('find'))
+    const target = game.rounds[0].target
+    expect(names(gameHighlights(game, CLASSIC))).toEqual({ [target.properties.name]: CLASSIC.correct })
+    expect(flightTarget(game)).toBe(target)
+  })
+
   it('shows every miss in "find the country" while you keep trying', () => {
     const game = round('find')
     const target = game.rounds[0].target
@@ -95,6 +102,11 @@ describe('letter hunt', () => {
   it('shows countries found, and the last wrong click', () => {
     const game = pickCountry(pickCountry(kGame(), byName('Kenya')), byName('Denmark'))
     expect(names(gameHighlights(game, CLASSIC))).toEqual({ Kenya: CLASSIC.correct, Denmark: CLASSIC.wrong })
+  })
+
+  it('does not mark a territory clicked as wrong', () => {
+    const game = pickCountry(pickCountry(kGame(), byName('Kenya')), byName('Greenland'))
+    expect(names(gameHighlights(game, CLASSIC))).toEqual({ Kenya: CLASSIC.correct })
   })
 
   it('shows the missed countries on the results', () => {
