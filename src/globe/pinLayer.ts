@@ -33,6 +33,8 @@ export type PinLayer = {
   object: Points
   show(pins: readonly Pin[]): void
   setColor(color: ColorRepresentation): void
+  /** Where pins fade out near the edge of the globe */
+  setFade(fade: PinFade): void
   dispose(): void
 }
 
@@ -42,14 +44,19 @@ export function pinPosition({ lat, lng, raised }: Pin, globeRadius: number) {
   return new Vector3(...toUnitVector([lng, lat])).multiplyScalar(radius)
 }
 
-/** Whether a point on the globe faces the camera, rather than being hidden behind the globe */
 /**
  * How squarely a pin faces the camera: 1 in the middle of the globe, 0 at
- * its edge. Pins near the edge would stick out past it, so they fade out
- * between these two, and are gone beyond.
+ * its edge. Pins near the edge would stick out past it, and be hard to tell
+ * from what's beside them, so they fade out between these two, and are gone
+ * beyond.
  */
 export const PIN_HIDDEN_BELOW = 0.3
 export const PIN_SOLID_ABOVE = 0.55
+
+export type PinFade = { hiddenBelow: number; solidAbove: number }
+export const PIN_FADE: PinFade = { hiddenBelow: PIN_HIDDEN_BELOW, solidAbove: PIN_SOLID_ABOVE }
+/** Nothing points at a screensaver, so its pins stay until close to the edge, showing far-off places */
+export const SCREENSAVER_PIN_FADE: PinFade = { hiddenBelow: 0.12, solidAbove: 0.3 }
 
 /** The globe is centered on the origin, so a point's position is also its normal */
 export const facing = (position: Vector3, camera: Vector3) =>
@@ -64,15 +71,22 @@ export function createPinLayer(globeRadius: number): PinLayer {
   const geometry = new BufferGeometry()
   const texture = new CanvasTexture(document.createElement('canvas'))
   const material = new ShaderMaterial({
-    uniforms: { map: { value: texture }, size: { value: PIN_SIZE_PX } },
+    uniforms: {
+      map: { value: texture },
+      size: { value: PIN_SIZE_PX },
+      hiddenBelow: { value: PIN_HIDDEN_BELOW },
+      solidAbove: { value: PIN_SOLID_ABOVE },
+    },
     vertexShader: `
       uniform float size;
+      uniform float hiddenBelow;
+      uniform float solidAbove;
       varying float fade;
       void main() {
         vec4 world = modelMatrix * vec4(position, 1.0);
         // As facing() below: the globe is centered on the origin, so a point's position is also its normal
         float facing = dot(normalize(world.xyz), normalize(cameraPosition - world.xyz));
-        fade = smoothstep(${PIN_HIDDEN_BELOW.toFixed(2)}, ${PIN_SOLID_ABOVE.toFixed(2)}, facing);
+        fade = smoothstep(hiddenBelow, solidAbove, facing);
         gl_Position = fade > 0.0 ? projectionMatrix * viewMatrix * world : vec4(2.0, 2.0, 2.0, 1.0);
         gl_PointSize = size;
       }
@@ -105,6 +119,10 @@ export function createPinLayer(globeRadius: number): PinLayer {
     show(pins) {
       const positions = pins.flatMap((pin) => pinPosition(pin, globeRadius).toArray())
       geometry.setAttribute('position', new Float32BufferAttribute(positions, 3))
+    },
+    setFade({ hiddenBelow, solidAbove }) {
+      material.uniforms.hiddenBelow.value = hiddenBelow
+      material.uniforms.solidAbove.value = solidAbove
     },
     setColor(color) {
       drawPin(texture.image as HTMLCanvasElement, color)

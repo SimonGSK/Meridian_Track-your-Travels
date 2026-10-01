@@ -7,7 +7,7 @@ import { borders, countries, findCountryNear, type CountryFeature } from '../cou
 import { loadCities, type City } from '../data/cities'
 import { loadRegions, type RegionFeature } from '../data/regions'
 import { createCountryLayer, createRaisedCountry, type CountryLayer } from './countryLayer'
-import { createPinLayer, type Pin, type PinLayer } from './pinLayer'
+import { PIN_FADE, createPinLayer, type Pin, type PinLayer } from './pinLayer'
 import { createRegionLayer, type RegionLayer } from './regionLayer'
 import { approach, isClick, type LatLng, type Point } from './interaction'
 import { screenToLatLng } from './picking'
@@ -341,8 +341,8 @@ export const useRegions = () => useLoaded(loadRegions)
 /** The well-known cities, once loaded */
 export const useCities = (): City[] | null => useLoaded(loadCities)
 
-/** Pins in `color`, at `pins` */
-export function usePinLayer(globe: GlobeMethods | null, pins: readonly Pin[], color: string) {
+/** Pins in `color`, at `pins`, fading out near the edge of the globe as `fade` says */
+export function usePinLayer(globe: GlobeMethods | null, pins: readonly Pin[], color: string, fade = PIN_FADE) {
   const layer = useRef<PinLayer | null>(null)
 
   useEffect(() => {
@@ -361,6 +361,10 @@ export function usePinLayer(globe: GlobeMethods | null, pins: readonly Pin[], co
   useEffect(() => {
     layer.current?.setColor(color)
   }, [globe, color])
+
+  useEffect(() => {
+    layer.current?.setFade(fade)
+  }, [globe, fade])
 
   useEffect(() => {
     layer.current?.show(pins)

@@ -25,7 +25,7 @@ The globe spins on its own until you touch it, and again once it's been left alo
 
 ## Screensaver
 
-The globe can be your Mac's screensaver, spinning with your places on it. With `?screensaver` in the address the app shows only the globe, and the pointer doesn't stop it. A screensaver keeps its own storage, so the address carries your places, design and layers in its `#places=…` part.
+The globe can be your Mac's screensaver, spinning with your places on it. With `?screensaver` in the address the app shows only the globe, and the pointer doesn't stop it. It looks at the globe from just north of the equator, so as it turns you see Europe and Canada but also Australia and New Zealand, and its pins stay until closer to the edge. A screensaver keeps its own storage, so the address carries your places, design and layers in its `#places=…` part.
 
 1. Run `npm run build:screensaver`. It builds the app into one self-contained file, `screensaver/index.html`, that opens from disk without a server, and copies it to `/Users/Shared/Meridian/` (screensavers can't read Documents, Desktop or Downloads).
 2. Install [WebViewScreenSaver](https://github.com/liquidx/webviewscreensaver) (Apache 2.0), which shows a web page as a screensaver: `brew install --cask webviewscreensaver`. (Its README adds `--no-quarantine`, but current Homebrew no longer has that option; macOS asks you to allow the screensaver instead, below.)

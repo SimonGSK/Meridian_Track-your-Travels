@@ -42,10 +42,10 @@ import {
   useSelectedCountry,
   useSmoothAutoRotate,
 } from './globe/hooks'
-import { pinAt } from './globe/pinLayer'
+import { PIN_FADE, SCREENSAVER_PIN_FADE, pinAt } from './globe/pinLayer'
 import { hoveredRegionColor, visitedRegionColor } from './globe/themes'
 import type { LatLng, Point } from './globe/interaction'
-import { INITIAL_VIEW, fitAltitude, flightAltitude, flightDuration } from './globe/interaction'
+import { INITIAL_VIEW, SCREENSAVER_VIEW, fitAltitude, flightAltitude, flightDuration } from './globe/interaction'
 import { countryColor } from './globe/colors'
 
 const RENDERER_CONFIG = { antialias: true, alpha: true, powerPreference: 'high-performance' } as const
@@ -210,7 +210,7 @@ export default function App() {
         : [],
     [cities, settings.showCities, game, visitedCities, editing, selected],
   )
-  usePinLayer(globe, pinned, theme.pin)
+  usePinLayer(globe, pinned, theme.pin, screensaver ? SCREENSAVER_PIN_FADE : PIN_FADE)
   const cityAt = useCallback(
     (point: Point | null) => (globe && point && pinned.length > 0 ? (pinAt(globe, pinned, point)?.city ?? null) : null),
     [globe, pinned],
@@ -329,7 +329,7 @@ export default function App() {
       // Picking happens in useCountryPointer, far cheaper than raycasting every mesh
       enablePointerInteraction={false}
       onGlobeReady={() => {
-        globeRef.current?.pointOfView(INITIAL_VIEW)
+        globeRef.current?.pointOfView(screensaver ? SCREENSAVER_VIEW : INITIAL_VIEW)
         setGlobe(globeRef.current ?? null)
       }}
     />

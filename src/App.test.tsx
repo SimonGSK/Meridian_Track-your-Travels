@@ -8,6 +8,8 @@ import { countries, findCountryAt } from './countries'
 import { loadCities } from './data/cities'
 import { loadRegions } from './data/regions'
 import { DEFAULT_THEME, NIGHT, POLITICAL, hoveredRegionColor, visitedRegionColor } from './globe/themes'
+import { INITIAL_VIEW, SCREENSAVER_VIEW } from './globe/interaction'
+import { SCREENSAVER_PIN_FADE } from './globe/pinLayer'
 
 // WebGL doesn't exist in jsdom, so the globe is replaced by a stand-in that
 // exposes what the app passes to it. Screen positions map to places by x.
@@ -51,7 +53,7 @@ const { PLACES, PIN_AT, globe, layer, regionLayer, pinLayer, sceneObjects } = vi
     sceneObjects,
     layer: { object: {}, paint: vi.fn(), setBorders: vi.fn(), setMarkersVisible: vi.fn(), emphasize: vi.fn(), dispose: vi.fn() },
     regionLayer: { object: {}, show: vi.fn(), setOutlineColor: vi.fn(), dispose: vi.fn() },
-    pinLayer: { object: {}, show: vi.fn(), setColor: vi.fn(), dispose: vi.fn() },
+    pinLayer: { object: {}, show: vi.fn(), setColor: vi.fn(), setFade: vi.fn(), dispose: vi.fn() },
   }
 })
 
@@ -70,7 +72,8 @@ vi.mock('./globe/picking', () => ({
     PLACES[x] ?? (x >= 2000 && x < 2400 ? { lat: 12.3, lng: -64 + (x - 2000) * 0.02 } : null),
 }))
 vi.mock('./globe/regionLayer', () => ({ createRegionLayer: () => regionLayer }))
-vi.mock('./globe/pinLayer', () => ({
+vi.mock('./globe/pinLayer', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('./globe/pinLayer')>()),
   createPinLayer: () => pinLayer,
   pinAt: (_: unknown, pins: { city: { name: string } }[], { x }: { x: number }) =>
     pins.find((pin) => pin.city.name === PIN_AT[x]) ?? null,
@@ -362,6 +365,17 @@ describe('App', () => {
   describe('as a screensaver', () => {
     beforeEach(() => window.history.replaceState(null, '', '/?screensaver'))
     afterEach(() => window.history.replaceState(null, '', '/'))
+
+    it('looks at a balanced view, just north of the equator, so the far south shows too', () => {
+      render(<App />)
+      expect(globe.pointOfView).toHaveBeenCalledWith(SCREENSAVER_VIEW)
+      expect(SCREENSAVER_VIEW.lat).toBeLessThan(INITIAL_VIEW.lat)
+    })
+
+    it('keeps pins until closer to the edge', () => {
+      render(<App />)
+      expect(pinLayer.setFade).toHaveBeenLastCalledWith(SCREENSAVER_PIN_FADE)
+    })
 
     it('shows just the globe', () => {
       render(<App />)

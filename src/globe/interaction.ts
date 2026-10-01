@@ -7,6 +7,12 @@ export type LatLng = { lat: number; lng: number }
 export const DRAG_THRESHOLD_PX = 5
 
 export const INITIAL_VIEW = { lat: 25, lng: 10, altitude: 2.2 }
+/**
+ * The screensaver spins around the poles, so its latitude stays put: just
+ * north of the equator shows Europe and Canada, and Australia and New
+ * Zealand too as they come round.
+ */
+export const SCREENSAVER_VIEW = { lat: 8, lng: 10, altitude: 2.2 }
 
 /** Closest and farthest the camera flies to when selecting a country */
 const MIN_FLIGHT_ALTITUDE = 0.4

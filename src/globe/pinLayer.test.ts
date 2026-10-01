@@ -1,7 +1,16 @@
 import { describe, expect, it } from 'vitest'
 import { PerspectiveCamera, type BufferAttribute, type ShaderMaterial } from 'three'
 import type { GlobeMethods } from 'react-globe.gl'
-import { PIN_HIDDEN_BELOW, PIN_SIZE_PX, createPinLayer, facing, pinAt, pinPosition } from './pinLayer'
+import {
+  PIN_HIDDEN_BELOW,
+  PIN_SIZE_PX,
+  PIN_SOLID_ABOVE,
+  SCREENSAVER_PIN_FADE,
+  createPinLayer,
+  facing,
+  pinAt,
+  pinPosition,
+} from './pinLayer'
 import { toUnitVector } from './sphereMesh'
 import { LAND_ALTITUDE, SELECTED_ALTITUDE } from './style'
 
@@ -97,6 +106,11 @@ describe('createPinLayer', () => {
 
     layer.show([])
     expect(layer.object.geometry.getAttribute('position').count).toBe(0)
+
+    const { uniforms } = layer.object.material as ShaderMaterial
+    expect([uniforms.hiddenBelow.value, uniforms.solidAbove.value]).toEqual([PIN_HIDDEN_BELOW, PIN_SOLID_ABOVE])
+    layer.setFade(SCREENSAVER_PIN_FADE)
+    expect(uniforms.hiddenBelow.value).toBeLessThan(PIN_HIDDEN_BELOW)
     layer.dispose()
   })
 })
