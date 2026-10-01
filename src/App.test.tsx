@@ -1,4 +1,4 @@
-import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useEffect, useImperativeHandle, useRef, type Ref } from 'react'
@@ -356,6 +356,34 @@ describe('App', () => {
       await userEvent.click(within(screen.getByRole('group', { name: 'Design' })).getByRole('button', { name: 'Night' }))
       expect(layer.setBorders).toHaveBeenLastCalledWith(NIGHT.border, NIGHT.borderOpacity)
       expect(screen.getByRole('region', { name: /Design & layers/ })).toHaveTextContent('NIGHT')
+    })
+  })
+
+  describe('as a screensaver', () => {
+    beforeEach(() => window.history.replaceState(null, '', '/?screensaver'))
+    afterEach(() => window.history.replaceState(null, '', '/'))
+
+    it('shows just the globe', () => {
+      render(<App />)
+      expect(screen.getByTestId('globe')).toBeInTheDocument()
+      expect(screen.queryByRole('navigation')).not.toBeInTheDocument()
+      expect(screen.queryByRole('heading')).not.toBeInTheDocument()
+      expect(sidePanel()).not.toBeInTheDocument()
+    })
+
+    it('ignores the pointer', async () => {
+      render(<App />)
+      hover(100)
+      click(100)
+      await new Promise((resolve) => setTimeout(resolve, 50))
+      expect(countryPanel()).not.toBeInTheDocument()
+      expect(tooltip()).not.toBeInTheDocument()
+    })
+
+    it('shows your visited places', async () => {
+      localStorage.setItem('countries-app.visited', JSON.stringify(['Denmark']))
+      render(<App />)
+      await waitFor(() => expect(painted()).toEqual({ Denmark: DEFAULT_THEME.visited }))
     })
   })
 

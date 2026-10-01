@@ -22,6 +22,8 @@ import ViewCenter from './nav/ViewCenter'
 import { VIEWS, type ViewId } from './nav/views'
 import SidePanel from './nav/SidePanel'
 import Card from './ui/Card'
+import { isScreensaver } from './screensaver'
+import ScreensaverCard from './design/ScreensaverCard'
 import VisitedPanel from './visited/VisitedPanel'
 import { useVisited } from './visited/useVisited'
 import { useVisitedRegions } from './visited/useVisitedRegions'
@@ -69,6 +71,7 @@ export default function App() {
   const [globe, setGlobe] = useState<GlobeMethods | null>(null)
   const [hovered, setHovered] = useState<CountryFeature | null>(null)
   const [selected, setSelected] = useState<CountryFeature | null>(null)
+  const [screensaver] = useState(() => isScreensaver())
   // Big screens start with the Explore cards open; phones with just the globe
   const [view, setView] = useState<ViewId | null>(() => (isPhone() ? null : 'explore'))
   /** The game whose setup is open in the Games tab */
@@ -300,6 +303,36 @@ export default function App() {
   }, [selected, selectCountry, quitGame])
 
 
+  const globeView = (
+    <Globe
+      ref={globeRef}
+      width={width}
+      height={height}
+      rendererConfig={RENDERER_CONFIG}
+      backgroundColor="rgba(0, 0, 0, 0)"
+      globeMaterial={globeMaterial}
+      atmosphereColor={theme.atmosphere}
+      atmosphereAltitude={0.18}
+      // Picking happens in useCountryPointer, far cheaper than raycasting every mesh
+      enablePointerInteraction={false}
+      onGlobeReady={() => {
+        globeRef.current?.pointOfView(INITIAL_VIEW)
+        setGlobe(globeRef.current ?? null)
+      }}
+    />
+  )
+
+  // As a screensaver: just the spinning globe, which the pointer doesn't stop
+  if (screensaver) {
+    return (
+      <div className="app screensaver" style={{ '--scene': theme.background } as CSSProperties}>
+        <div className="globe" data-testid="globe" aria-busy={!globe}>
+          {globeView}
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div
       className={`app${view ? ' panel-open' : ''}${selected ? ' country-open' : ''}`}
@@ -313,22 +346,7 @@ export default function App() {
         style={{ cursor: hovered && (!playing || globeIsAnswer) ? 'pointer' : 'grab' }}
         {...pointerHandlers}
       >
-        <Globe
-          ref={globeRef}
-          width={width}
-          height={height}
-          rendererConfig={RENDERER_CONFIG}
-          backgroundColor="rgba(0, 0, 0, 0)"
-          globeMaterial={globeMaterial}
-          atmosphereColor={theme.atmosphere}
-          atmosphereAltitude={0.18}
-          // Picking happens in useCountryPointer, far cheaper than raycasting every mesh
-          enablePointerInteraction={false}
-          onGlobeReady={() => {
-            globeRef.current?.pointOfView(INITIAL_VIEW)
-            setGlobe(globeRef.current ?? null)
-          }}
-        />
+        {globeView}
       </div>
 
       <TopBar
@@ -390,6 +408,7 @@ export default function App() {
               <Card letter="C" label="Layers">
                 <LayerList settings={settings} onChange={changeSettings} />
               </Card>
+              <ScreensaverCard />
             </>
           )}
           {view === 'games' && (

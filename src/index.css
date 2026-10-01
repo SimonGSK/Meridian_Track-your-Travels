@@ -774,6 +774,65 @@ input[type='checkbox'] {
   font-size: 13px;
 }
 
+/* The screensaver: just the globe */
+.screensaver {
+  cursor: none;
+}
+
+.screensaver .globe {
+  transform: none;
+  pointer-events: none;
+}
+
+.steps {
+  margin: 10px 0;
+  padding-left: 18px;
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.steps li + li {
+  margin-top: 6px;
+}
+
+code {
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: rgba(3, 10, 18, 0.55);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  overflow-wrap: anywhere;
+}
+
+.address {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(3, 10, 18, 0.45);
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.card-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 10px;
+}
+
+.card-actions a {
+  text-decoration: none;
+}
+
+.muted.small {
+  margin: 10px 0 0;
+  font-size: 12px;
+}
+
 /* Hints and labels over the globe */
 
 .hint {
