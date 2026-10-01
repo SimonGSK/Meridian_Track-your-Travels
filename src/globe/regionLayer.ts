@@ -10,12 +10,17 @@ import {
   type ColorRepresentation,
 } from 'three'
 import type { RegionFeature } from '../data/regions'
-import { densifyRing, triangulatePolygon } from './sphereMesh'
+import { MAX_SAG, densifyRing, triangulatePolygon } from './sphereMesh'
 import { LAND_ALTITUDE } from './style'
 
-/** Regions sit just above their country, and their outlines above the country borders */
-const FILL_LIFT = 0.0003
-const OUTLINE_LIFT = 0.0006
+/**
+ * Regions sit above their country, and outlines above the regions. Flat
+ * triangles dip below the sphere between their corners (by up to MAX_SAG),
+ * so each layer is lifted by more than that, or the one below shows
+ * through in holes.
+ */
+const FILL_LIFT = 2 * MAX_SAG
+const OUTLINE_LIFT = FILL_LIFT + 2 * MAX_SAG
 
 export type RegionLayer = {
   object: Group

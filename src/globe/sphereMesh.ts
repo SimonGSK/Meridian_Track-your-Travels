@@ -8,6 +8,8 @@ const DEG = Math.PI / 180
 
 /** Longest triangle edge; short enough that flat triangles hug the sphere (sag ≈ 0.03% of the radius). */
 export const MAX_EDGE = 3 * DEG
+/** How far below the sphere a flat triangle with MAX_EDGE edges can dip, as a fraction of the radius */
+export const MAX_SAG = 1 - Math.cos(MAX_EDGE / 2)
 
 export function toUnitVector([lng, lat]: Position): Vec3 {
   const phi = (90 - lat) * DEG

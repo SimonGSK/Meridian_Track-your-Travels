@@ -43,6 +43,30 @@ describe('createRegionLayer', () => {
     expect(triangles()).toBe(0)
   })
 
+  it('keeps every part of a region above the land, and outlines above the regions, so nothing shows through', () => {
+    const land = 100 * 1.006
+    const all = new Map(regions.map((r) => [r, '#000000']))
+    layer.show(all, regions)
+    const lowestCenter = (mesh: Mesh | LineSegments, size: number) => {
+      const pos = mesh.geometry.getAttribute('position')
+      const index = mesh.geometry.index!
+      let lowest = Infinity
+      for (let i = 0; i < index.count; i += size) {
+        const center = new Vector3()
+        for (let k = 0; k < size; k++) center.add(new Vector3().fromBufferAttribute(pos, index.getX(i + k)))
+        lowest = Math.min(lowest, center.divideScalar(size).length())
+      }
+      return lowest
+    }
+    const highestCorner = (mesh: Mesh) => {
+      const pos = mesh.geometry.getAttribute('position')
+      return Math.max(...Array.from({ length: pos.count }, (_, i) => new Vector3().fromBufferAttribute(pos, i).length()))
+    }
+    expect(lowestCenter(fill, 3)).toBeGreaterThan(land)
+    expect(lowestCenter(lines, 2)).toBeGreaterThan(highestCorner(fill))
+    layer.show(new Map(), [])
+  })
+
   it('draws regions just above the countries, and outlines above that', () => {
     const radius = (mesh: Mesh | LineSegments) => new Vector3().fromBufferAttribute(mesh.geometry.getAttribute('position'), 0).length()
     expect(radius(fill)).toBeGreaterThan(100.6)
