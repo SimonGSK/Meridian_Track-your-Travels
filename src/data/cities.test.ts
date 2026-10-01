@@ -40,6 +40,10 @@ describe('cities', () => {
     expect(names('Italy')).toEqual(expect.arrayContaining(['Rome', 'Milan', 'Venice', 'Pisa']))
     expect(names('United States')).toEqual(expect.arrayContaining(['New York City', 'Las Vegas', 'Key West']))
     expect(names('Netherlands')).toContain('The Hague')
+    expect(names('Fiji')).toContain('Nadi')
+    expect(names('Mozambique')).toEqual(expect.arrayContaining(['Inhambane', 'Vilanculos']))
+    expect(names('South Africa')).toContain('Mbombela (Nelspruit)')
+    expect(names('Australia')).toContain('Byron Bay')
   })
 
   it('uses English names', () => {

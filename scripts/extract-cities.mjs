@@ -22,7 +22,7 @@ const shapes = feature(world, world.objects.countries).features
 const FAMOUS = {
   AR: ['Ushuaia', 'Mendoza', 'San Carlos de Bariloche', 'Salta', 'El Calafate'],
   AT: ['Salzburg', 'Innsbruck'],
-  AU: ['Cairns', 'Darwin', 'Hobart', 'Alice Springs'],
+  AU: ['Cairns', 'Darwin', 'Hobart', 'Alice Springs', 'Byron Bay'],
   BA: ['Mostar'],
   BE: ['Bruges', 'Ghent'],
   BO: ['Sucre'],
@@ -39,6 +39,7 @@ const FAMOUS = {
     'Granada', 'Córdoba', 'Toledo', 'Ibiza', 'San Sebastián', 'Santiago de Compostela', 'Salamanca', 'Marbella',
     'Benidorm', 'Ronda',
   ],
+  FJ: ['Nadi'],
   FR: [
     'Cannes', 'Avignon', 'Chamonix-Mont-Blanc', 'Versailles', 'Annecy', 'Biarritz', 'Carcassonne', 'Saint-Tropez',
     'Ajaccio',
@@ -81,7 +82,8 @@ const FAMOUS = {
     'Sacramento', 'Kansas City', 'Milwaukee', 'Cleveland', 'Savannah',
   ],
   VN: ['Hoi An', 'Hue', 'Da Lat'],
-  ZA: ['Stellenbosch'],
+  MZ: ['Inhambane', 'Vilanculos'],
+  ZA: ['Stellenbosch', 'Nelspruit'],
 }
 
 /** English names for cities GeoNames spells the local way, by country code */
@@ -142,7 +144,7 @@ const ENGLISH = {
   UZ: { Andijon: 'Andijan', Tirmiz: 'Termez', Urganch: 'Urgench', Jizzax: 'Jizzakh' },
   VN: { 'Ðà Lạt': 'Da Lat', Huế: 'Hue' },
   YE: { 'Al Ḩudaydah': 'Hodeidah', 'Ta‘izz': 'Taiz' },
-  ZA: { 'Port Elizabeth': 'Gqeberha (Port Elizabeth)' },
+  ZA: { 'Port Elizabeth': 'Gqeberha (Port Elizabeth)', Nelspruit: 'Mbombela (Nelspruit)' },
 }
 
 /** Suburbs, districts, camps and other places GeoNames lists as cities, by country code */
@@ -260,8 +262,13 @@ function placeOf(city) {
   return city.country
 }
 
+/** Cities the all-the-cities extract of GeoNames is missing, as GeoNames has them */
+const MISSING = [
+  { cityId: 1024683, name: 'Vilanculos', country: 'MZ', featureCode: 'PPL', population: 43183, loc: { coordinates: [35.3167, -22.0] } },
+]
+
 const byPlace = new Map()
-for (const city of cities) {
+for (const city of [...cities, ...MISSING]) {
   if (SKIP.has(city.featureCode)) continue
   // Names in another script are places GeoNames has no English name for
   if (!/[a-z]/i.test(city.name)) continue

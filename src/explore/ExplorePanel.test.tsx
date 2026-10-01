@@ -87,7 +87,13 @@ describe('ExplorePanel', () => {
       expect(onFind).toHaveBeenCalledWith(expect.objectContaining({ properties: expect.objectContaining({ name: 'Denmark' }) }))
     })
 
-    it('says when nothing matches', async () => {
+    it('finds cities by any word of their name', async () => {
+    const { onFind } = setup()
+    await userEvent.type(search(), 'nelspruit{Enter}')
+    expect(onFind).toHaveBeenCalledWith(expect.objectContaining({ properties: expect.objectContaining({ name: 'South Africa' }) }))
+  })
+
+  it('says when nothing matches', async () => {
       setup()
       await userEvent.type(search(), 'xyzzy')
       expect(screen.getByText(/Nothing called/)).toBeInTheDocument()

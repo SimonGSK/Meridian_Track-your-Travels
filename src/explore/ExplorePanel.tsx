@@ -114,7 +114,8 @@ function AtlasSearch({ cities, onFind }: Pick<Props, 'cities' | 'onFind'>) {
           country,
         })),
         ...(cities ?? [])
-          .filter((city) => normalizeName(city.name).startsWith(wanted))
+          // From the start of any word: "nelspruit" finds "Mbombela (Nelspruit)"
+          .filter((city) => normalizeName(city.name).split(/[\s(]+/).some((word) => word.startsWith(wanted)))
           .sort((a, b) => b.population - a.population)
           .slice(0, 4)
           .flatMap((city) => {
