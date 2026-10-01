@@ -71,7 +71,7 @@ describe('VisitedPanel', () => {
   it('marks territories in the list', () => {
     setup(['Denmark', 'Greenland'])
     const northAmerica = screen.getByRole('list', { name: /North America/ })
-    expect(within(northAmerica).getByRole('button', { name: /^Greenland/ })).toHaveTextContent('territory')
+    expect(within(northAmerica).getByRole('button', { name: /^Greenland/ })).toHaveTextContent('Territory')
   })
 
   it('shows how much of each continent has been visited', () => {

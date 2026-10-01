@@ -40,6 +40,9 @@ export default function VisitedPanel({ visited, onAdd, onRemove, onShow, regionN
   const visitedCountries = visitedList.filter(isCountry).length
   const visitedTerritories = visitedList.length - visitedCountries
   const visitedIn = (continent: Continent) => visitedList.filter((c) => c.properties.continent === continent)
+  // A second line under the name: "Territory", or states visited like "3 of 51 states"
+  const noteFor = (c: CountryFeature) =>
+    [isCountry(c) ? null : 'Territory', regionNote?.(c)].filter(Boolean).join(' · ') || null
 
   const add = (country: CountryFeature) => {
     onAdd(country.properties.name)
@@ -151,9 +154,10 @@ export default function VisitedPanel({ visited, onAdd, onRemove, onShow, regionN
                   <li key={c.properties.name} className="country-item">
                     <button type="button" className="country-row" onClick={() => onShow(c)}>
                       <Flag country={c} />
-                      <span className="row-name">{c.properties.name}</span>
-                      {!isCountry(c) && <span className="muted tag">territory</span>}
-                      {regionNote?.(c) && <span className="muted tag">{regionNote(c)}</span>}
+                      <span className="row-text">
+                        <span className="row-name">{c.properties.name}</span>
+                        {noteFor(c) && <span className="row-note">{noteFor(c)}</span>}
+                      </span>
                     </button>
                     <button
                       type="button"
