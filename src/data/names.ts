@@ -56,34 +56,52 @@ export const DISPLAY_NAMES: Record<string, string> = {
 
 /** Other names people use, by display name (former names, short forms, local spellings) */
 const EXTRA_ALIASES: Record<string, string[]> = {
+  Belarus: ['Byelorussia', 'Belorussia'],
+  Benin: ['Dahomey'],
   'Bosnia and Herzegovina': ['Bosnia'],
+  'Burkina Faso': ['Upper Volta'],
   'Cabo Verde': ['Cape Verde'],
+  Cambodia: ['Kampuchea'],
+  China: ['PRC'],
   "Côte d'Ivoire": ['Ivory Coast'],
   Czechia: ['Czech Republic'],
   'Democratic Republic of the Congo': ['DR Congo', 'DRC', 'Congo-Kinshasa', 'Zaire'],
   Eswatini: ['Swaziland', 'eSwatini'],
+  Ethiopia: ['Abyssinia'],
   'Falkland Islands': ['Falklands', 'Malvinas'],
   'Faroe Islands': ['Faroes', 'Faeroe Islands'],
   Gambia: ['The Gambia'],
   Bahamas: ['The Bahamas'],
+  Iran: ['Persia'],
+  Kyrgyzstan: ['Kyrgyz Republic', 'Kirghizia'],
+  Laos: ['Lao PDR', 'Lao'],
   Macao: ['Macau'],
-  Micronesia: ['Federated States of Micronesia'],
+  Micronesia: ['Federated States of Micronesia', 'FSM'],
+  Moldova: ['Moldavia'],
   Myanmar: ['Burma'],
   Netherlands: ['Holland'],
-  'North Korea': ['DPRK'],
+  'North Korea': ['DPRK', "Democratic People's Republic of Korea"],
   'North Macedonia': ['Macedonia'],
   'Northern Cyprus': ['Turkish Republic of Northern Cyprus'],
   'Republic of the Congo': ['Congo', 'Congo-Brazzaville'],
   'Saint Kitts and Nevis': ['St Kitts and Nevis', 'Saint Christopher and Nevis'],
   'Saint Lucia': ['St Lucia'],
   'Saint Vincent and the Grenadines': ['St Vincent and the Grenadines', 'St Vincent'],
+  Samoa: ['Western Samoa'],
+  Slovakia: ['Slovak Republic'],
   'South Korea': ['Korea'],
+  'Sri Lanka': ['Ceylon'],
+  Suriname: ['Surinam', 'Dutch Guiana'],
+  Taiwan: ['Formosa', 'Republic of China', 'ROC'],
+  Thailand: ['Siam'],
   'Timor-Leste': ['East Timor'],
   Türkiye: ['Turkey'],
   'United Arab Emirates': ['Emirates'],
   'United Kingdom': ['Britain'],
   'United States': ['America'],
+  Vanuatu: ['New Hebrides'],
   'Vatican City': ['Vatican', 'Holy See'],
+  Vietnam: ['Viet Nam'],
 }
 
 /** ISO names that would point at more than one place, or that we don't use, so they're left out */
@@ -141,10 +159,13 @@ export function normalizeName(name: string) {
     .replace(/[̀-ͯ]/g, '')
     .toLowerCase()
     .replace(/&/g, ' and ')
-    .replace(/[.,'’()]/g, ' ')
-    .replace(/-/g, ' ')
+    .replace(/[.'’]/g, '') // "U.K." → "uk", "d'Ivoire" → "divoire"
+    .replace(/[,()-]/g, ' ')
     .replace(/\bst\b/g, 'saint')
     .replace(/\s+/g, ' ')
     .trim()
     .replace(/^the /, '')
 }
+
+/** For matching a typed name: normalized, and spaces don't matter either ("Guinea Bissau", "Cote d Ivoire"). */
+export const matchKey = (name: string) => normalizeName(name).replace(/ /g, '')

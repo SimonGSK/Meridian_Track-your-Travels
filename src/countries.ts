@@ -6,7 +6,7 @@ import { numericToAlpha2 } from 'i18n-iso-countries'
 import worldData from 'world-atlas/countries-50m.json'
 import extraCountries from './data/extra-countries.json'
 import { continentOf, type Continent } from './data/continents'
-import { aliasesOf, displayName, normalizeName, placeKind, type PlaceKind } from './data/names'
+import { aliasesOf, displayName, matchKey, normalizeName, placeKind, type PlaceKind } from './data/names'
 import { fixWesternSahara, westernSaharaBorder } from './data/westernSahara'
 
 export type CountryFeature = Feature<
@@ -234,12 +234,12 @@ const polygonsOf = ({ geometry }: CountryFeature) =>
 
 const byNormalizedName = new Map<string, CountryFeature>()
 for (const country of countries) {
-  for (const alias of country.properties.aliases) byNormalizedName.set(normalizeName(alias), country)
+  for (const alias of country.properties.aliases) byNormalizedName.set(matchKey(alias), country)
 }
 
 /** The place a typed name refers to, accepting any known spelling: "Swaziland" → Eswatini. */
 export function findCountryByName(name: string): CountryFeature | null {
-  return byNormalizedName.get(normalizeName(name)) ?? null
+  return byNormalizedName.get(matchKey(name)) ?? null
 }
 
 export type NameMatch = {

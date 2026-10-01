@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { countries, findCountryByName, searchCountries } from '../countries'
-import { DISPLAY_NAMES, normalizeName } from './names'
+import { DISPLAY_NAMES, matchKey, normalizeName } from './names'
 
 const names = countries.map((c) => c.properties.name)
 const nameOf = (input: string) => findCountryByName(input)?.properties.name ?? null
@@ -69,6 +69,21 @@ describe('findCountryByName', () => {
     ['St Kitts & Nevis', 'Saint Kitts and Nevis'],
     ['the netherlands', 'Netherlands'],
     ['  GERMANY ', 'Germany'],
+    ['U.K.', 'United Kingdom'],
+    ['u.s.a', 'United States'],
+    ['Guinea Bissau', 'Guinea-Bissau'],
+    ['Cote dIvoire', "Côte d'Ivoire"],
+    ['Cote d Ivoire', "Côte d'Ivoire"],
+    ['Bosnia & Herzegovina', 'Bosnia and Herzegovina'],
+    ['Ceylon', 'Sri Lanka'],
+    ['Siam', 'Thailand'],
+    ['Persia', 'Iran'],
+    ['Abyssinia', 'Ethiopia'],
+    ['Formosa', 'Taiwan'],
+    ['Upper Volta', 'Burkina Faso'],
+    ['Byelorussia', 'Belarus'],
+    ['Viet Nam', 'Vietnam'],
+    ['Western Samoa', 'Samoa'],
   ])('reads "%s" as %s', (input, expected) => {
     expect(nameOf(input)).toBe(expected)
   })
@@ -77,13 +92,15 @@ describe('findCountryByName', () => {
     expect(nameOf('Germ')).toBeNull()
     expect(nameOf('Guinea')).toBe('Guinea')
     expect(nameOf('Niger')).toBe('Niger')
+    expect(nameOf('Dominica')).toBe('Dominica')
+    expect(nameOf('Dominican Republic')).toBe('Dominican Republic')
   })
 
   it('never maps one spelling to two places', () => {
     const seen = new Map<string, string>()
     for (const country of countries) {
       for (const alias of country.properties.aliases) {
-        const key = normalizeName(alias)
+        const key = matchKey(alias)
         const other = seen.get(key)
         if (other && other !== country.properties.name) throw new Error(`"${alias}": ${other} and ${country.properties.name}`)
         seen.set(key, country.properties.name)
@@ -123,6 +140,7 @@ describe('searchCountries', () => {
 describe('normalizeName', () => {
   it('ignores case, accents, punctuation and a leading "the"', () => {
     expect(normalizeName('The Côte-d’Ivoire')).toBe(normalizeName("cote d'ivoire"))
+    expect(normalizeName('U.K.')).toBe('uk')
     expect(normalizeName('St. Lucia')).toBe('saint lucia')
     expect(normalizeName('Trinidad & Tobago')).toBe('trinidad and tobago')
   })

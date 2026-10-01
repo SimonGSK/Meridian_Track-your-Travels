@@ -1,6 +1,6 @@
 import { useId, useState } from 'react'
 import { findCountryByName, type CountryFeature } from '../countries'
-import { normalizeName } from '../data/names'
+import { matchKey } from '../data/names'
 
 type Props = {
   /** `alias` is the name used when it isn't the usual one, e.g. "Swaziland" */
@@ -23,7 +23,7 @@ export default function CountryInput({ onAnswer, label = 'Your answer' }: Props)
     if (!typed) return
     const country = findCountryByName(typed)
     if (!country) return setUnknown(typed)
-    onAnswer(country, normalizeName(country.properties.name) === normalizeName(typed) ? null : typed)
+    onAnswer(country, matchKey(country.properties.name) === matchKey(typed) ? null : typed)
     setText('')
   }
 
