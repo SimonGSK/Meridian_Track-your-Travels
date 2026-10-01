@@ -28,8 +28,12 @@ The globe spins on its own until you touch it, and again once it's been left alo
 The globe can be your Mac's screensaver, spinning with your places on it. With `?screensaver` in the address the app shows only the globe, and the pointer doesn't stop it. A screensaver keeps its own storage, so the address carries your places, design and layers in its `#places=…` part.
 
 1. Run `npm run build:screensaver`. It builds the app into one self-contained file, `screensaver/index.html`, that opens from disk without a server, and copies it to `/Users/Shared/Meridian/` (screensavers can't read Documents, Desktop or Downloads).
-2. Install [WebViewScreenSaver](https://github.com/liquidx/webviewscreensaver) (Apache 2.0), which shows a web page as a screensaver: `brew install --cask webviewscreensaver`. Its README suggests adding `--no-quarantine`, which skips macOS's Gatekeeper check for it; without it, you may need to allow it in System Settings › Privacy & Security.
-3. In the app, open Design and copy the screensaver address. In System Settings › Screen Saver, pick WebViewScreenSaver, click Options and paste it. Copy it again after adding places.
+2. Install [WebViewScreenSaver](https://github.com/liquidx/webviewscreensaver) (Apache 2.0), which shows a web page as a screensaver: `brew install --cask webviewscreensaver`. (Its README adds `--no-quarantine`, but current Homebrew no longer has that option; macOS asks you to allow the screensaver instead, below.)
+3. Open System Settings › Wallpaper and click Screen Saver…. Scroll down to Other, all the way to the right, and pick WebViewScreenSaver.
+4. The first time, macOS blocks it: in System Settings › Privacy & Security, allow it on the message there.
+5. Back in Screen Saver, click Options and paste the screensaver address, which the app's Design tab copies for you.
+
+The screensaver doesn't update by itself. After changing your places or design, copy the address again and paste it in Options; after changing the app, run `npm run build:screensaver` again.
 
 Visited places, states and cities, best scores, the design and the settings are saved in your browser (`localStorage`). Nothing is sent anywhere.
 

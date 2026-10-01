@@ -29,7 +29,12 @@ export default function ScreensaverCard() {
         <li>
           Install WebViewScreenSaver, which shows a web page as a screensaver: <code>brew install --cask webviewscreensaver</code>
         </li>
-        <li>In System Settings › Screen Saver, pick it, click Options and paste this address:</li>
+        <li>
+          Open System Settings › Wallpaper and click Screen Saver…. Scroll down to Other, all the way to the right,
+          and pick WebViewScreenSaver.
+        </li>
+        <li>The first time, macOS blocks it: in System Settings › Privacy & Security, allow it on the message there.</li>
+        <li>Back in Screen Saver, click Options and paste this address:</li>
       </ol>
       <input className="address" readOnly aria-label="Screensaver address" value={address} onFocus={(e) => e.target.select()} />
       <div className="card-actions">
@@ -40,7 +45,10 @@ export default function ScreensaverCard() {
           Preview
         </a>
       </div>
-      <p className="muted small">The address carries your places and design. Copy it again after adding places.</p>
+      <p className="muted small">
+        It doesn't update by itself. The address carries your places and design: after changing them, copy it again
+        and paste it in Options. After updating the app, run the build again.
+      </p>
     </Card>
   )
 }
