@@ -26,6 +26,7 @@ export const MAX_TRIES = 3
 
 /** What a difficulty means for a game, e.g. "Big countries. Pick from four answers." */
 export function difficultyDescription(id: GameId, difficulty: Difficulty) {
+  if (id === 'find' && difficulty === 'hard') return 'All but the biggest countries, even the tiniest.'
   const { countries } = DIFFICULTIES.find((d) => d.id === difficulty)!
   const mode = answerMode(id, difficulty)
   if (mode === 'choices') return `${countries}. Pick from four answers.`
@@ -35,6 +36,8 @@ export function difficultyDescription(id: GameId, difficulty: Difficulty) {
 
 /** Smallest country (km²) in each difficulty; hard has them all */
 const MIN_AREA_KM2: Record<Difficulty, number> = { easy: 100_000, medium: 5_000, hard: 0 }
+/** Hard "find the country" leaves out the biggest countries (km²), which are too easy to spot */
+export const HARD_FIND_MAX_KM2 = 500_000
 
 type Random = () => number
 
@@ -42,8 +45,10 @@ const allCountries = countries.filter((c) => c.properties.kind === 'country')
 
 /** The countries a game can ask about at a difficulty. */
 export function gamePool(id: GameId, difficulty: Difficulty): CountryFeature[] {
+  const tooEasy = (c: CountryFeature) =>
+    id === 'find' && difficulty === 'hard' && c.properties.areaKm2 >= HARD_FIND_MAX_KM2
   return allCountries.filter(
-    (c) => c.properties.areaKm2 >= MIN_AREA_KM2[difficulty] && (id !== 'flags' || flagUrl(c)),
+    (c) => c.properties.areaKm2 >= MIN_AREA_KM2[difficulty] && !tooEasy(c) && (id !== 'flags' || flagUrl(c)),
   )
 }
 

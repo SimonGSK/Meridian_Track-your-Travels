@@ -38,7 +38,7 @@ describe('gamePool', () => {
   })
 
   it('grows with difficulty: big countries, then all but the tiniest, then all 197', () => {
-    const [easy, medium, hard] = (['easy', 'medium', 'hard'] as const).map((d) => names(gamePool('find', d)))
+    const [easy, medium, hard] = (['easy', 'medium', 'hard'] as const).map((d) => names(gamePool('name', d)))
     expect(easy.length).toBeLessThan(medium.length)
     expect(medium.length).toBeLessThan(hard.length)
     expect(hard).toHaveLength(197)
@@ -48,6 +48,16 @@ describe('gamePool', () => {
     expect(medium).not.toContain('Grenada')
     expect(hard).toContain('Grenada')
     expect(hard).toContain('Tuvalu')
+  })
+
+  it('leaves the biggest, easiest countries out of hard "find the country"', () => {
+    const hard = names(gamePool('find', 'hard'))
+    for (const big of ['Russia', 'Brazil', 'India', 'France', 'Australia']) expect(hard).not.toContain(big)
+    for (const small of ['Denmark', 'Grenada', 'Uruguay']) expect(hard).toContain(small)
+    expect(hard.length).toBeGreaterThan(130)
+    // Other games still ask about all 197 on hard
+    expect(gamePool('shape', 'hard')).toHaveLength(197)
+    expect(difficultyDescription('find', 'hard')).toBe('All but the biggest countries, even the tiniest.')
   })
 
   it('only asks about flags that exist', () => {
