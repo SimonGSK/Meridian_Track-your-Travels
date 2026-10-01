@@ -1,7 +1,16 @@
 import { useCallback, useState } from 'react'
 import type { CountryFeature } from '../countries'
 import { usePersistentState } from '../storage'
-import { answer, newRoundGame, next, type Difficulty, type GameId, type RoundGameId, type RoundGameState } from './games'
+import {
+  answer,
+  newRoundGame,
+  next,
+  stopEarly,
+  type Difficulty,
+  type GameId,
+  type RoundGameId,
+  type RoundGameState,
+} from './games'
 import { giveUp, newLetterGame, pickCountry, type LetterGameState } from './letterGame'
 import { giveUpAll, nameCountry, newAllGame, type AllGameState, type Scope } from './allGame'
 
@@ -93,7 +102,12 @@ export function useGame() {
     else update(next(game))
   }, [game, update])
 
+  /** End a game played in rounds now, scoring the rounds played */
+  const stop = useCallback(() => {
+    if (game?.kind === 'rounds') update(stopEarly(game))
+  }, [game, update])
+
   const quit = useCallback(() => setGame(null), [])
 
-  return { game, best, previousBest, start, startLetter, startAll, pick, advance, quit }
+  return { game, best, previousBest, start, startLetter, startAll, pick, advance, stop, quit }
 }

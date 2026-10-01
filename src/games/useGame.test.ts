@@ -101,6 +101,17 @@ describe('useGame', () => {
     expect(result.current.previousBest).toBe(1)
   })
 
+  it('stops an "all countries" game early, saving the score so far', () => {
+    const { result } = renderHook(() => useGame())
+    act(() => result.current.start('flags', 'all'))
+    expect(rounds(result).rounds).toHaveLength(197)
+    act(() => result.current.pick(currentRound(rounds(result)).target))
+    act(() => result.current.advance())
+    act(() => result.current.stop())
+    expect(rounds(result)).toMatchObject({ finished: true, stoppedEarly: true, score: 1 })
+    expect(result.current.best['flags:all']).toBe(1)
+  })
+
   it('quits', () => {
     const { result } = renderHook(() => useGame())
     act(() => result.current.start('find', 'easy'))

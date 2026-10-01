@@ -7,11 +7,13 @@ import {
   DIFFICULTIES,
   GAMES,
   MAX_TRIES,
-  ROUNDS,
   answerMode,
   currentRound,
   difficultyDescription,
   maxScore,
+  maxScoreFor,
+  maxScorePlayed,
+  roundsPlayed,
   type Difficulty,
   type GameId,
   type RoundGameId,
@@ -39,13 +41,15 @@ type Props = {
   onStartAll: (scope: Scope) => void
   onPick: (country: CountryFeature, alias?: string | null) => void
   onNext: () => void
+  /** End a game played in rounds early */
+  onStop: () => void
   onQuit: () => void
 }
 
 const titleOf = (id: GameId) => GAMES.find((g) => g.id === id)!.title
 const difficultyLabel = (d: Difficulty) => DIFFICULTIES.find((x) => x.id === d)!.label
-const formatScore = (id: GameId, score: number) =>
-  id === 'find' ? `${score} / ${ROUNDS * MAX_TRIES} points` : `${score} / ${ROUNDS}`
+const formatScore = (id: RoundGameId, difficulty: Difficulty, score: number) =>
+  `${score} / ${maxScoreFor(id, difficulty)}${id === 'find' ? ' points' : ''}`
 
 type Chosen = { chosen: GameId | null; setChosen: (id: GameId | null) => void }
 
@@ -110,7 +114,7 @@ function DifficultyChoice({ id, best, onStart, onBack }: {
               <button type="button" className="game-card" onClick={() => onStart(id, d.id)}>
                 <strong>{d.label}</strong>
                 <span className="muted">{difficultyDescription(id, d.id)}</span>
-                {score !== undefined && <span className="best-score">Best: {formatScore(id, score)}</span>}
+                {score !== undefined && <span className="best-score">Best: {formatScore(id, d.id, score)}</span>}
               </button>
             </li>
           )
@@ -135,7 +139,7 @@ function GameHeader({ game }: { game: GameState }) {
   )
 }
 
-function RoundPlay({ game, onPick, onNext, onQuit }: Props & { game: RoundGameState }) {
+function RoundPlay({ game, onPick, onNext, onStop, onQuit }: Props & { game: RoundGameState }) {
   const { target, options } = currentRound(game)
   const { answer } = game
   const isLast = game.index === game.rounds.length - 1
@@ -229,6 +233,11 @@ function RoundPlay({ game, onPick, onNext, onQuit }: Props & { game: RoundGameSt
           {isLast ? 'See results' : 'Next'}
         </button>
       )}
+      {game.difficulty === 'all' && roundsPlayed(game) > 0 && (
+        <button type="button" className="text-button" onClick={onStop}>
+          Stop and see results
+        </button>
+      )}
       <button type="button" className="text-button" onClick={onQuit}>
         Quit game
       </button>
@@ -304,7 +313,7 @@ function Results(props: Props & Chosen & { game: GameState }) {
   const { game, previousBest, onStart, onStartLetter, onStartAll, onQuit, setChosen } = props
   const score = gameScore(game)
   const newBest = previousBest !== undefined && score > previousBest
-  const share = game.kind === 'rounds' ? score / maxScore(game) : score / game.targets.length
+  const share = game.kind === 'rounds' ? score / Math.max(1, maxScorePlayed(game)) : score / game.targets.length
   const playAgain = () => {
     if (game.kind === 'letter') onStartLetter(game.letter)
     else if (game.kind === 'all') onStartAll(game.scope)
@@ -336,9 +345,14 @@ function Results(props: Props & Chosen & { game: GameState }) {
       ) : (
         <>
           <p className="big-score">
-            {game.score} / {maxScore(game)}
+            {game.score} / {game.stoppedEarly ? maxScorePlayed(game) : maxScore(game)}
           </p>
           {game.id === 'find' && <p className="muted">points</p>}
+          {game.stoppedEarly && (
+            <p className="muted">
+              Stopped after {roundsPlayed(game)} of {game.rounds.length} countries
+            </p>
+          )}
         </>
       )}
       <p>{verdict(share)}</p>
@@ -378,7 +392,7 @@ function LetterChoice({ best, onStartLetter, onBack }: {
         Click every country starting with a letter. Letters are grouped by how many countries start with them, and
         how well known those are. Pick one, or a random one.
       </p>
-      {DIFFICULTIES.map((d) => (
+      {DIFFICULTIES.filter((d) => d.id !== 'all').map((d) => (
         <section key={d.id} className="letter-group" aria-labelledby={`letters-${d.id}`}>
           <div className="letter-group-header">
             <h4 id={`letters-${d.id}`}>{d.label}</h4>

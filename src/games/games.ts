@@ -4,7 +4,8 @@ import { flagUrl } from '../flags'
 export type GameId = 'find' | 'flags' | 'name' | 'shape' | 'letter' | 'all'
 /** Games played in rounds, at a difficulty */
 export type RoundGameId = Exclude<GameId, 'letter' | 'all'>
-export type Difficulty = 'easy' | 'medium' | 'hard'
+/** "all" goes through every country, instead of 10 rounds */
+export type Difficulty = 'easy' | 'medium' | 'hard' | 'all'
 
 export const GAMES: { id: GameId; title: string; description: string }[] = [
   { id: 'find', title: 'Find the country', description: 'We name a country, you click it on the globe.' },
@@ -19,6 +20,7 @@ export const DIFFICULTIES: { id: Difficulty; label: string; countries: string }[
   { id: 'easy', label: 'Easy', countries: 'Big countries' },
   { id: 'medium', label: 'Medium', countries: 'All but the smallest countries' },
   { id: 'hard', label: 'Hard', countries: 'All 197 countries, even the tiniest' },
+  { id: 'all', label: 'All countries', countries: 'Every one of the 197 countries, one after another' },
 ]
 
 export const ROUNDS = 10
@@ -37,7 +39,7 @@ export function difficultyDescription(id: GameId, difficulty: Difficulty) {
 }
 
 /** Smallest country (km²) in each difficulty; hard has them all */
-const MIN_AREA_KM2: Record<Difficulty, number> = { easy: 100_000, medium: 5_000, hard: 0 }
+const MIN_AREA_KM2: Record<Difficulty, number> = { easy: 100_000, medium: 5_000, hard: 0, all: 0 }
 /** Hard "find the country" leaves out the biggest countries (km²), which are too easy to spot */
 export const HARD_FIND_MAX_KM2 = 500_000
 
@@ -99,7 +101,17 @@ export type RoundGameState = {
   /** Wrong tries so far this round ("find the country" allows MAX_TRIES) */
   misses: CountryFeature[]
   finished: boolean
+  /** Ended before the last round, scoring the rounds played */
+  stoppedEarly: boolean
 }
+
+/** Rounds in a game: ten, or every country in the pool for "all" */
+export const roundCount = (difficulty: Difficulty, pool: readonly CountryFeature[]) =>
+  difficulty === 'all' ? pool.length : Math.min(ROUNDS, pool.length)
+
+/** The most points a full game can score */
+export const maxScoreFor = (id: RoundGameId, difficulty: Difficulty) =>
+  roundCount(difficulty, gamePool(id, difficulty)) * (id === 'find' ? MAX_TRIES : 1)
 
 export function newRoundGame(
   id: RoundGameId,
@@ -107,7 +119,7 @@ export function newRoundGame(
   random: Random = Math.random,
   pool = gamePool(id, difficulty),
 ): RoundGameState {
-  const targets = shuffle(pool, random).slice(0, ROUNDS)
+  const targets = shuffle(pool, random).slice(0, roundCount(difficulty, pool))
   const withChoices = answerMode(id, difficulty) === 'choices'
   const rounds = targets.map((target) => ({
     target,
@@ -115,11 +127,32 @@ export function newRoundGame(
       ? shuffle([target, ...shuffle(pool.filter((c) => c !== target), random).slice(0, OPTION_COUNT - 1)], random)
       : [],
   }))
-  return { kind: 'rounds', id, difficulty, rounds, index: 0, score: 0, answer: null, misses: [], finished: false }
+  return {
+    kind: 'rounds',
+    id,
+    difficulty,
+    rounds,
+    index: 0,
+    score: 0,
+    answer: null,
+    misses: [],
+    finished: false,
+    stoppedEarly: false,
+  }
+}
+
+/** Rounds answered so far */
+export const roundsPlayed = (game: RoundGameState) => game.index + (game.answer ? 1 : 0)
+
+/** End the game now, scoring the rounds played (an unanswered round doesn't count) */
+export function stopEarly(game: RoundGameState): RoundGameState {
+  return game.finished ? game : { ...game, finished: true, stoppedEarly: true }
 }
 
 /** "Find the country" scores 3, 2 or 1 points by try; the other games 1 point per round. */
 export const maxScore = (game: RoundGameState) => game.rounds.length * (game.id === 'find' ? MAX_TRIES : 1)
+/** The most points the rounds played could have scored */
+export const maxScorePlayed = (game: RoundGameState) => roundsPlayed(game) * (game.id === 'find' ? MAX_TRIES : 1)
 
 export const currentRound = (game: RoundGameState) => game.rounds[game.index]
 

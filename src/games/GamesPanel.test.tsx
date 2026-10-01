@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import GamesPanel from './GamesPanel'
-import { answer, newRoundGame, next, type Difficulty, type RoundGameId, type RoundGameState } from './games'
+import { answer, newRoundGame, next, stopEarly, type Difficulty, type RoundGameId, type RoundGameState } from './games'
 import { giveUp, newLetterGame, pickCountry, type LetterGameState } from './letterGame'
 import type { GameState } from './useGame'
 import { giveUpAll, nameCountry, newAllGame } from './allGame'
@@ -22,6 +22,7 @@ function setup(overrides: Partial<Parameters<typeof GamesPanel>[0]> = {}) {
     onStartAll: vi.fn(),
     onPick: vi.fn(),
     onNext: vi.fn(),
+    onStop: vi.fn(),
     onQuit: vi.fn(),
     ...overrides,
   }
@@ -46,6 +47,22 @@ describe('GamesPanel: choosing a game', () => {
     expect(screen.getByRole('button', { name: /^Hard/ })).toHaveTextContent('Type your answers')
     await userEvent.click(screen.getByRole('button', { name: /^Medium/ }))
     expect(onStart).toHaveBeenCalledWith('shape', 'medium')
+  })
+
+  it('offers an "All countries" level after hard, with its best out of every country', async () => {
+    const { onStart } = setup({ best: { 'shape:all': 120 } })
+    await userEvent.click(screen.getByRole('button', { name: /Shape quiz/ }))
+    const all = screen.getByRole('button', { name: /^All countries/ })
+    expect(all).toHaveTextContent('Every one of the 197 countries, one after another')
+    expect(all).toHaveTextContent('Best: 120 / 197')
+    await userEvent.click(all)
+    expect(onStart).toHaveBeenCalledWith('shape', 'all')
+  })
+
+  it('has no "All countries" level in the letter hunt', async () => {
+    setup()
+    await userEvent.click(screen.getByRole('button', { name: /Letter hunt/ }))
+    expect(screen.queryByRole('region', { name: 'All countries' })).not.toBeInTheDocument()
   })
 
   it('explains the tries in "find the country"', async () => {
@@ -196,6 +213,25 @@ describe('GamesPanel: rounds', () => {
     expect(onQuit).toHaveBeenCalled()
   })
 
+  it('lets you stop an "all countries" game once you have played a round', async () => {
+    const fresh = newRoundGame('shape', 'all')
+    const { rerender } = render(<GamesPanel game={fresh} best={{}} previousBest={undefined} onStart={vi.fn()} onStartLetter={vi.fn()} onStartAll={vi.fn()} onPick={vi.fn()} onNext={vi.fn()} onStop={vi.fn()} onQuit={vi.fn()} />)
+    expect(screen.queryByRole('button', { name: 'Stop and see results' })).not.toBeInTheDocument()
+    const onStop = vi.fn()
+    rerender(<GamesPanel game={answer(fresh, fresh.rounds[0].target)} best={{}} previousBest={undefined} onStart={vi.fn()} onStartLetter={vi.fn()} onStartAll={vi.fn()} onPick={vi.fn()} onNext={vi.fn()} onStop={onStop} onQuit={vi.fn()} />)
+    await userEvent.click(screen.getByRole('button', { name: 'Stop and see results' }))
+    expect(onStop).toHaveBeenCalled()
+  })
+
+  it('scores a stopped game against the rounds played', () => {
+    let g: RoundGameState = newRoundGame('shape', 'all')
+    for (let i = 0; i < 4; i++) g = next(answer(g, g.rounds[g.index].target))
+    setup({ game: stopEarly(g) })
+    expect(screen.getByText('4 / 4')).toBeInTheDocument()
+    expect(screen.getByText('Stopped after 4 of 197 countries')).toBeInTheDocument()
+    expect(screen.getByText('Perfect! A true geographer.')).toBeInTheDocument()
+  })
+
   it('lets you quit mid-game', async () => {
     const { onQuit } = setup({ game: roundGame('name') })
     await userEvent.click(screen.getByRole('button', { name: 'Quit game' }))
@@ -255,6 +291,7 @@ describe('GamesPanel: letter hunt', () => {
       onStartAll: vi.fn(),
       onPick: vi.fn(),
       onNext: vi.fn(),
+      onStop: vi.fn(),
       onQuit: vi.fn(),
     }
     const { rerender } = render(<GamesPanel {...props} />)

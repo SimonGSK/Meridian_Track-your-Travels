@@ -11,7 +11,11 @@ import {
   difficultyDescription,
   gamePool,
   maxScore,
+  maxScoreFor,
+  maxScorePlayed,
   newRoundGame,
+  roundsPlayed,
+  stopEarly,
   next,
   shuffle,
   type Difficulty,
@@ -218,5 +222,40 @@ describe('playing rounds', () => {
     expect(game.finished).toBe(true)
     expect(game.score).toBe(2)
     expect(answer(game, pool[0])).toBe(game)
+  })
+})
+
+describe('all countries', () => {
+  it('goes through every country, big ones included', () => {
+    const game = newRoundGame('find', 'all')
+    expect(game.rounds).toHaveLength(197)
+    expect(new Set(game.rounds.map((r) => r.target)).size).toBe(197)
+    expect(game.rounds.map((r) => r.target.properties.name)).toContain('Russia')
+    expect(answerMode('shape', 'all')).toBe('typing')
+    expect(answerMode('find', 'all')).toBe('globe')
+  })
+
+  it('is out of every country', () => {
+    expect(maxScoreFor('flags', 'all')).toBe(197)
+    expect(maxScoreFor('find', 'all')).toBe(197 * MAX_TRIES)
+    expect(maxScoreFor('find', 'hard')).toBe(ROUNDS * MAX_TRIES)
+    expect(difficultyDescription('flags', 'all')).toBe('Every one of the 197 countries, one after another. Type your answers.')
+  })
+
+  it('can be stopped early, scoring the rounds played', () => {
+    let game = newRoundGame('flags', 'all')
+    game = next(answer(game, currentRound(game).target))
+    game = next(answer(game, currentRound(game).target))
+    game = answer(game, game.rounds.find((r) => r !== currentRound(game))!.target) // a wrong one
+    const stopped = stopEarly(game)
+    expect(stopped).toMatchObject({ finished: true, stoppedEarly: true, score: 2 })
+    expect(roundsPlayed(stopped)).toBe(3)
+    expect(maxScorePlayed(stopped)).toBe(3)
+    expect(stopEarly(stopped)).toBe(stopped)
+  })
+
+  it("doesn't count an unanswered round when stopping", () => {
+    const game = next(answer(newRoundGame('shape', 'all'), newRoundGame('shape', 'all').rounds[0].target))
+    expect(roundsPlayed(stopEarly(game))).toBe(1)
   })
 })

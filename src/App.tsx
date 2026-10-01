@@ -57,7 +57,7 @@ export default function App() {
   const [selected, setSelected] = useState<CountryFeature | null>(null)
   const [view, setView] = useState<ViewId | null>(null)
   const { visited, add: addVisited, remove: removeVisited, toggle: toggleVisited } = useVisited()
-  const { game, best, previousBest, start: startGame, startLetter, startAll, pick, advance, quit: quitGame } =
+  const { game, best, previousBest, start: startGame, startLetter, startAll, pick, advance, stop, quit: quitGame } =
     useGame()
   const playing = isPlaying(game)
   const globeIsAnswer = globeAnswers(game)
@@ -292,6 +292,7 @@ export default function App() {
               onStartAll={playAll}
               onPick={pick}
               onNext={advance}
+              onStop={stop}
               onQuit={quitGame}
             />
           )}

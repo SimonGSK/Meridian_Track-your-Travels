@@ -295,6 +295,20 @@ test.describe('games', () => {
     await expect(page.getByText(/^Kiribati, /)).toBeVisible()
   })
 
+  test('all countries: 197 rounds, which can be stopped early', async ({ page }) => {
+    await openGlobe(page)
+    await page.getByRole('button', { name: 'Games' }).click()
+    await page.getByRole('button', { name: /Flag quiz/ }).click()
+    await page.getByRole('button', { name: /^All countries/ }).click()
+    await expect(page.getByText('Round 1 of 197')).toBeVisible()
+    const input = page.getByRole('textbox', { name: 'Your answer' })
+    await input.fill('Denmark')
+    await input.press('Enter')
+    await expect(feedback(page)).toHaveText(/Correct|The answer is/)
+    await page.getByRole('button', { name: 'Stop and see results' }).click()
+    await expect(page.getByText('Stopped after 1 of 197 countries')).toBeVisible()
+  })
+
   test('name that country: can be played to the end', async ({ page }) => {
     test.slow() // ten rounds, each with a camera flight
     await openGlobe(page)
