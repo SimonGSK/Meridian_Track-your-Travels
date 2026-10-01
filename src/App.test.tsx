@@ -7,7 +7,7 @@ import App from './App'
 import { countries, findCountryAt } from './countries'
 import { loadCities } from './data/cities'
 import { loadRegions } from './data/regions'
-import { DEFAULT_THEME, NIGHT, POLITICAL, visitedRegionColor } from './globe/themes'
+import { DEFAULT_THEME, NIGHT, POLITICAL, hoveredRegionColor, visitedRegionColor } from './globe/themes'
 
 // WebGL doesn't exist in jsdom, so the globe is replaced by a stand-in that
 // exposes what the app passes to it. Screen positions map to places by x.
@@ -414,13 +414,13 @@ describe('App', () => {
       await waitFor(() => expect(shownRegions()).toEqual({ Texas: DEFAULT_THEME.hover }))
     })
 
-    it('colors visited states with the rest of their country when it is pointed at', async () => {
+    it('colors visited states a darker hover color with the rest of their country when it is pointed at', async () => {
       await openUnitedStates()
       click(800)
       fireEvent.keyDown(window, { key: 'Escape' })
       hover(800)
       await waitFor(() => expect(painted()['United States']).toBe(DEFAULT_THEME.hover))
-      await waitFor(() => expect(shownRegions()).toEqual({ California: DEFAULT_THEME.hover }))
+      await waitFor(() => expect(shownRegions()).toEqual({ California: hoveredRegionColor(DEFAULT_THEME) }))
       hover(300)
       await waitFor(() => expect(shownRegions()).toEqual({ California: visitedRegionColor(DEFAULT_THEME) }))
     })

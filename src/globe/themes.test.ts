@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { Color } from 'three'
 import { MAP_COLOR_COUNT } from '../countries'
-import { DEFAULT_THEME, THEMES, landColor, themeById } from './themes'
+import { DEFAULT_THEME, THEMES, hoveredRegionColor, landColor, themeById, visitedRegionColor } from './themes'
 
 describe('themes', () => {
   it('has several designs with unique ids', () => {
@@ -31,6 +31,12 @@ describe('themes', () => {
     for (const theme of THEMES) {
       if (typeof theme.land !== 'string') expect(theme.land.length).toBeGreaterThanOrEqual(MAP_COLOR_COUNT)
     }
+  })
+
+  it('shades visited states darker, also while their country is pointed at', () => {
+    const lightness = (color: string) => new Color(color).getHSL({ h: 0, s: 0, l: 0 }).l
+    expect(lightness(visitedRegionColor(DEFAULT_THEME))).toBeLessThan(lightness(DEFAULT_THEME.visited))
+    expect(lightness(hoveredRegionColor(DEFAULT_THEME))).toBeLessThan(lightness(DEFAULT_THEME.hover))
   })
 
   it('finds themes by id, falling back to the default', () => {

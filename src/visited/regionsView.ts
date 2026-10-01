@@ -10,10 +10,12 @@ type FillOptions = {
   editing: CountryFeature | null
   /** The region pointed at while picking */
   hovered: RegionFeature | null
-  /** The country pointed at: its visited regions take the hover color with it (except while picking) */
+  /** The country pointed at: its visited regions take `hoveredCountryColor` (except while picking) */
   hoveredCountry?: CountryFeature | null
   color: string
   hoverColor: string
+  /** A darker shade of the hover color, so visited regions still show */
+  hoveredCountryColor?: string
 }
 
 /** Regions to color on the globe: visited ones, and the one pointed at while picking. */
@@ -26,13 +28,14 @@ export function regionFills({
   hoveredCountry = null,
   color,
   hoverColor,
+  hoveredCountryColor = hoverColor,
 }: FillOptions) {
   const fills = new Map<RegionFeature, string>()
   for (const region of regions) {
     if (!visitedRegions.has(region.properties.id)) continue
     const country = countryByAlpha2(region.properties.country)
     if (!country || (country !== editing && !isShownCountry(country))) continue
-    fills.set(region, country === hoveredCountry && country !== editing ? hoverColor : color)
+    fills.set(region, country === hoveredCountry && country !== editing ? hoveredCountryColor : color)
   }
   if (hovered) fills.set(hovered, hoverColor)
   return fills

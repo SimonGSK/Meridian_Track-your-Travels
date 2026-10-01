@@ -123,8 +123,13 @@ export const DEFAULT_THEME = CLASSIC
 
 export const themeById = (id: string) => THEMES.find((t) => t.id === id) ?? DEFAULT_THEME
 
+const darker = (color: string) => '#' + new Color(color).multiplyScalar(0.68).getHexString()
+
 /** Visited states and provinces: a darker shade of the visited color */
-export const visitedRegionColor = (theme: Theme) => '#' + new Color(theme.visited).multiplyScalar(0.68).getHexString()
+export const visitedRegionColor = (theme: Theme) => darker(theme.visited)
+
+/** Visited states of the country pointed at: a darker shade of the hover color */
+export const hoveredRegionColor = (theme: Theme) => darker(theme.hover)
 
 /** A country's plain land color in this design. */
 export function landColor(theme: Theme, mapColor: number) {

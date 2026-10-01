@@ -36,7 +36,7 @@ import {
   useSmoothAutoRotate,
 } from './globe/hooks'
 import { pinAt } from './globe/pinLayer'
-import { visitedRegionColor } from './globe/themes'
+import { hoveredRegionColor, visitedRegionColor } from './globe/themes'
 import type { LatLng, Point } from './globe/interaction'
 import { INITIAL_VIEW, fitAltitude, flightAltitude, flightDuration } from './globe/interaction'
 import { countryColor } from './globe/colors'
@@ -140,6 +140,7 @@ export default function App() {
             hoveredCountry: hoveredWithRegions,
             color: visitedRegionColor(theme),
             hoverColor: theme.hover,
+            hoveredCountryColor: hoveredRegionColor(theme),
           })
         : new Map<RegionFeature, string>(),
     [regions, game, visitedRegions, settings.showRegions, visited, editing, hoveredRegion, hoveredWithRegions, theme],

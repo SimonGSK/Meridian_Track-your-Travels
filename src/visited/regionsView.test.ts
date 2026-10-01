@@ -34,9 +34,10 @@ describe('regionFills', () => {
     expect(names(regionFills({ ...base, hovered: region('Ohio') })).Ohio).toBe('#ffff00')
   })
 
-  it('colors the visited regions of the country pointed at like the rest of it', () => {
+  it('colors the visited regions of the country pointed at in a darker hover color', () => {
     const hoveredCountry = country('United States')
-    expect(names(regionFills({ ...base, hoveredCountry }))).toEqual({ California: '#ffff00', Texas: '#ffff00' })
+    const hovering = { ...base, hoveredCountry, hoveredCountryColor: '#888800' }
+    expect(names(regionFills(hovering))).toEqual({ California: '#888800', Texas: '#888800' })
     expect(names(regionFills({ ...base, hoveredCountry: country('Canada') }))).toEqual({
       California: '#111111',
       Texas: '#111111',
