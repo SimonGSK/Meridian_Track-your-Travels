@@ -1,15 +1,15 @@
-# Countries of the World
+# Meridian: Countries of the World
 
-An interactive 3D globe: spin it, hover a country to see its name and flag, click it to fly there and see its capital, population and area.
+An interactive 3D globe: spin it, hover a country to see its name and flag, click it to fly there and see its capital, inhabitants and area.
 
-The menu on the left (a tab bar on phones) has:
+The design (navy and amber, after a mock-up made in Lovable) has a top bar with the four tabs, where the globe is looking and how many places you've visited. The selected country shows on the left: its ISO code, capital, inhabitants and area, the cities you've visited there, its states, and a button to put it in your visited atlas. The open tab's cards are on the right. On phones the tabs move to the bottom and panels open as sheets.
 
-- **Explore**: tips on using the globe, and settings to show or hide visited countries, visited states, city pins and the markers around small islands.
-- **Visited**: keep track of where you've been, out of the world's 197 countries, with the count and percentage for each continent (territories are counted separately). Your places are listed by continent. Search to add places (old names like "Swaziland" work too), or click a country and press "Mark as visited". They're colored on the globe.
+- **Explore**: your games at a glance (with your best scores), the designs as swatches, layers to show or hide (visited countries, visited states, city pins, rings around small islands), and a search of the whole atlas, countries by any name and cities.
+- **Visited**: keep track of where you've been, out of the world's 197 countries, with the count and percentage for each continent (territories are counted separately). Your places are listed by continent. Search to add places (old names like "Swaziland" work too), or click a country and press "Add to visited atlas". They're colored on the globe.
 
-  For the USA, Canada, Australia and Brazil you can also mark the states, provinces and territories you've visited: click the country (on the globe or in the list) and tick them in its panel, or click them on the globe. They're drawn over the country in a darker shade.
+  For the USA, Canada, Australia and Brazil you can also mark the states, provinces and territories you've visited: click "… states explored" in the country's panel and tick them, or click them on the globe. They're drawn over the country in a darker shade.
 
-  Every country's panel also lists its big and well-known cities (the capital first) to tick off. Each city you've visited gets a pin on the globe; point at a pin to see the city's name, or click it to open its country. Ticking a city also marks its country, and its state, as visited.
+  Every country's panel also has its visited cities, and a box to add more from its big and well-known cities (focus it to see the biggest). Each city you've visited gets a pin on the globe; point at a pin to see the city's name, or click it to open its country. Adding a city also marks its country, and its state, as visited.
 - **Games**:
   - *Find the country*: click the named country on the globe, with three tries (3, 2 or 1 points). Hard leaves out the 49 biggest countries.
   - *Letter hunt*: click every country starting with a letter. Each letter belongs to one difficulty (easy D F H J K R U V Z, medium A E G I L N P T, hard B C M S); pick any letter, or a random one, and see your best for each.
@@ -19,13 +19,13 @@ The menu on the left (a tab bar on phones) has:
   - *Shape quiz*: name the country from its outline.
 
   Games played in rounds are Easy (big countries, four answers to pick from), Medium (all but the smallest), Hard (all 197) or All countries (every one of the 197, one after another; stop whenever you like). Beyond Easy you type answers with no suggestions; any known spelling counts ("East Timor", "Burma", "Ceylon"), punctuation and spacing don't matter, and the answer shows the name used today. Tiny countries that are answers get a dot so you can see them.
-- **Design**: switch the globe between Classic, Political (neighbors always in different colors), Night, Vintage and Minimal.
+- **Design**: switch the globe between Midnight (the default), Classic, Vintage, Political (neighbors always in different colors), Night and Minimal.
 
 The globe spins on its own until you touch it, and again once it's been left alone for 30 seconds. Tiny countries and islands get a ring marker, and clicks just beside a small island still count.
 
 Visited places, states and cities, best scores, the design and the settings are saved in your browser (`localStorage`). Nothing is sent anywhere.
 
-Built with React, TypeScript and Vite, using [react-globe.gl](https://github.com/vasturiano/react-globe.gl) (three.js) for the globe, [world-atlas](https://github.com/topojson/world-atlas) (Natural Earth 1:50m) for country shapes and [flag-icons](https://github.com/lipis/flag-icons) for flags (bundled locally, so no requests go to third parties).
+Built with React, TypeScript and Vite, using [react-globe.gl](https://github.com/vasturiano/react-globe.gl) (three.js) for the globe, [world-atlas](https://github.com/topojson/world-atlas) (Natural Earth 1:50m) for country shapes and [flag-icons](https://github.com/lipis/flag-icons) for flags. The fonts are Fraunces, Inter and JetBrains Mono (SIL Open Font License), from Fontsource. Flags and fonts are bundled, so no requests go to third parties.
 
 ## Getting started
 
@@ -82,8 +82,9 @@ src/
     facts.ts           capital, population and area (data in country-facts.json)
     cities.ts          big and well-known cities: loading, lookup (data in cities.json)
   storage.ts           state saved in the browser
-  nav/                 the menu and the side panel
-  explore/             tips and settings
+  ui/Card.tsx          the cards with "(B) GAMES ··· 06" headers
+  nav/                 the top bar, tabs, the column of cards on the right
+  explore/             the Explore cards: games, design and layers, atlas search; settings
   visited/             visited countries, states and cities
   design/              design picker
   games/               game rules (games.ts, letterGame.ts), what the globe shows (globeView.ts),
