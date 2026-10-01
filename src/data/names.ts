@@ -110,6 +110,9 @@ const OTHER_COUNTRIES = new Set(['VA', 'PS', 'XK', 'TW'])
 /** Map features sharing a country's ISO code without being that country */
 const NOT_THE_COUNTRY = new Set(['Ashmore and Cartier Is.'])
 
+/** Whether a place's ISO code really belongs to another place (Ashmore and Cartier Is. has Australia's) */
+export const sharesCode = (mapName: string) => NOT_THE_COUNTRY.has(mapName)
+
 export type PlaceKind = 'country' | 'territory'
 
 export function placeKind(mapName: string, isoAlpha2: string | null): PlaceKind {

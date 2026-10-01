@@ -13,7 +13,8 @@
     "test:e2e": "playwright test",
     "data:extra": "node scripts/extract-extra-countries.mjs",
     "test:coverage": "vitest run --coverage",
-    "data:regions": "node scripts/extract-regions.mjs"
+    "data:regions": "node scripts/extract-regions.mjs",
+    "data:facts": "node scripts/fetch-country-facts.mjs"
   },
   "dependencies": {
     "d3-geo": "^3.1.1",

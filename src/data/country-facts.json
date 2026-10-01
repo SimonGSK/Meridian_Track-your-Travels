@@ -1,0 +1,1711 @@
+{
+ "AW": {
+  "capital": "Oranjestad",
+  "population": 107995,
+  "populationYear": 2024,
+  "areaKm2": 180,
+  "source": "World Bank"
+ },
+ "AF": {
+  "capital": "Kabul",
+  "population": 42647492,
+  "populationYear": 2024,
+  "areaKm2": 652870,
+  "source": "World Bank"
+ },
+ "AO": {
+  "capital": "Luanda",
+  "population": 37885849,
+  "populationYear": 2024,
+  "areaKm2": 1246700,
+  "source": "World Bank"
+ },
+ "AL": {
+  "capital": "Tirane",
+  "population": 2377128,
+  "populationYear": 2024,
+  "areaKm2": 28750,
+  "source": "World Bank"
+ },
+ "AD": {
+  "capital": "Andorra la Vella",
+  "population": 81938,
+  "populationYear": 2024,
+  "areaKm2": 470,
+  "source": "World Bank"
+ },
+ "AE": {
+  "capital": "Abu Dhabi",
+  "population": 10986400,
+  "populationYear": 2024,
+  "areaKm2": 98648,
+  "source": "World Bank"
+ },
+ "AR": {
+  "capital": "Buenos Aires",
+  "population": 45696159,
+  "populationYear": 2024,
+  "areaKm2": 2780400,
+  "source": "World Bank"
+ },
+ "AM": {
+  "capital": "Yerevan",
+  "population": 3033500,
+  "populationYear": 2024,
+  "areaKm2": 29740,
+  "source": "World Bank"
+ },
+ "AS": {
+  "capital": "Pago Pago",
+  "population": 46765,
+  "populationYear": 2024,
+  "areaKm2": 200,
+  "source": "World Bank"
+ },
+ "AG": {
+  "capital": "Saint John's",
+  "population": 93772,
+  "populationYear": 2024,
+  "areaKm2": 440,
+  "source": "World Bank"
+ },
+ "AU": {
+  "capital": "Canberra",
+  "population": 27194286,
+  "populationYear": 2024,
+  "areaKm2": 7741220,
+  "source": "World Bank"
+ },
+ "AT": {
+  "capital": "Vienna",
+  "population": 9177982,
+  "populationYear": 2024,
+  "areaKm2": 83879,
+  "source": "World Bank"
+ },
+ "AZ": {
+  "capital": "Baku",
+  "population": 10202830,
+  "populationYear": 2024,
+  "areaKm2": 86600,
+  "source": "World Bank"
+ },
+ "BI": {
+  "capital": "Bujumbura",
+  "population": 14047786,
+  "populationYear": 2024,
+  "areaKm2": 27830,
+  "source": "World Bank"
+ },
+ "BE": {
+  "capital": "Brussels",
+  "population": 11858610,
+  "populationYear": 2024,
+  "areaKm2": 30689,
+  "source": "World Bank"
+ },
+ "BJ": {
+  "capital": "Porto-Novo",
+  "population": 14462724,
+  "populationYear": 2024,
+  "areaKm2": 114760,
+  "source": "World Bank"
+ },
+ "BF": {
+  "capital": "Ouagadougou",
+  "population": 23548781,
+  "populationYear": 2024,
+  "areaKm2": 274200,
+  "source": "World Bank"
+ },
+ "BD": {
+  "capital": "Dhaka",
+  "population": 173562364,
+  "populationYear": 2024,
+  "areaKm2": 147570,
+  "source": "World Bank"
+ },
+ "BG": {
+  "capital": "Sofia",
+  "population": 6441421,
+  "populationYear": 2024,
+  "areaKm2": 110997,
+  "source": "World Bank"
+ },
+ "BH": {
+  "capital": "Manama",
+  "population": 1588670,
+  "populationYear": 2024,
+  "areaKm2": 800,
+  "source": "World Bank"
+ },
+ "BS": {
+  "capital": "Nassau",
+  "population": 401283,
+  "populationYear": 2024,
+  "areaKm2": 13880,
+  "source": "World Bank"
+ },
+ "BA": {
+  "capital": "Sarajevo",
+  "population": 3164253,
+  "populationYear": 2024,
+  "areaKm2": 51210,
+  "source": "World Bank"
+ },
+ "BY": {
+  "capital": "Minsk",
+  "population": 9132629,
+  "populationYear": 2024,
+  "areaKm2": 207629,
+  "source": "World Bank"
+ },
+ "BZ": {
+  "capital": "Belmopan",
+  "population": 417072,
+  "populationYear": 2024,
+  "areaKm2": 22966,
+  "source": "World Bank"
+ },
+ "BM": {
+  "capital": "Hamilton",
+  "population": 64636,
+  "populationYear": 2024,
+  "areaKm2": 4290,
+  "source": "World Bank"
+ },
+ "BO": {
+  "capital": "La Paz",
+  "population": 12413315,
+  "populationYear": 2024,
+  "areaKm2": 1098580,
+  "source": "World Bank"
+ },
+ "BR": {
+  "capital": "Brasilia",
+  "population": 211998573,
+  "populationYear": 2024,
+  "areaKm2": 8510420,
+  "source": "World Bank"
+ },
+ "BB": {
+  "capital": "Bridgetown",
+  "population": 282467,
+  "populationYear": 2024,
+  "areaKm2": 430,
+  "source": "World Bank"
+ },
+ "BN": {
+  "capital": "Bandar Seri Begawan",
+  "population": 462721,
+  "populationYear": 2024,
+  "areaKm2": 5770,
+  "source": "World Bank"
+ },
+ "BT": {
+  "capital": "Thimphu",
+  "population": 791524,
+  "populationYear": 2024,
+  "areaKm2": 38390,
+  "source": "World Bank"
+ },
+ "BW": {
+  "capital": "Gaborone",
+  "population": 2521139,
+  "populationYear": 2024,
+  "areaKm2": 581730,
+  "source": "World Bank"
+ },
+ "CF": {
+  "capital": "Bangui",
+  "population": 5330690,
+  "populationYear": 2024,
+  "areaKm2": 622980,
+  "source": "World Bank"
+ },
+ "CA": {
+  "capital": "Ottawa",
+  "population": 41262329,
+  "populationYear": 2024,
+  "areaKm2": 15634410,
+  "source": "World Bank"
+ },
+ "CH": {
+  "capital": "Bern",
+  "population": 9005582,
+  "populationYear": 2024,
+  "areaKm2": 41291,
+  "source": "World Bank"
+ },
+ "JG": {
+  "capital": null,
+  "population": 168126,
+  "populationYear": 2024,
+  "areaKm2": 198,
+  "source": "World Bank"
+ },
+ "CL": {
+  "capital": "Santiago",
+  "population": 19764771,
+  "populationYear": 2024,
+  "areaKm2": 757245,
+  "source": "World Bank"
+ },
+ "CN": {
+  "capital": "Beijing",
+  "population": 1408975000,
+  "populationYear": 2024,
+  "areaKm2": 9562910,
+  "source": "World Bank"
+ },
+ "CI": {
+  "capital": "Yamoussoukro",
+  "population": 31934230,
+  "populationYear": 2024,
+  "areaKm2": 322460,
+  "source": "World Bank"
+ },
+ "CM": {
+  "capital": "Yaounde",
+  "population": 29123744,
+  "populationYear": 2024,
+  "areaKm2": 475440,
+  "source": "World Bank"
+ },
+ "CD": {
+  "capital": "Kinshasa",
+  "population": 109276265,
+  "populationYear": 2024,
+  "areaKm2": 2344860,
+  "source": "World Bank"
+ },
+ "CG": {
+  "capital": "Brazzaville",
+  "population": 6332961,
+  "populationYear": 2024,
+  "areaKm2": 342000,
+  "source": "World Bank"
+ },
+ "CO": {
+  "capital": "Bogota",
+  "population": 52886363,
+  "populationYear": 2024,
+  "areaKm2": 1140619,
+  "source": "World Bank"
+ },
+ "KM": {
+  "capital": "Moroni",
+  "population": 866628,
+  "populationYear": 2024,
+  "areaKm2": 1861,
+  "source": "World Bank"
+ },
+ "CV": {
+  "capital": "Praia",
+  "population": 524877,
+  "populationYear": 2024,
+  "areaKm2": 4030,
+  "source": "World Bank"
+ },
+ "CR": {
+  "capital": "San Jose",
+  "population": 5129910,
+  "populationYear": 2024,
+  "areaKm2": 51100,
+  "source": "World Bank"
+ },
+ "CU": {
+  "capital": "Havana",
+  "population": 10979783,
+  "populationYear": 2024,
+  "areaKm2": 109880,
+  "source": "World Bank"
+ },
+ "CW": {
+  "capital": "Willemstad",
+  "population": 155967,
+  "populationYear": 2024,
+  "areaKm2": 444,
+  "source": "World Bank"
+ },
+ "KY": {
+  "capital": "George Town",
+  "population": 74457,
+  "populationYear": 2024,
+  "areaKm2": 264,
+  "source": "World Bank"
+ },
+ "CY": {
+  "capital": "Nicosia",
+  "population": 1358282,
+  "populationYear": 2024,
+  "areaKm2": 9250,
+  "source": "World Bank",
+  "note": "Figures include Northern Cyprus"
+ },
+ "CZ": {
+  "capital": "Prague",
+  "population": 10905028,
+  "populationYear": 2024,
+  "areaKm2": 78871,
+  "source": "World Bank"
+ },
+ "DE": {
+  "capital": "Berlin",
+  "population": 83516593,
+  "populationYear": 2024,
+  "areaKm2": 357680,
+  "source": "World Bank"
+ },
+ "DJ": {
+  "capital": "Djibouti",
+  "population": 1168722,
+  "populationYear": 2024,
+  "areaKm2": 23200,
+  "source": "World Bank"
+ },
+ "DM": {
+  "capital": "Roseau",
+  "population": 66205,
+  "populationYear": 2024,
+  "areaKm2": 750,
+  "source": "World Bank"
+ },
+ "DK": {
+  "capital": "Copenhagen",
+  "population": 5976992,
+  "populationYear": 2024,
+  "areaKm2": 42920,
+  "source": "World Bank"
+ },
+ "DO": {
+  "capital": "Santo Domingo",
+  "population": 11427557,
+  "populationYear": 2024,
+  "areaKm2": 146839,
+  "source": "World Bank"
+ },
+ "DZ": {
+  "capital": "Algiers",
+  "population": 46814308,
+  "populationYear": 2024,
+  "areaKm2": 2381740,
+  "source": "World Bank"
+ },
+ "EC": {
+  "capital": "Quito",
+  "population": 18135478,
+  "populationYear": 2024,
+  "areaKm2": 256370,
+  "source": "World Bank"
+ },
+ "EG": {
+  "capital": "Cairo",
+  "population": 116538258,
+  "populationYear": 2024,
+  "areaKm2": 1001450,
+  "source": "World Bank"
+ },
+ "ER": {
+  "capital": "Asmara",
+  "population": 3535603,
+  "populationYear": 2024,
+  "areaKm2": 121766,
+  "source": "World Bank"
+ },
+ "ES": {
+  "capital": "Madrid",
+  "population": 48848840,
+  "populationYear": 2024,
+  "areaKm2": 505976,
+  "source": "World Bank"
+ },
+ "EE": {
+  "capital": "Tallinn",
+  "population": 1372341,
+  "populationYear": 2024,
+  "areaKm2": 45340,
+  "source": "World Bank"
+ },
+ "ET": {
+  "capital": "Addis Ababa",
+  "population": 132059767,
+  "populationYear": 2024,
+  "areaKm2": 1136240,
+  "source": "World Bank"
+ },
+ "FI": {
+  "capital": "Helsinki",
+  "population": 5619911,
+  "populationYear": 2024,
+  "areaKm2": 338480,
+  "source": "World Bank"
+ },
+ "FJ": {
+  "capital": "Suva",
+  "population": 928784,
+  "populationYear": 2024,
+  "areaKm2": 18270,
+  "source": "World Bank"
+ },
+ "FR": {
+  "capital": "Paris",
+  "population": 68551653,
+  "populationYear": 2024,
+  "areaKm2": 606410,
+  "source": "World Bank"
+ },
+ "FO": {
+  "capital": "Torshavn",
+  "population": 54640,
+  "populationYear": 2024,
+  "areaKm2": 12960,
+  "source": "World Bank"
+ },
+ "FM": {
+  "capital": "Palikir",
+  "population": 113160,
+  "populationYear": 2024,
+  "areaKm2": 700,
+  "source": "World Bank"
+ },
+ "GA": {
+  "capital": "Libreville",
+  "population": 2538952,
+  "populationYear": 2024,
+  "areaKm2": 267670,
+  "source": "World Bank"
+ },
+ "GB": {
+  "capital": "London",
+  "population": 69281000,
+  "populationYear": 2024,
+  "areaKm2": 243610,
+  "source": "World Bank"
+ },
+ "GE": {
+  "capital": "Tbilisi",
+  "population": 3812518,
+  "populationYear": 2024,
+  "areaKm2": 69700,
+  "source": "World Bank"
+ },
+ "GH": {
+  "capital": "Accra",
+  "population": 34427414,
+  "populationYear": 2024,
+  "areaKm2": 238539,
+  "source": "World Bank"
+ },
+ "GI": {
+  "capital": "Gibraltar",
+  "population": 39329,
+  "populationYear": 2024,
+  "areaKm2": 10,
+  "source": "World Bank"
+ },
+ "GN": {
+  "capital": "Conakry",
+  "population": 14754785,
+  "populationYear": 2024,
+  "areaKm2": 245860,
+  "source": "World Bank"
+ },
+ "GM": {
+  "capital": "Banjul",
+  "population": 2759988,
+  "populationYear": 2024,
+  "areaKm2": 11300,
+  "source": "World Bank"
+ },
+ "GW": {
+  "capital": "Bissau",
+  "population": 2201352,
+  "populationYear": 2024,
+  "areaKm2": 36130,
+  "source": "World Bank"
+ },
+ "GQ": {
+  "capital": "Malabo",
+  "population": 1892516,
+  "populationYear": 2024,
+  "areaKm2": 28050,
+  "source": "World Bank"
+ },
+ "GR": {
+  "capital": "Athens",
+  "population": 10405134,
+  "populationYear": 2024,
+  "areaKm2": 131960,
+  "source": "World Bank"
+ },
+ "GD": {
+  "capital": "Saint George's",
+  "population": 117207,
+  "populationYear": 2024,
+  "areaKm2": 340,
+  "source": "World Bank"
+ },
+ "GL": {
+  "capital": "Nuuk",
+  "population": 56836,
+  "populationYear": 2024,
+  "areaKm2": 410450,
+  "source": "World Bank"
+ },
+ "GT": {
+  "capital": "Guatemala City",
+  "population": 18406359,
+  "populationYear": 2024,
+  "areaKm2": 108890,
+  "source": "World Bank"
+ },
+ "GU": {
+  "capital": "Agana",
+  "population": 167777,
+  "populationYear": 2024,
+  "areaKm2": 540,
+  "source": "World Bank"
+ },
+ "GY": {
+  "capital": "Georgetown",
+  "population": 831087,
+  "populationYear": 2024,
+  "areaKm2": 214970,
+  "source": "World Bank"
+ },
+ "HK": {
+  "capital": null,
+  "population": 7524100,
+  "populationYear": 2024,
+  "areaKm2": 1110,
+  "source": "World Bank"
+ },
+ "HN": {
+  "capital": "Tegucigalpa",
+  "population": 10825703,
+  "populationYear": 2024,
+  "areaKm2": 112490,
+  "source": "World Bank"
+ },
+ "HR": {
+  "capital": "Zagreb",
+  "population": 3866200,
+  "populationYear": 2024,
+  "areaKm2": 88070,
+  "source": "World Bank"
+ },
+ "HT": {
+  "capital": "Port-au-Prince",
+  "population": 11772557,
+  "populationYear": 2024,
+  "areaKm2": 27750,
+  "source": "World Bank"
+ },
+ "HU": {
+  "capital": "Budapest",
+  "population": 9562065,
+  "populationYear": 2024,
+  "areaKm2": 93030,
+  "source": "World Bank"
+ },
+ "ID": {
+  "capital": "Jakarta",
+  "population": 283487931,
+  "populationYear": 2024,
+  "areaKm2": 1916907,
+  "source": "World Bank"
+ },
+ "IM": {
+  "capital": "Douglas",
+  "population": 84160,
+  "populationYear": 2024,
+  "areaKm2": 570,
+  "source": "World Bank"
+ },
+ "IN": {
+  "capital": "New Delhi",
+  "population": 1450935791,
+  "populationYear": 2024,
+  "areaKm2": 3287260,
+  "source": "World Bank"
+ },
+ "IE": {
+  "capital": "Dublin",
+  "population": 5395790,
+  "populationYear": 2024,
+  "areaKm2": 70280,
+  "source": "World Bank"
+ },
+ "IR": {
+  "capital": "Tehran",
+  "population": 91567738,
+  "populationYear": 2024,
+  "areaKm2": 1745150,
+  "source": "World Bank"
+ },
+ "IQ": {
+  "capital": "Baghdad",
+  "population": 46042015,
+  "populationYear": 2024,
+  "areaKm2": 435050,
+  "source": "World Bank"
+ },
+ "IS": {
+  "capital": "Reykjavik",
+  "population": 386506,
+  "populationYear": 2024,
+  "areaKm2": 103000,
+  "source": "World Bank"
+ },
+ "IL": {
+  "capital": "Jerusalem (disputed)",
+  "population": 10002200,
+  "populationYear": 2024,
+  "areaKm2": 22070,
+  "source": "World Bank"
+ },
+ "IT": {
+  "capital": "Rome",
+  "population": 58952704,
+  "populationYear": 2024,
+  "areaKm2": 302070,
+  "source": "World Bank"
+ },
+ "JM": {
+  "capital": "Kingston",
+  "population": 2839175,
+  "populationYear": 2024,
+  "areaKm2": 10990,
+  "source": "World Bank"
+ },
+ "JO": {
+  "capital": "Amman",
+  "population": 11552876,
+  "populationYear": 2024,
+  "areaKm2": 89318,
+  "source": "World Bank"
+ },
+ "JP": {
+  "capital": "Tokyo",
+  "population": 123975371,
+  "populationYear": 2024,
+  "areaKm2": 377969,
+  "source": "World Bank"
+ },
+ "KZ": {
+  "capital": "Astana",
+  "population": 20592571,
+  "populationYear": 2024,
+  "areaKm2": 2724902,
+  "source": "World Bank"
+ },
+ "KE": {
+  "capital": "Nairobi",
+  "population": 56432944,
+  "populationYear": 2024,
+  "areaKm2": 591969,
+  "source": "World Bank"
+ },
+ "KG": {
+  "capital": "Bishkek",
+  "population": 7221868,
+  "populationYear": 2024,
+  "areaKm2": 199950,
+  "source": "World Bank"
+ },
+ "KH": {
+  "capital": "Phnom Penh",
+  "population": 17638801,
+  "populationYear": 2024,
+  "areaKm2": 181040,
+  "source": "World Bank"
+ },
+ "KI": {
+  "capital": "Tarawa",
+  "population": 134518,
+  "populationYear": 2024,
+  "areaKm2": 810,
+  "source": "World Bank"
+ },
+ "KN": {
+  "capital": "Basseterre",
+  "population": 46843,
+  "populationYear": 2024,
+  "areaKm2": 260,
+  "source": "World Bank"
+ },
+ "KR": {
+  "capital": "Seoul",
+  "population": 51751065,
+  "populationYear": 2024,
+  "areaKm2": 100450,
+  "source": "World Bank"
+ },
+ "KW": {
+  "capital": "Kuwait City",
+  "population": 4897263,
+  "populationYear": 2024,
+  "areaKm2": 17820,
+  "source": "World Bank"
+ },
+ "LA": {
+  "capital": "Vientiane",
+  "population": 7769819,
+  "populationYear": 2024,
+  "areaKm2": 236800,
+  "source": "World Bank"
+ },
+ "LB": {
+  "capital": "Beirut",
+  "population": 5805962,
+  "populationYear": 2024,
+  "areaKm2": 10450,
+  "source": "World Bank"
+ },
+ "LR": {
+  "capital": "Monrovia",
+  "population": 5612817,
+  "populationYear": 2024,
+  "areaKm2": 111370,
+  "source": "World Bank"
+ },
+ "LY": {
+  "capital": "Tripoli",
+  "population": 7381023,
+  "populationYear": 2024,
+  "areaKm2": 1759540,
+  "source": "World Bank"
+ },
+ "LC": {
+  "capital": "Castries",
+  "population": 179744,
+  "populationYear": 2024,
+  "areaKm2": 620,
+  "source": "World Bank"
+ },
+ "LI": {
+  "capital": "Vaduz",
+  "population": 40450,
+  "populationYear": 2024,
+  "areaKm2": 160,
+  "source": "World Bank"
+ },
+ "LK": {
+  "capital": "Colombo",
+  "population": 21916000,
+  "populationYear": 2024,
+  "areaKm2": 65610,
+  "source": "World Bank"
+ },
+ "LS": {
+  "capital": "Maseru",
+  "population": 2337423,
+  "populationYear": 2024,
+  "areaKm2": 30360,
+  "source": "World Bank"
+ },
+ "LT": {
+  "capital": "Vilnius",
+  "population": 2888278,
+  "populationYear": 2024,
+  "areaKm2": 65290,
+  "source": "World Bank"
+ },
+ "LU": {
+  "capital": "Luxembourg",
+  "population": 677012,
+  "populationYear": 2024,
+  "areaKm2": 2590,
+  "source": "World Bank"
+ },
+ "LV": {
+  "capital": "Riga",
+  "population": 1866124,
+  "populationYear": 2024,
+  "areaKm2": 64590,
+  "source": "World Bank"
+ },
+ "MO": {
+  "capital": null,
+  "population": 687000,
+  "populationYear": 2024,
+  "areaKm2": 33,
+  "source": "World Bank"
+ },
+ "MF": {
+  "capital": "Marigot",
+  "population": 26129,
+  "populationYear": 2024,
+  "areaKm2": 50,
+  "source": "World Bank"
+ },
+ "MA": {
+  "capital": "Rabat",
+  "population": 38081173,
+  "populationYear": 2024,
+  "areaKm2": 446550,
+  "source": "World Bank"
+ },
+ "MC": {
+  "capital": "Monaco",
+  "population": 38631,
+  "populationYear": 2024,
+  "areaKm2": 75,
+  "source": "World Bank"
+ },
+ "MD": {
+  "capital": "Chisinau",
+  "population": 2402306,
+  "populationYear": 2024,
+  "areaKm2": 33850,
+  "source": "World Bank"
+ },
+ "MG": {
+  "capital": "Antananarivo",
+  "population": 31964956,
+  "populationYear": 2024,
+  "areaKm2": 587295,
+  "source": "World Bank"
+ },
+ "MV": {
+  "capital": "Male",
+  "population": 527799,
+  "populationYear": 2024,
+  "areaKm2": 300,
+  "source": "World Bank"
+ },
+ "MX": {
+  "capital": "Mexico City",
+  "population": 130861007,
+  "populationYear": 2024,
+  "areaKm2": 1957194,
+  "source": "World Bank"
+ },
+ "MH": {
+  "capital": "Majuro",
+  "population": 37548,
+  "populationYear": 2024,
+  "areaKm2": 180,
+  "source": "World Bank"
+ },
+ "MK": {
+  "capital": "Skopje",
+  "population": 1824359,
+  "populationYear": 2024,
+  "areaKm2": 25710,
+  "source": "World Bank"
+ },
+ "ML": {
+  "capital": "Bamako",
+  "population": 24478595,
+  "populationYear": 2024,
+  "areaKm2": 1240190,
+  "source": "World Bank"
+ },
+ "MT": {
+  "capital": "Valletta",
+  "population": 568847,
+  "populationYear": 2024,
+  "areaKm2": 320,
+  "source": "World Bank"
+ },
+ "MM": {
+  "capital": "Naypyidaw",
+  "population": 54500091,
+  "populationYear": 2024,
+  "areaKm2": 676590,
+  "source": "World Bank"
+ },
+ "ME": {
+  "capital": "Podgorica",
+  "population": 623525,
+  "populationYear": 2024,
+  "areaKm2": 13888,
+  "source": "World Bank"
+ },
+ "MN": {
+  "capital": "Ulaanbaatar",
+  "population": 3524788,
+  "populationYear": 2024,
+  "areaKm2": 1564116,
+  "source": "World Bank"
+ },
+ "MP": {
+  "capital": "Saipan",
+  "population": 44278,
+  "populationYear": 2024,
+  "areaKm2": 460,
+  "source": "World Bank"
+ },
+ "MZ": {
+  "capital": "Maputo",
+  "population": 34631766,
+  "populationYear": 2024,
+  "areaKm2": 799380,
+  "source": "World Bank"
+ },
+ "MR": {
+  "capital": "Nouakchott",
+  "population": 5169395,
+  "populationYear": 2024,
+  "areaKm2": 1030700,
+  "source": "World Bank"
+ },
+ "MU": {
+  "capital": "Port Louis",
+  "population": 1245779,
+  "populationYear": 2024,
+  "areaKm2": 2010,
+  "source": "World Bank"
+ },
+ "MW": {
+  "capital": "Lilongwe",
+  "population": 21655286,
+  "populationYear": 2024,
+  "areaKm2": 118480,
+  "source": "World Bank"
+ },
+ "MY": {
+  "capital": "Kuala Lumpur",
+  "population": 35557673,
+  "populationYear": 2024,
+  "areaKm2": 330411,
+  "source": "World Bank"
+ },
+ "NA": {
+  "capital": "Windhoek",
+  "population": 3030131,
+  "populationYear": 2024,
+  "areaKm2": 824290,
+  "source": "World Bank"
+ },
+ "NC": {
+  "capital": "Noum'ea",
+  "population": 292639,
+  "populationYear": 2024,
+  "areaKm2": 18580,
+  "source": "World Bank"
+ },
+ "NE": {
+  "capital": "Niamey",
+  "population": 27032412,
+  "populationYear": 2024,
+  "areaKm2": 1267000,
+  "source": "World Bank"
+ },
+ "NG": {
+  "capital": "Abuja",
+  "population": 232679478,
+  "populationYear": 2024,
+  "areaKm2": 923770,
+  "source": "World Bank"
+ },
+ "NI": {
+  "capital": "Managua",
+  "population": 6916140,
+  "populationYear": 2024,
+  "areaKm2": 130370,
+  "source": "World Bank"
+ },
+ "NL": {
+  "capital": "Amsterdam",
+  "population": 17993485,
+  "populationYear": 2024,
+  "areaKm2": 41540,
+  "source": "World Bank"
+ },
+ "NO": {
+  "capital": "Oslo",
+  "population": 5572279,
+  "populationYear": 2024,
+  "areaKm2": 624500,
+  "source": "World Bank"
+ },
+ "NP": {
+  "capital": "Kathmandu",
+  "population": 29651054,
+  "populationYear": 2024,
+  "areaKm2": 147180,
+  "source": "World Bank"
+ },
+ "NR": {
+  "capital": "Yaren District",
+  "population": 11947,
+  "populationYear": 2024,
+  "areaKm2": 20,
+  "source": "World Bank"
+ },
+ "NZ": {
+  "capital": "Wellington",
+  "population": 5290000,
+  "populationYear": 2024,
+  "areaKm2": 267710,
+  "source": "World Bank"
+ },
+ "OM": {
+  "capital": "Muscat",
+  "population": 5281538,
+  "populationYear": 2024,
+  "areaKm2": 309500,
+  "source": "World Bank"
+ },
+ "PK": {
+  "capital": "Islamabad",
+  "population": 251269164,
+  "populationYear": 2024,
+  "areaKm2": 796100,
+  "source": "World Bank"
+ },
+ "PA": {
+  "capital": "Panama City",
+  "population": 4515577,
+  "populationYear": 2024,
+  "areaKm2": 75320,
+  "source": "World Bank"
+ },
+ "PE": {
+  "capital": "Lima",
+  "population": 34217848,
+  "populationYear": 2024,
+  "areaKm2": 1285216,
+  "source": "World Bank"
+ },
+ "PH": {
+  "capital": "Manila",
+  "population": 115843670,
+  "populationYear": 2024,
+  "areaKm2": 300000,
+  "source": "World Bank"
+ },
+ "PW": {
+  "capital": "Koror",
+  "population": 17695,
+  "populationYear": 2024,
+  "areaKm2": 460,
+  "source": "World Bank"
+ },
+ "PG": {
+  "capital": "Port Moresby",
+  "population": 10576502,
+  "populationYear": 2024,
+  "areaKm2": 462840,
+  "source": "World Bank"
+ },
+ "PL": {
+  "capital": "Warsaw",
+  "population": 36559233,
+  "populationYear": 2024,
+  "areaKm2": 313930,
+  "source": "World Bank"
+ },
+ "PR": {
+  "capital": "San Juan",
+  "population": 3202521,
+  "populationYear": 2024,
+  "areaKm2": 8870,
+  "source": "World Bank"
+ },
+ "KP": {
+  "capital": "Pyongyang",
+  "population": 26498823,
+  "populationYear": 2024,
+  "areaKm2": 120540,
+  "source": "World Bank"
+ },
+ "PT": {
+  "capital": "Lisbon",
+  "population": 10694681,
+  "populationYear": 2024,
+  "areaKm2": 92230,
+  "source": "World Bank"
+ },
+ "PY": {
+  "capital": "Asuncion",
+  "population": 6929153,
+  "populationYear": 2024,
+  "areaKm2": 406752,
+  "source": "World Bank"
+ },
+ "PS": {
+  "capital": "Ramallah (administrative), East Jerusalem (claimed)",
+  "population": 5289152,
+  "populationYear": 2024,
+  "areaKm2": 6025,
+  "source": "World Bank"
+ },
+ "PF": {
+  "capital": "Papeete",
+  "population": 281807,
+  "populationYear": 2024,
+  "areaKm2": 3471,
+  "source": "World Bank"
+ },
+ "QA": {
+  "capital": "Doha",
+  "population": 2857822,
+  "populationYear": 2024,
+  "areaKm2": 11490,
+  "source": "World Bank"
+ },
+ "RO": {
+  "capital": "Bucharest",
+  "population": 19051804,
+  "populationYear": 2024,
+  "areaKm2": 238400,
+  "source": "World Bank"
+ },
+ "RU": {
+  "capital": "Moscow",
+  "population": 143669648,
+  "populationYear": 2024,
+  "areaKm2": 17125190,
+  "source": "World Bank"
+ },
+ "RW": {
+  "capital": "Kigali",
+  "population": 14256567,
+  "populationYear": 2024,
+  "areaKm2": 26338,
+  "source": "World Bank"
+ },
+ "SA": {
+  "capital": "Riyadh",
+  "population": 35300280,
+  "populationYear": 2024,
+  "areaKm2": 2149690,
+  "source": "World Bank"
+ },
+ "SD": {
+  "capital": "Khartoum",
+  "population": 50448963,
+  "populationYear": 2024,
+  "areaKm2": 1878000,
+  "source": "World Bank"
+ },
+ "SN": {
+  "capital": "Dakar",
+  "population": 18501984,
+  "populationYear": 2024,
+  "areaKm2": 196710,
+  "source": "World Bank"
+ },
+ "SG": {
+  "capital": "Singapore",
+  "population": 6036860,
+  "populationYear": 2024,
+  "areaKm2": 728,
+  "source": "World Bank"
+ },
+ "SB": {
+  "capital": "Honiara",
+  "population": 819198,
+  "populationYear": 2024,
+  "areaKm2": 28900,
+  "source": "World Bank"
+ },
+ "SL": {
+  "capital": "Freetown",
+  "population": 8642022,
+  "populationYear": 2024,
+  "areaKm2": 72300,
+  "source": "World Bank"
+ },
+ "SV": {
+  "capital": "San Salvador",
+  "population": 6338193,
+  "populationYear": 2024,
+  "areaKm2": 21040,
+  "source": "World Bank"
+ },
+ "SM": {
+  "capital": "San Marino",
+  "population": 33977,
+  "populationYear": 2024,
+  "areaKm2": 60,
+  "source": "World Bank"
+ },
+ "SO": {
+  "capital": "Mogadishu",
+  "population": 19009151,
+  "populationYear": 2024,
+  "areaKm2": 637660,
+  "source": "World Bank",
+  "note": "Figures include Somaliland"
+ },
+ "RS": {
+  "capital": "Belgrade",
+  "population": 6586476,
+  "populationYear": 2024,
+  "areaKm2": 84990,
+  "source": "World Bank"
+ },
+ "SS": {
+  "capital": "Juba",
+  "population": 11943408,
+  "populationYear": 2024,
+  "areaKm2": 646883,
+  "source": "World Bank"
+ },
+ "ST": {
+  "capital": "Sao Tome",
+  "population": 235536,
+  "populationYear": 2024,
+  "areaKm2": 960,
+  "source": "World Bank"
+ },
+ "SR": {
+  "capital": "Paramaribo",
+  "population": 634431,
+  "populationYear": 2024,
+  "areaKm2": 163820,
+  "source": "World Bank"
+ },
+ "SK": {
+  "capital": "Bratislava",
+  "population": 5422069,
+  "populationYear": 2024,
+  "areaKm2": 49030,
+  "source": "World Bank"
+ },
+ "SI": {
+  "capital": "Ljubljana",
+  "population": 2127400,
+  "populationYear": 2024,
+  "areaKm2": 20480,
+  "source": "World Bank"
+ },
+ "SE": {
+  "capital": "Stockholm",
+  "population": 10569709,
+  "populationYear": 2024,
+  "areaKm2": 528660,
+  "source": "World Bank"
+ },
+ "SZ": {
+  "capital": "Mbabane",
+  "population": 1242822,
+  "populationYear": 2024,
+  "areaKm2": 17360,
+  "source": "World Bank"
+ },
+ "SX": {
+  "capital": "Philipsburg",
+  "population": 43350,
+  "populationYear": 2024,
+  "areaKm2": 34,
+  "source": "World Bank"
+ },
+ "SC": {
+  "capital": "Victoria",
+  "population": 121354,
+  "populationYear": 2024,
+  "areaKm2": 460,
+  "source": "World Bank"
+ },
+ "SY": {
+  "capital": "Damascus",
+  "population": 24672760,
+  "populationYear": 2024,
+  "areaKm2": 185180,
+  "source": "World Bank"
+ },
+ "TC": {
+  "capital": "Grand Turk",
+  "population": 46535,
+  "populationYear": 2024,
+  "areaKm2": 950,
+  "source": "World Bank"
+ },
+ "TD": {
+  "capital": "N'Djamena",
+  "population": 20299123,
+  "populationYear": 2024,
+  "areaKm2": 1284000,
+  "source": "World Bank"
+ },
+ "TG": {
+  "capital": "Lome",
+  "population": 8406558,
+  "populationYear": 2024,
+  "areaKm2": 56790,
+  "source": "World Bank"
+ },
+ "TH": {
+  "capital": "Bangkok",
+  "population": 71668011,
+  "populationYear": 2024,
+  "areaKm2": 513115,
+  "source": "World Bank"
+ },
+ "TJ": {
+  "capital": "Dushanbe",
+  "population": 10590927,
+  "populationYear": 2024,
+  "areaKm2": 141379,
+  "source": "World Bank"
+ },
+ "TM": {
+  "capital": "Ashgabat",
+  "population": 7494498,
+  "populationYear": 2024,
+  "areaKm2": 491209,
+  "source": "World Bank"
+ },
+ "TL": {
+  "capital": "Dili",
+  "population": 1400638,
+  "populationYear": 2024,
+  "areaKm2": 14870,
+  "source": "World Bank"
+ },
+ "TO": {
+  "capital": "Nuku'alofa",
+  "population": 104175,
+  "populationYear": 2024,
+  "areaKm2": 750,
+  "source": "World Bank"
+ },
+ "TT": {
+  "capital": "Port-of-Spain",
+  "population": 1368333,
+  "populationYear": 2024,
+  "areaKm2": 5130,
+  "source": "World Bank"
+ },
+ "TN": {
+  "capital": "Tunis",
+  "population": 12277109,
+  "populationYear": 2024,
+  "areaKm2": 163610,
+  "source": "World Bank"
+ },
+ "TR": {
+  "capital": "Ankara",
+  "population": 85518661,
+  "populationYear": 2024,
+  "areaKm2": 785350,
+  "source": "World Bank"
+ },
+ "TV": {
+  "capital": "Funafuti",
+  "population": 9646,
+  "populationYear": 2024,
+  "areaKm2": 30,
+  "source": "World Bank"
+ },
+ "TZ": {
+  "capital": "Dodoma",
+  "population": 68560157,
+  "populationYear": 2024,
+  "areaKm2": 947300,
+  "source": "World Bank"
+ },
+ "UG": {
+  "capital": "Kampala",
+  "population": 50015092,
+  "populationYear": 2024,
+  "areaKm2": 241550,
+  "source": "World Bank"
+ },
+ "UA": {
+  "capital": "Kiev",
+  "population": 37860221,
+  "populationYear": 2024,
+  "areaKm2": 603550,
+  "source": "World Bank"
+ },
+ "UY": {
+  "capital": "Montevideo",
+  "population": 3386588,
+  "populationYear": 2024,
+  "areaKm2": 176220,
+  "source": "World Bank"
+ },
+ "US": {
+  "capital": "Washington D.C.",
+  "population": 340003797,
+  "populationYear": 2024,
+  "areaKm2": 9831510,
+  "source": "World Bank"
+ },
+ "UZ": {
+  "capital": "Tashkent",
+  "population": 36361859,
+  "populationYear": 2024,
+  "areaKm2": 448920,
+  "source": "World Bank"
+ },
+ "VC": {
+  "capital": "Kingstown",
+  "population": 100616,
+  "populationYear": 2024,
+  "areaKm2": 390,
+  "source": "World Bank"
+ },
+ "VE": {
+  "capital": "Caracas",
+  "population": 28405543,
+  "populationYear": 2024,
+  "areaKm2": 912050,
+  "source": "World Bank"
+ },
+ "VG": {
+  "capital": "Road Town",
+  "population": 39471,
+  "populationYear": 2024,
+  "areaKm2": 150,
+  "source": "World Bank"
+ },
+ "VI": {
+  "capital": "Charlotte Amalie",
+  "population": 104377,
+  "populationYear": 2024,
+  "areaKm2": 350,
+  "source": "World Bank"
+ },
+ "VN": {
+  "capital": "Hanoi",
+  "population": 100987686,
+  "populationYear": 2024,
+  "areaKm2": 331338,
+  "source": "World Bank"
+ },
+ "VU": {
+  "capital": "Port-Vila",
+  "population": 327777,
+  "populationYear": 2024,
+  "areaKm2": 12190,
+  "source": "World Bank"
+ },
+ "WS": {
+  "capital": "Apia",
+  "population": 218019,
+  "populationYear": 2024,
+  "areaKm2": 2840,
+  "source": "World Bank"
+ },
+ "XK": {
+  "capital": "Pristina",
+  "population": 1594353,
+  "populationYear": 2024,
+  "areaKm2": 10887,
+  "source": "World Bank"
+ },
+ "YE": {
+  "capital": "Sana'a",
+  "population": 40583164,
+  "populationYear": 2024,
+  "areaKm2": 527970,
+  "source": "World Bank"
+ },
+ "ZA": {
+  "capital": "Pretoria",
+  "population": 64007187,
+  "populationYear": 2024,
+  "areaKm2": 1219090,
+  "source": "World Bank"
+ },
+ "ZM": {
+  "capital": "Lusaka",
+  "population": 21314956,
+  "populationYear": 2024,
+  "areaKm2": 752610,
+  "source": "World Bank"
+ },
+ "ZW": {
+  "capital": "Harare",
+  "population": 16634373,
+  "populationYear": 2024,
+  "areaKm2": 390760,
+  "source": "World Bank"
+ },
+ "VA": {
+  "capital": "Vatican City",
+  "population": 764,
+  "populationYear": 2023,
+  "areaKm2": 0.49,
+  "source": "Estimate"
+ },
+ "TW": {
+  "capital": "Taipei",
+  "population": 23400000,
+  "populationYear": 2024,
+  "areaKm2": 36197,
+  "source": "Estimate"
+ },
+ "EH": {
+  "capital": "Laayoune",
+  "population": 590000,
+  "populationYear": 2024,
+  "areaKm2": 266000,
+  "source": "Estimate"
+ },
+ "FK": {
+  "capital": "Stanley",
+  "population": 3662,
+  "populationYear": 2021,
+  "areaKm2": 12173,
+  "source": "Estimate"
+ },
+ "GS": {
+  "capital": "King Edward Point",
+  "population": 0,
+  "areaKm2": 3903,
+  "note": "No permanent population",
+  "source": "Estimate"
+ },
+ "IO": {
+  "capital": "Diego Garcia",
+  "population": 0,
+  "areaKm2": 60,
+  "note": "No permanent population",
+  "source": "Estimate"
+ },
+ "SH": {
+  "capital": "Jamestown",
+  "population": 5600,
+  "populationYear": 2021,
+  "areaKm2": 394,
+  "source": "Estimate"
+ },
+ "PN": {
+  "capital": "Adamstown",
+  "population": 40,
+  "populationYear": 2023,
+  "areaKm2": 47,
+  "source": "Estimate"
+ },
+ "AI": {
+  "capital": "The Valley",
+  "population": 15800,
+  "populationYear": 2023,
+  "areaKm2": 91,
+  "source": "Estimate"
+ },
+ "MS": {
+  "capital": "Brades (Plymouth abandoned)",
+  "population": 4400,
+  "populationYear": 2023,
+  "areaKm2": 102,
+  "source": "Estimate"
+ },
+ "JE": {
+  "capital": "Saint Helier",
+  "population": 103267,
+  "populationYear": 2021,
+  "areaKm2": 118,
+  "source": "Estimate"
+ },
+ "GG": {
+  "capital": "Saint Peter Port",
+  "population": 67000,
+  "populationYear": 2022,
+  "areaKm2": 78,
+  "source": "Estimate"
+ },
+ "NU": {
+  "capital": "Alofi",
+  "population": 1689,
+  "populationYear": 2022,
+  "areaKm2": 261,
+  "source": "Estimate"
+ },
+ "CK": {
+  "capital": "Avarua",
+  "population": 15040,
+  "populationYear": 2021,
+  "areaKm2": 236,
+  "source": "Estimate"
+ },
+ "PM": {
+  "capital": "Saint-Pierre",
+  "population": 5819,
+  "populationYear": 2021,
+  "areaKm2": 242,
+  "source": "Estimate"
+ },
+ "WF": {
+  "capital": "Mata-Utu",
+  "population": 11151,
+  "populationYear": 2023,
+  "areaKm2": 142,
+  "source": "Estimate"
+ },
+ "BL": {
+  "capital": "Gustavia",
+  "population": 10585,
+  "populationYear": 2021,
+  "areaKm2": 25,
+  "source": "Estimate"
+ },
+ "TF": {
+  "capital": "Port-aux-Français",
+  "population": 0,
+  "areaKm2": 7747,
+  "note": "No permanent population; around 150 researchers",
+  "source": "Estimate"
+ },
+ "AX": {
+  "capital": "Mariehamn",
+  "population": 30541,
+  "populationYear": 2023,
+  "areaKm2": 1580,
+  "source": "Estimate"
+ },
+ "HM": {
+  "capital": null,
+  "population": 0,
+  "areaKm2": 372,
+  "note": "Uninhabited",
+  "source": "Estimate"
+ },
+ "NF": {
+  "capital": "Kingston",
+  "population": 2188,
+  "populationYear": 2021,
+  "areaKm2": 35,
+  "source": "Estimate"
+ },
+ "AQ": {
+  "capital": null,
+  "population": 0,
+  "areaKm2": 14200000,
+  "note": "No permanent population; a few thousand researchers",
+  "source": "Estimate"
+ },
+ "Somaliland": {
+  "capital": "Hargeisa",
+  "population": 5700000,
+  "populationYear": 2024,
+  "areaKm2": 176120,
+  "source": "Estimate"
+ },
+ "N. Cyprus": {
+  "capital": "North Nicosia",
+  "population": 382836,
+  "populationYear": 2021,
+  "areaKm2": 3355,
+  "source": "Estimate"
+ },
+ "Indian Ocean Ter.": {
+  "capital": "Flying Fish Cove",
+  "population": 2285,
+  "populationYear": 2021,
+  "areaKm2": 149,
+  "source": "Estimate"
+ },
+ "Siachen Glacier": {
+  "capital": null,
+  "population": 0,
+  "note": "No permanent population; disputed between India and Pakistan",
+  "source": "Estimate"
+ },
+ "Ashmore and Cartier Is.": {
+  "capital": null,
+  "population": 0,
+  "areaKm2": 2,
+  "note": "Uninhabited",
+  "source": "Estimate"
+ }
+}

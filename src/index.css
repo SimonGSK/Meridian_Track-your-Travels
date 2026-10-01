@@ -218,8 +218,37 @@ body,
   accent-color: var(--accent);
 }
 
-.panel-placeholder {
-  margin: 20px 0 0;
+.facts {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px 16px;
+  margin: 14px 0 0;
+  font-size: 15px;
+}
+
+.facts dt {
+  color: var(--text-muted);
+}
+
+.facts dd {
+  margin: 0;
+  font-weight: 600;
+}
+
+.facts dd .muted {
+  font-weight: 400;
+}
+
+.facts-note {
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.facts-source {
+  margin: 8px 0 0;
+  font-size: 11px;
+  color: var(--text-muted);
   opacity: 0.8;
 }
 
