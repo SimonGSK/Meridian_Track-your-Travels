@@ -8,14 +8,15 @@ The menu on the left (a tab bar on phones) has:
 - **Visited**: keep track of where you've been, out of the world's 197 countries, with the count and percentage for each continent (territories are counted separately). Your places are listed by continent. Search to add places (old names like "Swaziland" work too), or click a country and press "Mark as visited". They're colored on the globe.
 
   For the USA, Canada, Australia and Brazil you can also mark the states, provinces and territories you've visited: click the country (on the globe or in the list) and tick them in its panel, or click them on the globe. They're drawn over the country in a darker shade.
-- **Games**: pick a game, then a difficulty.
-  - *Find the country*: click the named country on the globe, with three tries (3, 2 or 1 points).
-  - *Letter hunt*: click every country starting with a letter.
+- **Games**:
+  - *Find the country*: click the named country on the globe, with three tries (3, 2 or 1 points). Hard leaves out the 49 biggest countries.
+  - *Letter hunt*: click every country starting with a letter. Each letter belongs to one difficulty (easy D F H J K R U V Z, medium A E G I L N P T, hard B C M S); pick any letter, or a random one, and see your best for each.
+  - *Name them all*: type every country you can from memory, for the whole world or one continent, against the clock.
   - *Flag quiz*: which country has this flag?
   - *Name that country*: a country lights up on the globe; which one is it?
   - *Shape quiz*: name the country from its outline.
 
-  Easy asks about big countries, with four answers to pick from. Medium (all but the smallest) and Hard (all 197) have you type answers, with suggestions; any known spelling counts ("East Timor", "Burma"), and the answer shows the name used today.
+  Games played in rounds are Easy (big countries, four answers to pick from), Medium (all but the smallest) or Hard (all 197). On Medium and Hard you type answers with no suggestions; any known spelling counts ("East Timor", "Burma"), and the answer shows the name used today.
 - **Design**: switch the globe between Classic, Political (neighbors always in different colors), Night, Vintage and Minimal.
 
 The globe spins on its own until you touch it, and again once it's been left alone for 30 seconds. Tiny countries and islands get a ring marker, and clicks just beside a small island still count.
