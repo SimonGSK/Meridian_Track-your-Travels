@@ -8,10 +8,12 @@ export type Settings = {
   showMarkers: boolean
   /** Color the states and provinces you've visited, over their country */
   showRegions: boolean
+  /** Pins on the cities you've visited */
+  showCities: boolean
 }
 
 export const SETTINGS_KEY = 'countries-app.settings'
-export const DEFAULT_SETTINGS: Settings = { showVisited: true, showMarkers: true, showRegions: true }
+export const DEFAULT_SETTINGS: Settings = { showVisited: true, showMarkers: true, showRegions: true, showCities: true }
 
 const isSettings = (value: unknown): value is Partial<Settings> =>
   typeof value === 'object' &&

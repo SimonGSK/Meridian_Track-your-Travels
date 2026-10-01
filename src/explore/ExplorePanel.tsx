@@ -30,6 +30,7 @@ export default function ExplorePanel({ settings, onChange }: Props) {
         <li>Drag to spin the globe, scroll or pinch to zoom.</li>
         <li>Hover a country to see its name and flag, click it to fly there.</li>
         <li>Small islands and microstates have a ring around them.</li>
+        <li>Open a country to tick off the cities you've visited; each gets a pin.</li>
         <li>Escape closes whatever is open.</li>
       </ul>
 
@@ -48,6 +49,12 @@ export default function ExplorePanel({ settings, onChange }: Props) {
           description="Color the states and provinces you've visited, a shade darker than their country"
           checked={settings.showRegions}
           onChange={(showRegions) => onChange({ showRegions })}
+        />
+        <Switch
+          label="City pins"
+          description="A pin on each city you've visited"
+          checked={settings.showCities}
+          onChange={(showCities) => onChange({ showCities })}
         />
         <Switch
           label="Island markers"

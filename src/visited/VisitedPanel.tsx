@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { countries, searchCountries, type CountryFeature } from '../countries'
+import { citiesLabel } from '../data/cities'
 import { CONTINENTS, type Continent } from '../data/continents'
 import { flagUrl } from '../flags'
 import { percentLabel } from './percentLabel'
@@ -9,8 +10,10 @@ type Props = {
   onAdd: (name: string) => void
   onRemove: (name: string) => void
   onShow: (country: CountryFeature) => void
-  /** e.g. "3 of 51 states", for countries with visited states */
-  regionNote?: (country: CountryFeature) => string | null
+  /** States and cities visited, e.g. "3 of 51 states · 4 cities" */
+  note?: (country: CountryFeature) => string | null
+  /** Cities visited, all over the world */
+  cityCount?: number
 }
 
 const byName = (a: CountryFeature, b: CountryFeature) => a.properties.name.localeCompare(b.properties.name)
@@ -31,7 +34,7 @@ function Flag({ country }: { country: CountryFeature }) {
   return url ? <img className="mini-flag" src={url} alt="" /> : <span className="mini-flag" />
 }
 
-export default function VisitedPanel({ visited, onAdd, onRemove, onShow, regionNote }: Props) {
+export default function VisitedPanel({ visited, onAdd, onRemove, onShow, note, cityCount = 0 }: Props) {
   const [query, setQuery] = useState('')
 
   const visitedList = countries.filter((c) => visited.has(c.properties.name)).sort(byName)
@@ -40,9 +43,9 @@ export default function VisitedPanel({ visited, onAdd, onRemove, onShow, regionN
   const visitedCountries = visitedList.filter(isCountry).length
   const visitedTerritories = visitedList.length - visitedCountries
   const visitedIn = (continent: Continent) => visitedList.filter((c) => c.properties.continent === continent)
-  // A second line under the name: "Territory", or states visited like "3 of 51 states"
+  // A second line under the name: "Territory", and states and cities visited
   const noteFor = (c: CountryFeature) =>
-    [isCountry(c) ? null : 'Territory', regionNote?.(c)].filter(Boolean).join(' · ') || null
+    [isCountry(c) ? null : 'Territory', note?.(c)].filter(Boolean).join(' · ') || null
 
   const add = (country: CountryFeature) => {
     onAdd(country.properties.name)
@@ -69,6 +72,7 @@ export default function VisitedPanel({ visited, onAdd, onRemove, onShow, regionN
         <span className="visited-percent">
           {percentLabel(visitedCountries, COUNTRY_COUNT)}
           {visitedTerritories > 0 && ` · plus ${visitedTerritories} of ${TERRITORY_COUNT} territories`}
+          {cityCount > 0 && ` · ${citiesLabel(cityCount)}`}
         </span>
       </div>
 

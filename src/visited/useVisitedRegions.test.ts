@@ -13,4 +13,11 @@ describe('useVisitedRegions', () => {
     expect(JSON.parse(localStorage.getItem(VISITED_REGIONS_KEY)!)).toEqual(['US-TX'])
     expect(renderHook(() => useVisitedRegions()).result.current.visitedRegions.has('US-TX')).toBe(true)
   })
+
+  it('adds a region once', () => {
+    const { result } = renderHook(() => useVisitedRegions())
+    act(() => result.current.add('US-NY'))
+    act(() => result.current.add('US-NY'))
+    expect([...result.current.visitedRegions]).toEqual(['US-NY'])
+  })
 })

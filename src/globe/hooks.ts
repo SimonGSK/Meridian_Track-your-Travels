@@ -4,8 +4,10 @@ import type { GlobeMethods } from 'react-globe.gl'
 import type { PerspectiveCamera } from 'three'
 import { geoDistance } from 'd3-geo'
 import { borders, countries, findCountryNear, type CountryFeature } from '../countries'
+import { loadCities, type City } from '../data/cities'
 import { loadRegions, type RegionFeature } from '../data/regions'
 import { createCountryLayer, createRaisedCountry, type CountryLayer } from './countryLayer'
+import { createPinLayer, type Pin, type PinLayer } from './pinLayer'
 import { createRegionLayer, type RegionLayer } from './regionLayer'
 import { approach, isClick, type LatLng, type Point } from './interaction'
 import { screenToLatLng } from './picking'
@@ -207,9 +209,9 @@ export function useSmoothAutoRotate(globe: GlobeMethods | null, allowed: boolean
 }
 
 type PointerOptions = {
-  /** `position` is the point on the globe under the pointer, if any */
-  onHover: (country: CountryFeature | null, position: LatLng | null) => void
-  onClick: (country: CountryFeature | null, position: LatLng | null) => void
+  /** `position` is the point on the globe under the pointer, if any, and `point` the pointer on the screen */
+  onHover: (country: CountryFeature | null, position: LatLng | null, point: Point | null) => void
+  onClick: (country: CountryFeature | null, position: LatLng | null, point: Point) => void
   /** Whether tiny places' markers are shown, and so can be pointed at */
   markers?: boolean
 }
@@ -250,8 +252,9 @@ export function useCountryPointer(globe: GlobeMethods | null, { onHover, onClick
     if (frame.current) return
     frame.current = requestAnimationFrame(() => {
       frame.current = 0
-      const [country, position] = pointer.current ? latest.current.countryAt(pointer.current) : [null, null]
-      latest.current.onHover(country, position)
+      const point = pointer.current
+      const [country, position] = point ? latest.current.countryAt(point) : [null, null]
+      latest.current.onHover(country, position, point)
     })
   }, [])
 
@@ -282,23 +285,55 @@ export function useCountryPointer(globe: GlobeMethods | null, { onHover, onClick
     },
     onPointerUp: (e: PointerEvent) => {
       const releasedAt = { x: e.clientX, y: e.clientY }
-      if (pressedAt.current && isClick(pressedAt.current, releasedAt)) onClick(...countryAt(releasedAt))
+      if (pressedAt.current && isClick(pressedAt.current, releasedAt)) onClick(...countryAt(releasedAt), releasedAt)
       pressedAt.current = null
     },
   }
 }
 
-/** The states and provinces, once loaded (they load in the background after the globe). */
-export function useRegions() {
-  const [regions, setRegions] = useState<RegionFeature[] | null>(null)
+/** Data loaded in the background, or null until it's there */
+function useLoaded<T>(load: () => Promise<T>) {
+  const [data, setData] = useState<T | null>(null)
   useEffect(() => {
     let current = true
-    loadRegions().then((loaded) => current && setRegions(loaded))
+    load().then((loaded) => current && setData(loaded))
     return () => {
       current = false
     }
-  }, [])
-  return regions
+  }, [load])
+  return data
+}
+
+/** The states and provinces, once loaded (they load in the background after the globe). */
+export const useRegions = () => useLoaded(loadRegions)
+
+/** The well-known cities, once loaded */
+export const useCities = (): City[] | null => useLoaded(loadCities)
+
+/** Pins in `color`, at `pins` */
+export function usePinLayer(globe: GlobeMethods | null, pins: readonly Pin[], color: string) {
+  const layer = useRef<PinLayer | null>(null)
+
+  useEffect(() => {
+    if (!globe) return
+    const scene = globe.scene()
+    const created = createPinLayer(globe.getGlobeRadius())
+    scene.add(created.object)
+    layer.current = created
+    return () => {
+      scene.remove(created.object)
+      created.dispose()
+      layer.current = null
+    }
+  }, [globe])
+
+  useEffect(() => {
+    layer.current?.setColor(color)
+  }, [globe, color])
+
+  useEffect(() => {
+    layer.current?.show(pins)
+  }, [globe, pins])
 }
 
 /** Draws states and provinces over their countries: `fills` in their colors, and `outlines`. */

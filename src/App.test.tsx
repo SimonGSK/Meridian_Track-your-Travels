@@ -5,12 +5,13 @@ import { useEffect, useImperativeHandle, useRef, type Ref } from 'react'
 import type { GlobeProps } from 'react-globe.gl'
 import App from './App'
 import { countries, findCountryAt } from './countries'
+import { loadCities } from './data/cities'
 import { loadRegions } from './data/regions'
 import { DEFAULT_THEME, NIGHT, POLITICAL, visitedRegionColor } from './globe/themes'
 
 // WebGL doesn't exist in jsdom, so the globe is replaced by a stand-in that
 // exposes what the app passes to it. Screen positions map to places by x.
-const { PLACES, globe, layer, regionLayer, sceneObjects } = vi.hoisted(() => {
+const { PLACES, PIN_AT, globe, layer, regionLayer, pinLayer, sceneObjects } = vi.hoisted(() => {
   const listeners = new Map<string, Set<() => void>>()
   const sceneObjects = new Set<object>()
   const controls = {
@@ -37,6 +38,8 @@ const { PLACES, globe, layer, regionLayer, sceneObjects } = vi.hoisted(() => {
       810: { lat: 31, lng: -99 }, // Texas, United States
       // anything else: outer space
     } as Record<number, { lat: number; lng: number }>,
+    /** Where pins are, by x, when their city is pinned */
+    PIN_AT: { 900: 'Copenhagen' } as Record<number, string>,
     globe: {
       controls: () => controls,
       pointOfView: vi.fn((..._args: unknown[]) => ({ lat: 25, lng: 10, altitude: 1.9 })),
@@ -48,6 +51,7 @@ const { PLACES, globe, layer, regionLayer, sceneObjects } = vi.hoisted(() => {
     sceneObjects,
     layer: { object: {}, paint: vi.fn(), setBorders: vi.fn(), setMarkersVisible: vi.fn(), emphasize: vi.fn(), dispose: vi.fn() },
     regionLayer: { object: {}, show: vi.fn(), setOutlineColor: vi.fn(), dispose: vi.fn() },
+    pinLayer: { object: {}, show: vi.fn(), setColor: vi.fn(), dispose: vi.fn() },
   }
 })
 
@@ -66,6 +70,11 @@ vi.mock('./globe/picking', () => ({
     PLACES[x] ?? (x >= 2000 && x < 2400 ? { lat: 12.3, lng: -64 + (x - 2000) * 0.02 } : null),
 }))
 vi.mock('./globe/regionLayer', () => ({ createRegionLayer: () => regionLayer }))
+vi.mock('./globe/pinLayer', () => ({
+  createPinLayer: () => pinLayer,
+  pinAt: (_: unknown, pins: { city: { name: string } }[], { x }: { x: number }) =>
+    pins.find((pin) => pin.city.name === PIN_AT[x]) ?? null,
+}))
 vi.mock('./globe/countryLayer', () => ({
   createCountryLayer: () => layer,
   createRaisedCountry: (country: { properties: { name: string } }) => ({
@@ -119,13 +128,14 @@ const denmark = countries.find((c) => c.properties.name === 'Denmark')!
 
 describe('App', () => {
   // The region shapes are big; load them once up front rather than inside the first test that needs them
-  beforeAll(() => loadRegions(), 20_000)
+  beforeAll(() => Promise.all([loadRegions(), loadCities()]), 20_000)
 
   beforeEach(() => {
     globe.pointOfView.mockClear()
     layer.paint.mockClear()
     layer.setBorders.mockClear()
     regionLayer.show.mockClear()
+    pinLayer.show.mockClear()
   })
 
   it('shows the title and how to use the globe', () => {
@@ -430,6 +440,109 @@ describe('App', () => {
       await userEvent.click(screen.getByRole('button', { name: /Flag quiz/ }))
       await userEvent.click(screen.getByRole('button', { name: /^Easy/ }))
       expect(shownRegions()).toEqual({})
+    })
+  })
+
+  describe('visited cities', () => {
+    /** Cities pinned on the globe last, with "(raised)" when on the raised, selected country */
+    const pinned = () =>
+      ((pinLayer.show.mock.calls.at(-1)?.[0] ?? []) as { city: { name: string }; raised: boolean }[]).map(
+        ({ city, raised }) => city.name + (raised ? ' (raised)' : ''),
+      )
+    const city = (name: string | RegExp) => within(countryPanel()!).getByRole('checkbox', { name })
+    const openDenmark = async () => {
+      render(<App />)
+      click(100)
+      await within(countryPanel()!).findByRole('checkbox', { name: 'Aarhus' }) // once the cities have loaded
+    }
+    const tickAarhusAndClose = async () => {
+      await openDenmark()
+      await userEvent.click(city('Aarhus'))
+      fireEvent.keyDown(window, { key: 'Escape' })
+    }
+
+    it('lists the cities of a selected country, capital first', async () => {
+      await openDenmark()
+      const names = within(countryPanel()!).getAllByRole('checkbox').map((c) => c.closest('label')!.textContent)
+      expect(names.slice(0, 2)).toEqual(['Copenhagencapital', 'Aarhus'])
+    })
+
+    it('marks a city, and its country with it, and pins it on the globe', async () => {
+      await openDenmark()
+      await userEvent.click(city('Aarhus'))
+      expect(city('Aarhus')).toBeChecked()
+      expect(within(countryPanel()!).getByRole('button', { name: 'Visited' })).toHaveAttribute('aria-pressed', 'true')
+      expect(pinned()).toEqual(['Aarhus (raised)'])
+
+      fireEvent.keyDown(window, { key: 'Escape' })
+      expect(pinned()).toEqual(['Aarhus'])
+      expect(painted()).toEqual({ Denmark: DEFAULT_THEME.visited })
+    })
+
+    it('unpins a city ticked off again, keeping its country visited', async () => {
+      await openDenmark()
+      await userEvent.click(city('Aarhus'))
+      await userEvent.click(city('Aarhus'))
+      expect(pinned()).toEqual([])
+      expect(within(countryPanel()!).getByRole('button', { name: 'Visited' })).toHaveAttribute('aria-pressed', 'true')
+    })
+
+    it('marks the state a city is in', async () => {
+      render(<App />)
+      click(800)
+      await screen.findByText('of 51 visited')
+      await userEvent.click(city('Los Angeles'))
+      expect(city('California')).toBeChecked()
+      await userEvent.click(city('Los Angeles'))
+      expect(city('California')).toBeChecked()
+    })
+
+    it("names the city of a pin pointed at, and shows its country's flag", async () => {
+      await openDenmark()
+      await userEvent.click(city(/^Copenhagen/))
+      fireEvent.keyDown(window, { key: 'Escape' })
+      hover(900)
+      await waitFor(() => expect(tooltip()).toHaveTextContent('Copenhagen'))
+      expect(flag()).toHaveAccessibleName('Flag of Denmark')
+    })
+
+    it('opens the country of a pin clicked', async () => {
+      await openDenmark()
+      await userEvent.click(city(/^Copenhagen/))
+      fireEvent.keyDown(window, { key: 'Escape' })
+      click(900)
+      expect(panelHeading()).toHaveTextContent('Denmark')
+    })
+
+    it('notes the cities visited in the Visited list', async () => {
+      await tickAarhusAndClose()
+      await userEvent.click(within(screen.getByRole('navigation')).getByRole('button', { name: 'Visited' }))
+      expect(screen.getByRole('button', { name: /^Denmark/ })).toHaveTextContent('1 city')
+    })
+
+    it('hides the pins when switched off, and during games', async () => {
+      await tickAarhusAndClose()
+      await userEvent.click(screen.getByRole('button', { name: 'Explore' }))
+      await userEvent.click(screen.getByRole('switch', { name: /City pins/ }))
+      expect(pinned()).toEqual([])
+      await userEvent.click(screen.getByRole('switch', { name: /City pins/ }))
+      expect(pinned()).toEqual(['Aarhus'])
+
+      await userEvent.click(screen.getByRole('button', { name: 'Games' }))
+      await userEvent.click(screen.getByRole('button', { name: /Flag quiz/ }))
+      await userEvent.click(screen.getByRole('button', { name: /^Easy/ }))
+      expect(pinned()).toEqual([])
+    })
+
+    it('remembers visited cities after a reload', async () => {
+      const first = render(<App />)
+      click(100)
+      await userEvent.click(await within(countryPanel()!).findByRole('checkbox', { name: 'Aarhus' }))
+      first.unmount()
+      pinLayer.show.mockClear()
+
+      render(<App />)
+      await waitFor(() => expect(pinned()).toEqual(['Aarhus']))
     })
   })
 

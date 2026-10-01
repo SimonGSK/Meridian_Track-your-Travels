@@ -59,4 +59,23 @@ describe('CountryPanel', () => {
     render(<CountryPanel country={byName('Denmark')} visited onToggleVisited={() => {}} onClose={() => {}} />)
     expect(screen.getByRole('button', { name: 'Visited' })).toHaveAttribute('aria-pressed', 'true')
   })
+
+  it('lists cities to tick off, when given some', () => {
+    const cities = [{ id: 1, name: 'Copenhagen', place: 'DK', lat: 55.68, lng: 12.57, population: 1153615, capital: true as const }]
+    const { rerender } = render(
+      <CountryPanel country={byName('Denmark')} visited onToggleVisited={() => {}} onClose={() => {}} />,
+    )
+    expect(screen.queryByRole('region', { name: 'Cities' })).not.toBeInTheDocument()
+    rerender(
+      <CountryPanel
+        country={byName('Denmark')}
+        visited
+        onToggleVisited={() => {}}
+        onClose={() => {}}
+        cities={{ cities, visited: new Set([1]), onToggle: () => {} }}
+      />,
+    )
+    expect(screen.getByRole('region', { name: 'Cities' })).toBeInTheDocument()
+    expect(screen.getByRole('checkbox', { name: /^Copenhagen/ })).toBeChecked()
+  })
 })

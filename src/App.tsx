@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Globe, { type GlobeMethods } from 'react-globe.gl'
 import { MeshPhongMaterial } from 'three'
 import type { CountryFeature } from './countries'
+import { citiesLabel, citiesOf, countryOfCity, type City } from './data/cities'
 import { findRegionAt, hasRegions, regionsLabel, regionsOf, type RegionFeature } from './data/regions'
 import CountryPanel from './CountryPanel'
 import DesignPanel from './design/DesignPanel'
@@ -20,19 +21,23 @@ import SidePanel from './nav/SidePanel'
 import VisitedPanel from './visited/VisitedPanel'
 import { useVisited } from './visited/useVisited'
 import { useVisitedRegions } from './visited/useVisitedRegions'
+import { useVisitedCities } from './visited/useVisitedCities'
 import { regionFills, regionOutlines, regionProgress } from './visited/regionsView'
 import Tooltip from './Tooltip'
 import {
+  useCities,
   useCountryLayer,
   useCountryPointer,
   useDepthPrecision,
+  usePinLayer,
   useRegionLayer,
   useRegions,
   useSelectedCountry,
   useSmoothAutoRotate,
 } from './globe/hooks'
+import { pinAt } from './globe/pinLayer'
 import { visitedRegionColor } from './globe/themes'
-import type { LatLng } from './globe/interaction'
+import type { LatLng, Point } from './globe/interaction'
 import { INITIAL_VIEW, fitAltitude, flightAltitude, flightDuration } from './globe/interaction'
 import { countryColor } from './globe/colors'
 
@@ -65,8 +70,11 @@ export default function App() {
   const [theme, setTheme] = useTheme()
   const [settings, changeSettings] = useSettings()
   const regions = useRegions()
-  const { visitedRegions, toggle: toggleRegionId } = useVisitedRegions()
+  const { visitedRegions, toggle: toggleRegionId, add: addRegionId } = useVisitedRegions()
   const [hoveredRegion, setHoveredRegion] = useState<RegionFeature | null>(null)
+  const cities = useCities()
+  const { visitedCities, toggle: toggleCityId } = useVisitedCities()
+  const [hoveredCity, setHoveredCity] = useState<City | null>(null)
 
   const globeMaterial = useMemo(
     () => new MeshPhongMaterial({ color: theme.ocean, shininess: theme.oceanShininess }),
@@ -97,6 +105,8 @@ export default function App() {
   // A selected country with states isn't raised: it stays flat so its states can be picked on the globe
   const editing = !playing && selected && hasRegions(selected) ? selected : null
   const editingRegions = useMemo(() => (editing && regions ? regionsOf(regions, editing) : []), [editing, regions])
+
+  const selectedCities = useMemo(() => (selected && cities ? citiesOf(cities, selected) : []), [selected, cities])
 
   const highlights = useMemo(() => {
     const colors = gameHighlights(game, theme)
@@ -144,6 +154,35 @@ export default function App() {
     },
     [visitedRegions, visited, addVisited, toggleRegionId],
   )
+  /** Mark or unmark a city; marking one also marks its country, and its state, as visited */
+  const toggleCity = useCallback(
+    (city: City, country: CountryFeature) => {
+      if (!visitedCities.has(city.id)) {
+        if (!visited.has(country.properties.name)) addVisited(country.properties.name)
+        const region = regions && hasRegions(country) ? findRegionAt(regionsOf(regions, country), city.lat, city.lng) : null
+        if (region) addRegionId(region.properties.id)
+      }
+      toggleCityId(city.id)
+    },
+    [visitedCities, visited, addVisited, regions, addRegionId, toggleCityId],
+  )
+
+  // A pin on each visited city, standing on the selected country when it's raised
+  const pinned = useMemo(
+    () =>
+      cities && settings.showCities && !showsGame(game)
+        ? cities
+            .filter((c) => visitedCities.has(c.id))
+            .map((city) => ({ city, lat: city.lat, lng: city.lng, raised: !editing && countryOfCity(city) === selected }))
+        : [],
+    [cities, settings.showCities, game, visitedCities, editing, selected],
+  )
+  usePinLayer(globe, pinned, theme.pin)
+  const cityAt = useCallback(
+    (point: Point | null) => (globe && point && pinned.length > 0 ? (pinAt(globe, pinned, point)?.city ?? null) : null),
+    [globe, pinned],
+  )
+
   const regionAt = useCallback(
     (country: CountryFeature | null, position: LatLng | null) =>
       editing && country === editing && position ? findRegionAt(editingRegions, position.lat, position.lng) : null,
@@ -153,24 +192,29 @@ export default function App() {
   useSmoothAutoRotate(globe, !selected && !playing)
 
   const onGlobeClick = useCallback(
-    (country: CountryFeature | null, position: LatLng | null) => {
+    (country: CountryFeature | null, position: LatLng | null, point: Point) => {
       if (playing) {
         if (globeIsAnswer && country) pick(country)
         return
       }
+      // A pin stands for its city's country
+      const city = cityAt(point)
+      if (city) return selectCountry(countryOfCity(city))
       // Clicking a state of the country being edited marks it
       const region = regionAt(country, position)
       if (region && editing) toggleRegion(region, editing)
       else selectCountry(country)
     },
-    [playing, globeIsAnswer, pick, regionAt, editing, toggleRegion, selectCountry],
+    [playing, globeIsAnswer, pick, cityAt, regionAt, editing, toggleRegion, selectCountry],
   )
   const onGlobeHover = useCallback(
-    (country: CountryFeature | null, position: LatLng | null) => {
-      setHovered(country)
-      setHoveredRegion(regionAt(country, position))
+    (country: CountryFeature | null, position: LatLng | null, point: Point | null) => {
+      const city = cityAt(point)
+      setHoveredCity(city)
+      setHovered(city ? countryOfCity(city) : country)
+      setHoveredRegion(city ? null : regionAt(country, position))
     },
-    [regionAt],
+    [cityAt, regionAt],
   )
   const pointerHandlers = useCountryPointer(globe, {
     onHover: onGlobeHover,
@@ -274,11 +318,17 @@ export default function App() {
               onAdd={addVisited}
               onRemove={removeVisited}
               onShow={showCountry}
-              regionNote={(country) => {
-                if (!regions || !hasRegions(country)) return null
-                const { visited: count, total } = regionProgress(regions, visitedRegions, country)
-                return count > 0 ? `${count} of ${total} ${regionsLabel(country).toLowerCase()}` : null
+              note={(country) => {
+                const notes = []
+                if (regions && hasRegions(country)) {
+                  const { visited: count, total } = regionProgress(regions, visitedRegions, country)
+                  if (count > 0) notes.push(`${count} of ${total} ${regionsLabel(country).toLowerCase()}`)
+                }
+                const cityCount = cities ? citiesOf(cities, country).filter((c) => visitedCities.has(c.id)).length : 0
+                if (cityCount > 0) notes.push(citiesLabel(cityCount))
+                return notes.join(' · ') || null
               }}
+              cityCount={cities ? cities.filter((c) => visitedCities.has(c.id)).length : 0}
             />
           )}
           {view === 'design' && <DesignPanel theme={theme} onChange={setTheme} />}
@@ -300,7 +350,9 @@ export default function App() {
       )}
 
       {/* Names and flags would give away game answers */}
-      <Tooltip text={playing ? null : (hoveredRegion?.properties.name ?? hovered?.properties.name ?? null)} />
+      <Tooltip
+        text={playing ? null : (hoveredCity?.name ?? hoveredRegion?.properties.name ?? hovered?.properties.name ?? null)}
+      />
       <FlagCorner country={playing ? null : hovered} />
 
       {selected && (
@@ -316,6 +368,15 @@ export default function App() {
                   label: regionsLabel(editing),
                   visited: visitedRegions,
                   onToggle: (region) => toggleRegion(region, editing),
+                }
+              : undefined
+          }
+          cities={
+            selectedCities.length > 0 || !cities
+              ? {
+                  cities: cities && selectedCities,
+                  visited: visitedCities,
+                  onToggle: (city) => toggleCity(city, selected),
                 }
               : undefined
           }

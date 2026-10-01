@@ -14,6 +14,8 @@ export type Theme = {
   hover: string
   selected: string
   visited: string
+  /** Pins on visited cities */
+  pin: string
   /** Game feedback */
   correct: string
   wrong: string
@@ -33,6 +35,7 @@ export const CLASSIC: Theme = {
   hover: '#ffc850',
   selected: '#ff7846',
   visited: '#5b8def',
+  pin: '#ff4757',
   correct: '#b4f25c',
   wrong: '#ff5a5f',
   background: '#02040a',
@@ -51,6 +54,7 @@ export const POLITICAL: Theme = {
   hover: '#ff8a00',
   selected: '#e63946',
   visited: '#2f6fdb',
+  pin: '#b5179e',
   correct: '#15803d',
   wrong: '#dc2626',
   background: '#050a14',
@@ -69,6 +73,7 @@ export const NIGHT: Theme = {
   hover: '#ff4fd8',
   selected: '#ffd166',
   visited: '#7b5cff',
+  pin: '#ff9f1c',
   correct: '#39ff88',
   wrong: '#ff3b5c',
   background: '#000000',
@@ -87,6 +92,7 @@ export const VINTAGE: Theme = {
   hover: '#d9824b',
   selected: '#9c3d22',
   visited: '#5f8f6e',
+  pin: '#a4161a',
   correct: '#2f7d3a',
   wrong: '#b83227',
   background: '#120d08',
@@ -105,6 +111,7 @@ export const MINIMAL: Theme = {
   hover: '#1f2937',
   selected: '#2563eb',
   visited: '#0ea5a4',
+  pin: '#e11d48',
   correct: '#16a34a',
   wrong: '#dc2626',
   background: '#0b0f14',

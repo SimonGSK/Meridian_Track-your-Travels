@@ -19,11 +19,14 @@ export type CountryFacts = {
 
 const facts = rawFacts as Record<string, CountryFacts>
 
-/** Facts are keyed by ISO alpha-2 code, or by map name for places without their own code. */
-export function factsOf(country: CountryFeature): CountryFacts | null {
+/** A place's key in the data files: its ISO alpha-2 code, or its map name if it has no code of its own */
+export function placeKey(country: CountryFeature) {
   const { isoAlpha2, mapName } = country.properties
-  const key = isoAlpha2 && !sharesCode(mapName) ? isoAlpha2 : mapName
-  return facts[key] ?? null
+  return isoAlpha2 && !sharesCode(mapName) ? isoAlpha2 : mapName
+}
+
+export function factsOf(country: CountryFeature): CountryFacts | null {
+  return facts[placeKey(country)] ?? null
 }
 
 const whole = new Intl.NumberFormat('en-US')

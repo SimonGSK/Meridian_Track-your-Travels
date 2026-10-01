@@ -2,6 +2,7 @@ import type { ComponentProps } from 'react'
 import type { CountryFeature } from './countries'
 import { factsOf, formatArea, formatPopulation } from './data/facts'
 import { CheckIcon } from './icons'
+import CityPicker from './CityPicker'
 import RegionPicker from './RegionPicker'
 
 type Props = {
@@ -11,9 +12,11 @@ type Props = {
   onClose: () => void
   /** For countries with states or provinces */
   regions?: ComponentProps<typeof RegionPicker>
+  /** For countries with cities to pick */
+  cities?: ComponentProps<typeof CityPicker>
 }
 
-export default function CountryPanel({ country, visited, onToggleVisited, onClose, regions }: Props) {
+export default function CountryPanel({ country, visited, onToggleVisited, onClose, regions, cities }: Props) {
   const { name, kind, continent, areaKm2: mapArea } = country.properties
   const facts = factsOf(country)
 
@@ -37,6 +40,7 @@ export default function CountryPanel({ country, visited, onToggleVisited, onClos
         {visited ? 'Visited' : 'Mark as visited'}
       </button>
       {regions && <RegionPicker {...regions} />}
+      {cities && <CityPicker {...cities} />}
     </aside>
   )
 }

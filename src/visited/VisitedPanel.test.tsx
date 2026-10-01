@@ -24,6 +24,11 @@ describe('VisitedPanel', () => {
     )
   })
 
+  it('counts the cities visited', () => {
+    render(<VisitedPanel visited={new Set(['Denmark'])} onAdd={() => {}} onRemove={() => {}} onShow={() => {}} cityCount={3} />)
+    expect(screen.getByText(/3 cities/)).toBeInTheDocument()
+  })
+
   it('counts territories separately', () => {
     setup(['Denmark', 'Greenland', 'Faroe Islands'])
     expect(screen.getByRole('progressbar', { name: "Share of the world's countries visited" })).toHaveAttribute(
@@ -54,14 +59,14 @@ describe('VisitedPanel', () => {
     expect(names('South America')).toEqual(['Argentina', 'Brazil'])
   })
 
-  it('notes how many states of a country are visited', () => {
+  it('notes how many states and cities of a country are visited', () => {
     render(
       <VisitedPanel
         visited={new Set(['United States', 'Denmark'])}
         onAdd={() => {}}
         onRemove={() => {}}
         onShow={() => {}}
-        regionNote={(c) => (c.properties.name === 'United States' ? '3 of 51 states' : null)}
+        note={(c) => (c.properties.name === 'United States' ? '3 of 51 states' : null)}
       />,
     )
     expect(screen.getByRole('button', { name: /^United States/ })).toHaveTextContent('3 of 51 states')

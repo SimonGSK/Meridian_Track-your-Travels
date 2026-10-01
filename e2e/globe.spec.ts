@@ -169,20 +169,47 @@ test.describe('visited states', () => {
   })
 })
 
+test.describe('visited cities', () => {
+  test('ticking a city pins it and marks the country, and both stay after reloading', async ({ page }) => {
+    const { errors } = await openGlobe(page)
+    await page.getByRole('button', { name: 'Visited', exact: true }).click()
+    await page.getByRole('searchbox', { name: 'Add a country' }).fill('Japan')
+    await page.getByRole('button', { name: /^Japan/ }).first().click()
+    await page.getByRole('button', { name: /^Japan/ }).first().click() // show it
+    await expect(panel(page).getByRole('heading', { name: 'Japan' })).toBeVisible()
+
+    await panel(page).getByRole('checkbox', { name: 'Kyoto' }).check()
+    await panel(page).getByRole('searchbox', { name: 'Filter cities' }).fill('osa')
+    await panel(page).getByRole('checkbox', { name: 'Osaka' }).check()
+    await expect(panel(page).getByText(/of \d+ visited/).last()).toContainText('2 of')
+
+    await page.reload()
+    await page.getByRole('button', { name: 'Visited', exact: true }).click()
+    await expect(page.getByRole('button', { name: /^Japan/ })).toContainText('2 cities')
+    await page.getByRole('button', { name: /^Japan/ }).click()
+    await expect(panel(page).getByRole('checkbox', { name: 'Kyoto' })).toBeChecked()
+    // The pins' shader compiled and drew without complaints
+    expect(errors).toEqual([])
+  })
+})
+
 test.describe('explore', () => {
-  test('settings switch visited countries and markers off, and stay off after reloading', async ({ page }) => {
+  test('settings switch visited countries, markers and pins off, and stay off after reloading', async ({ page }) => {
     await openGlobe(page)
     await page.getByRole('button', { name: 'Explore' }).click()
     const visitedSwitch = page.getByRole('switch', { name: /Visited countries/ })
     const markerSwitch = page.getByRole('switch', { name: /Island markers/ })
+    const pinSwitch = page.getByRole('switch', { name: /City pins/ })
     await expect(visitedSwitch).toBeChecked()
     await visitedSwitch.uncheck()
     await markerSwitch.uncheck()
+    await pinSwitch.uncheck()
 
     await page.reload()
     await page.getByRole('button', { name: 'Explore' }).click()
     await expect(visitedSwitch).not.toBeChecked()
     await expect(markerSwitch).not.toBeChecked()
+    await expect(pinSwitch).not.toBeChecked()
   })
 })
 

@@ -14,5 +14,6 @@ export function useVisitedRegions() {
     (id: string) => setIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id])),
     [setIds],
   )
-  return { visitedRegions, toggle }
+  const add = useCallback((id: string) => setIds((prev) => (prev.includes(id) ? prev : [...prev, id])), [setIds])
+  return { visitedRegions, toggle, add }
 }
