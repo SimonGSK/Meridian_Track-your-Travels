@@ -91,20 +91,6 @@ vi.mock('./games/games', async (importOriginal) => {
       (lastRoundGame.current = actual.newRoundGame(id, difficulty, () => 0.5, pool)),
   }
 })
-// The letter hunt is for "D": Denmark (on the fake globe) and Djibouti (not)
-vi.mock('./games/letterGame', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('./games/letterGame')>()
-  const { countries } = await import('./countries')
-  const byName = (name: string) => countries.find((c) => c.properties.name === name)!
-  return {
-    ...actual,
-    newLetterGame: (difficulty: import('./games/games').Difficulty) => ({
-      ...actual.newLetterGame(difficulty),
-      letter: 'D',
-      targets: [byName('Denmark'), byName('Djibouti')],
-    }),
-  }
-})
 const PLACE_OF: Record<string, number> = { Denmark: 100, France: 200, Brazil: 500, Japan: 600, Kenya: 700 }
 
 const at = (x: number) => ({ clientX: x, clientY: 0 })
@@ -646,20 +632,31 @@ describe('App', () => {
       })
 
       it('plays again at the same difficulty', async () => {
-        await startGame(/Letter hunt/, 'Hard')
-        await userEvent.click(screen.getByRole('button', { name: 'Give up and show the rest' }))
+        await startGame(/Shape quiz/, 'Medium')
+        for (const [i, round] of lastRoundGame.current!.rounds.entries()) {
+          await userEvent.type(screen.getByRole('textbox', { name: 'Your answer' }), `${round.target.properties.name}{Enter}`)
+          await userEvent.click(screen.getByRole('button', { name: i < 4 ? 'Next' : 'See results' }))
+        }
         await userEvent.click(screen.getByRole('button', { name: 'Play again' }))
-        expect(screen.getByText(/Letter hunt · Hard/)).toBeInTheDocument()
+        expect(screen.getByText('Shape quiz · Medium')).toBeInTheDocument()
+        expect(screen.getByText('Round 1 of 5')).toBeInTheDocument()
       })
     })
 
     describe('letter hunt', () => {
+      const startLetter = async (letter: string) => {
+        render(<App />)
+        await userEvent.click(screen.getByRole('button', { name: 'Games' }))
+        await userEvent.click(screen.getByRole('button', { name: /Letter hunt/ }))
+        await userEvent.click(screen.getByRole('button', { name: new RegExp(`^${letter}:`) }))
+      }
+
       it('colors countries found and wrong clicks, and shows what was missed', async () => {
-        await startGame(/Letter hunt/)
-        expect(screen.getByText('Found 0 of 2')).toBeInTheDocument()
+        await startLetter('D')
+        expect(screen.getByText('Found 0 of 5')).toBeInTheDocument()
 
         click(PLACE_OF.Denmark)
-        expect(screen.getByText('Found 1 of 2')).toBeInTheDocument()
+        expect(screen.getByText('Found 1 of 5')).toBeInTheDocument()
         click(PLACE_OF.France)
         expect(feedback()).toHaveTextContent("France doesn't start with D.")
         expect(painted()).toEqual({ Denmark: DEFAULT_THEME.correct, France: DEFAULT_THEME.wrong })
@@ -667,9 +664,18 @@ describe('App', () => {
 
         await userEvent.click(screen.getByRole('button', { name: 'Give up and show the rest' }))
         expect(screen.getByText(/Missed/)).toHaveTextContent('Djibouti')
-        expect(painted()).toEqual({ Denmark: DEFAULT_THEME.correct, Djibouti: DEFAULT_THEME.selected })
+        const colors = painted()
+        expect(colors.Denmark).toBe(DEFAULT_THEME.correct)
+        expect(colors.Djibouti).toBe(DEFAULT_THEME.selected)
       })
 
+      it('saves the best for the letter and shows it on its tile', async () => {
+        await startLetter('D')
+        click(PLACE_OF.Denmark)
+        await userEvent.click(screen.getByRole('button', { name: 'Give up and show the rest' }))
+        await userEvent.click(screen.getByRole('button', { name: 'Another letter' }))
+        expect(screen.getByRole('button', { name: /^D:/ })).toHaveTextContent('D1/5')
+      })
     })
 
     it('ends the game when the panel is closed', async () => {

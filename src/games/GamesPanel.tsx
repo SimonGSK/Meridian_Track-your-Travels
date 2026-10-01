@@ -14,16 +14,18 @@ import {
   maxScore,
   type Difficulty,
   type GameId,
+  type RoundGameId,
   type RoundGameState,
 } from './games'
-import { missing, type LetterGameState } from './letterGame'
-import { bestKey, gameScore, type BestScores, type GameState } from './useGame'
+import { countriesStartingWith, lettersOf, missing, randomLetter, type LetterGameState } from './letterGame'
+import { bestKey, gameScore, letterKey, type BestScores, type GameState } from './useGame'
 
 type Props = {
   game: GameState | null
   best: BestScores
   previousBest: number | undefined
-  onStart: (id: GameId, difficulty: Difficulty) => void
+  onStart: (id: RoundGameId, difficulty: Difficulty) => void
+  onStartLetter: (letter: string) => void
   onPick: (country: CountryFeature, alias?: string | null) => void
   onNext: () => void
   onQuit: () => void
@@ -31,25 +33,29 @@ type Props = {
 
 const titleOf = (id: GameId) => GAMES.find((g) => g.id === id)!.title
 const difficultyLabel = (d: Difficulty) => DIFFICULTIES.find((x) => x.id === d)!.label
-function formatScore(id: GameId, score: number) {
-  if (id === 'letter') return `${score}%`
-  return id === 'find' ? `${score} / ${ROUNDS * MAX_TRIES} points` : `${score} / ${ROUNDS}`
-}
+const formatScore = (id: GameId, score: number) =>
+  id === 'find' ? `${score} / ${ROUNDS * MAX_TRIES} points` : `${score} / ${ROUNDS}`
+
+type Chosen = { chosen: GameId | null; setChosen: (id: GameId | null) => void }
 
 export default function GamesPanel(props: Props) {
   const { game } = props
-  if (!game) return <GameList {...props} />
-  if (game.finished) return <Results {...props} game={game} />
+  // Which game's setup is open; kept while playing so "Another letter" can return to it
+  const [chosen, setChosen] = useState<GameId | null>(null)
+  const choice = { chosen, setChosen }
+  if (!game) return <GameList {...props} {...choice} />
+  if (game.finished) return <Results {...props} {...choice} game={game} />
   return game.kind === 'letter' ? <LetterHunt {...props} game={game} /> : <RoundPlay {...props} game={game} />
 }
 
-/** All games; picking one asks for the difficulty. */
-function GameList({ best, onStart }: Props) {
-  const [chosen, setChosen] = useState<GameId | null>(null)
-  if (chosen) return <DifficultyChoice id={chosen} best={best} onStart={onStart} onBack={() => setChosen(null)} />
+/** All games; picking one asks for the difficulty, or for the letter hunt the letter. */
+function GameList({ best, onStart, onStartLetter, chosen, setChosen }: Props & Chosen) {
+  const back = () => setChosen(null)
+  if (chosen === 'letter') return <LetterChoice best={best} onStartLetter={onStartLetter} onBack={back} />
+  if (chosen) return <DifficultyChoice id={chosen} best={best} onStart={onStart} onBack={back} />
   return (
     <>
-      <p className="muted">Test your geography. Each game has {ROUNDS} rounds, at the difficulty you choose.</p>
+      <p className="muted">Test your geography. Pick a game, then how hard you want it.</p>
       <ul className="game-list">
         {GAMES.map((g) => (
           <li key={g.id}>
@@ -65,7 +71,7 @@ function GameList({ best, onStart }: Props) {
 }
 
 function DifficultyChoice({ id, best, onStart, onBack }: {
-  id: GameId
+  id: RoundGameId
   best: BestScores
   onStart: Props['onStart']
   onBack: () => void
@@ -280,10 +286,14 @@ function verdict(share: number) {
   return 'Keep exploring the globe and try again!'
 }
 
-function Results({ game, previousBest, onStart, onQuit }: Props & { game: GameState }) {
+function Results({ game, previousBest, onStart, onStartLetter, onQuit, setChosen }: Props & Chosen & { game: GameState }) {
   const score = gameScore(game)
   const newBest = previousBest !== undefined && score > previousBest
-  const share = game.kind === 'letter' ? score / 100 : score / maxScore(game)
+  const share = game.kind === 'letter' ? score / game.targets.length : score / maxScore(game)
+  const backTo = (id: GameId | null) => {
+    setChosen(id)
+    onQuit()
+  }
 
   return (
     <div className="game game-results">
@@ -311,12 +321,71 @@ function Results({ game, previousBest, onStart, onQuit }: Props & { game: GameSt
       )}
       <p>{verdict(share)}</p>
       {newBest && <p className="new-best">New best score!</p>}
-      <button type="button" className="primary-button" onClick={() => onStart(game.id, game.difficulty)}>
+      <button
+        type="button"
+        className="primary-button"
+        onClick={() => (game.kind === 'letter' ? onStartLetter(game.letter) : onStart(game.id, game.difficulty))}
+      >
         Play again
       </button>
-      <button type="button" className="text-button" onClick={onQuit}>
+      {game.kind === 'letter' && (
+        <button type="button" className="primary-button secondary" onClick={() => backTo('letter')}>
+          Another letter
+        </button>
+      )}
+      <button type="button" className="text-button" onClick={() => backTo(null)}>
         All games
       </button>
+    </div>
+  )
+}
+
+/** Every letter, grouped by difficulty, with the best score for each. */
+function LetterChoice({ best, onStartLetter, onBack }: {
+  best: BestScores
+  onStartLetter: (letter: string) => void
+  onBack: () => void
+}) {
+  return (
+    <div className="game">
+      <button type="button" className="text-button" onClick={onBack}>
+        ← All games
+      </button>
+      <h3 className="game-heading">{titleOf('letter')}</h3>
+      <p className="muted">
+        Click every country starting with a letter. Letters are grouped by how many countries start with them, and
+        how well known those are. Pick one, or a random one.
+      </p>
+      {DIFFICULTIES.map((d) => (
+        <section key={d.id} className="letter-group" aria-labelledby={`letters-${d.id}`}>
+          <div className="letter-group-header">
+            <h4 id={`letters-${d.id}`}>{d.label}</h4>
+            <button type="button" className="text-button" onClick={() => onStartLetter(randomLetter(d.id))}>
+              Random {d.label.toLowerCase()} letter
+            </button>
+          </div>
+          <ul className="letter-grid">
+            {lettersOf(d.id).map((letter) => {
+              const total = countriesStartingWith(letter).length
+              const score = best[letterKey(letter)]
+              const complete = score === total
+              return (
+                <li key={letter}>
+                  <button
+                    type="button"
+                    className={`letter-tile${complete ? ' complete' : ''}`}
+                    onClick={() => onStartLetter(letter)}
+                    aria-label={`${letter}: ${total} countries${score === undefined ? '' : `, best ${score} of ${total}`}`}
+                  >
+                    <span className="letter-tile-letter">{letter}</span>
+                    <span className="letter-tile-best">{score === undefined ? `–/${total}` : `${score}/${total}`}</span>
+                  </button>
+                </li>
+              )
+            })}
+          </ul>
+        </section>
+      ))}
     </div>
   )
 }

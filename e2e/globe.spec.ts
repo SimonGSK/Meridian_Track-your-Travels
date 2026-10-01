@@ -249,8 +249,8 @@ test.describe('games', () => {
     await openGlobe(page)
     await page.getByRole('button', { name: 'Games' }).click()
     await page.getByRole('button', { name: /Letter hunt/ }).click()
-    await page.getByRole('button', { name: /^Easy/ }).click()
-    await expect(page.getByText(/^Found 0 of \d+$/)).toBeVisible()
+    await page.getByRole('button', { name: /^K:/ }).click()
+    await expect(page.getByText('Found 0 of 6')).toBeVisible()
 
     const box = (await page.locator('.globe canvas').boundingBox())!
     await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2)
@@ -258,6 +258,8 @@ test.describe('games', () => {
 
     await page.getByRole('button', { name: 'Give up and show the rest' }).click()
     await expect(page.getByRole('button', { name: 'Play again' })).toBeVisible()
+    await page.getByRole('button', { name: 'Another letter' }).click()
+    await expect(page.getByRole('button', { name: /^K:/ })).toContainText(/K\d\/6/)
   })
 
   test('shape quiz on medium: type an answer', async ({ page }) => {

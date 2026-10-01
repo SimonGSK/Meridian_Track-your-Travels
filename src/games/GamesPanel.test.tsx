@@ -1,9 +1,10 @@
 import { describe, expect, it, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import GamesPanel from './GamesPanel'
 import { answer, newRoundGame, next, type Difficulty, type RoundGameId, type RoundGameState } from './games'
 import { giveUp, newLetterGame, pickCountry, type LetterGameState } from './letterGame'
+import type { GameState } from './useGame'
 import { countries } from '../countries'
 
 const byName = (name: string) => countries.find((c) => c.properties.name === name)!
@@ -16,6 +17,7 @@ function setup(overrides: Partial<Parameters<typeof GamesPanel>[0]> = {}) {
     best: {},
     previousBest: undefined,
     onStart: vi.fn(),
+    onStartLetter: vi.fn(),
     onPick: vi.fn(),
     onNext: vi.fn(),
     onQuit: vi.fn(),
@@ -51,16 +53,34 @@ describe('GamesPanel: choosing a game', () => {
   })
 
   it('shows the best score for each difficulty', async () => {
-    setup({ best: { 'flags:hard': 7, 'find-points:easy': 24, 'letter:medium': 85 } })
+    setup({ best: { 'flags:hard': 7, 'find-points:easy': 24 } })
     await userEvent.click(screen.getByRole('button', { name: /Flag quiz/ }))
     expect(screen.getByRole('button', { name: /^Hard/ })).toHaveTextContent('Best: 7 / 10')
     expect(screen.getByRole('button', { name: /^Easy/ })).not.toHaveTextContent('Best')
     await userEvent.click(screen.getByRole('button', { name: '← All games' }))
     await userEvent.click(screen.getByRole('button', { name: /Find the country/ }))
     expect(screen.getByRole('button', { name: /^Easy/ })).toHaveTextContent('Best: 24 / 30 points')
-    await userEvent.click(screen.getByRole('button', { name: '← All games' }))
+  })
+
+  it('lists the letters for the letter hunt by difficulty, each with its best score', async () => {
+    setup({ best: { 'letter:K': 4, 'letter:Z': 2 } })
     await userEvent.click(screen.getByRole('button', { name: /Letter hunt/ }))
-    expect(screen.getByRole('button', { name: /^Medium/ })).toHaveTextContent('Best: 85%')
+    const easy = within(screen.getByRole('region', { name: 'Easy' }))
+    expect(easy.getByRole('button', { name: 'K: 6 countries, best 4 of 6' })).toHaveTextContent('K4/6')
+    expect(easy.getByRole('button', { name: 'Z: 2 countries, best 2 of 2' })).toHaveClass('complete')
+    expect(easy.getByRole('button', { name: 'D: 5 countries' })).toHaveTextContent('D–/5')
+    const hard = within(screen.getByRole('region', { name: 'Hard' }))
+    expect(hard.getAllByRole('button', { name: /countries/ }).map((b) => b.textContent![0])).toEqual(['B', 'C', 'M', 'S'])
+  })
+
+  it('starts the letter hunt with any letter, or a random one', async () => {
+    const onStartLetter = vi.fn()
+    setup({ onStartLetter })
+    await userEvent.click(screen.getByRole('button', { name: /Letter hunt/ }))
+    await userEvent.click(screen.getByRole('button', { name: /^K:/ }))
+    expect(onStartLetter).toHaveBeenLastCalledWith('K')
+    await userEvent.click(screen.getByRole('button', { name: 'Random hard letter' }))
+    expect(['B', 'C', 'M', 'S']).toContain(onStartLetter.mock.lastCall![0])
   })
 })
 
@@ -182,20 +202,14 @@ describe('GamesPanel: rounds', () => {
 })
 
 describe('GamesPanel: letter hunt', () => {
-  const kGame = (): LetterGameState => {
-    for (let seed = 1; seed < 500; seed++) {
-      let s = seed
-      const g = newLetterGame('medium', () => ((s = (s * 16807) % 2147483647) - 1) / 2147483646)
-      if (g.letter === 'K') return g
-    }
-    throw new Error('no K')
-  }
+  const kGame = (): LetterGameState => newLetterGame('K')
 
   it('shows the letter and how many are left', () => {
     const game = kGame()
     setup({ game })
     expect(screen.getByLabelText('the letter K')).toHaveTextContent('K')
-    expect(screen.getByText(`Found 0 of ${game.targets.length}`)).toBeInTheDocument()
+    expect(screen.getByText('Found 0 of 6')).toBeInTheDocument()
+    expect(screen.getByText(/Letter hunt · Easy/)).toBeInTheDocument()
   })
 
   it('lists what was found and explains mistakes', () => {
@@ -207,11 +221,8 @@ describe('GamesPanel: letter hunt', () => {
   })
 
   it('says when a territory is clicked', () => {
-    const g = newLetterGame('hard', () => 0)
-    const territory = countries.find((c) => c.properties.kind === 'territory' && c.properties.name.startsWith(g.letter))
-    if (!territory) return
-    setup({ game: pickCountry(g, territory) })
-    expect(screen.getByRole('status')).toHaveTextContent('is a territory, not a country')
+    setup({ game: pickCountry(newLetterGame('G'), byName('Greenland')) })
+    expect(screen.getByRole('status')).toHaveTextContent('Greenland is a territory, not a country')
   })
 
   it('can be given up', async () => {
@@ -220,10 +231,39 @@ describe('GamesPanel: letter hunt', () => {
     expect(onNext).toHaveBeenCalled()
   })
 
-  it('shows what was missed on the results', () => {
+  it('shows what was missed on the results, and offers the same or another letter', async () => {
     const game = giveUp(pickCountry(kGame(), byName('Kenya')))
-    setup({ game })
-    expect(screen.getByText(`1 / ${game.targets.length}`)).toBeInTheDocument()
-    expect(screen.getByText(/Missed/)).toHaveTextContent('Kazakhstan')
+    const { onStartLetter, onQuit } = setup({ game, previousBest: 0 })
+    expect(screen.getByText('1 / 6')).toBeInTheDocument()
+    expect(screen.getByText(/Missed/)).toHaveTextContent('Kazakhstan, Kiribati, Kosovo, Kuwait, Kyrgyzstan')
+    expect(screen.getByText('New best score!')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Play again' }))
+    expect(onStartLetter).toHaveBeenCalledWith('K')
+    await userEvent.click(screen.getByRole('button', { name: 'Another letter' }))
+    expect(onQuit).toHaveBeenCalled()
+  })
+
+  it('goes back to the letters after "Another letter", and to all games after "All games"', async () => {
+    const props = {
+      game: giveUp(kGame()) as GameState | null,
+      best: {},
+      previousBest: undefined,
+      onStart: vi.fn(),
+      onStartLetter: vi.fn(),
+      onPick: vi.fn(),
+      onNext: vi.fn(),
+      onQuit: vi.fn(),
+    }
+    const { rerender } = render(<GamesPanel {...props} />)
+    await userEvent.click(screen.getByRole('button', { name: 'Another letter' }))
+    // The app then clears the game
+    rerender(<GamesPanel {...props} game={null} />)
+    expect(screen.getByRole('heading', { name: 'Letter hunt' })).toBeInTheDocument()
+
+    rerender(<GamesPanel {...props} game={giveUp(kGame())} />)
+    await userEvent.click(screen.getByRole('button', { name: 'All games' }))
+    rerender(<GamesPanel {...props} game={null} />)
+    expect(screen.queryByRole('heading', { name: 'Letter hunt' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Shape quiz/ })).toBeInTheDocument()
   })
 })

@@ -1,15 +1,23 @@
-import type { CountryFeature } from '../countries'
-import { gamePool, shuffle, type Difficulty } from './games'
+import { countries, type CountryFeature } from '../countries'
+import { shuffle, type Difficulty } from './games'
 
-/** Letters need at least this many countries to be worth a round */
-const MIN_TARGETS = 3
+/**
+ * Each letter belongs to one difficulty, by how many countries start with it
+ * and how well known they are. O, Q and Y are left out: only Oman, Qatar
+ * and Yemen start with them, so there's nothing to hunt.
+ */
+export const LETTER_DIFFICULTY: Record<string, Difficulty> = {
+  D: 'easy', F: 'easy', H: 'easy', J: 'easy', K: 'easy', R: 'easy', U: 'easy', V: 'easy', Z: 'easy',
+  A: 'medium', E: 'medium', G: 'medium', I: 'medium', L: 'medium', N: 'medium', P: 'medium', T: 'medium',
+  B: 'hard', C: 'hard', M: 'hard', S: 'hard',
+}
 
 export type LetterGameState = {
   kind: 'letter'
   id: 'letter'
   difficulty: Difficulty
   letter: string
-  /** Countries to find: those starting with the letter at this difficulty, plus any others found */
+  /** Every country starting with the letter */
   targets: CountryFeature[]
   found: CountryFeature[]
   mistakes: number
@@ -21,28 +29,34 @@ export type LetterGameState = {
 
 type Random = () => number
 
-export const startsWith = (country: CountryFeature, letter: string) =>
-  country.properties.name.normalize('NFD').toUpperCase().startsWith(letter)
+export const firstLetter = (country: CountryFeature) => country.properties.name.normalize('NFD')[0].toUpperCase()
 
-/** Letters with enough countries at a difficulty, and those countries. */
-export function lettersFor(difficulty: Difficulty) {
-  const byLetter = new Map<string, CountryFeature[]>()
-  for (const country of gamePool('letter', difficulty)) {
-    const letter = country.properties.name.normalize('NFD')[0].toUpperCase()
-    byLetter.set(letter, [...(byLetter.get(letter) ?? []), country])
-  }
-  return new Map([...byLetter].filter(([, list]) => list.length >= MIN_TARGETS))
-}
+export const startsWith = (country: CountryFeature, letter: string) => firstLetter(country) === letter
 
-export function newLetterGame(difficulty: Difficulty, random: Random = Math.random): LetterGameState {
-  const letters = lettersFor(difficulty)
-  const [letter] = shuffle([...letters.keys()], random)
+/** The countries starting with a letter, alphabetically */
+export const countriesStartingWith = (letter: string) =>
+  countries
+    .filter((c) => c.properties.kind === 'country' && startsWith(c, letter))
+    .sort((a, b) => a.properties.name.localeCompare(b.properties.name))
+
+/** The letters of a difficulty, alphabetically */
+export const lettersOf = (difficulty: Difficulty) =>
+  Object.keys(LETTER_DIFFICULTY)
+    .filter((letter) => LETTER_DIFFICULTY[letter] === difficulty)
+    .sort()
+
+export const randomLetter = (difficulty: Difficulty, random: Random = Math.random) =>
+  shuffle(lettersOf(difficulty), random)[0]
+
+export function newLetterGame(letter: string): LetterGameState {
+  const difficulty = LETTER_DIFFICULTY[letter]
+  if (!difficulty) throw new Error(`No letter hunt for ${letter}`)
   return {
     kind: 'letter',
     id: 'letter',
     difficulty,
     letter,
-    targets: letters.get(letter)!,
+    targets: countriesStartingWith(letter),
     found: [],
     mistakes: 0,
     last: null,
@@ -51,10 +65,7 @@ export function newLetterGame(difficulty: Difficulty, random: Random = Math.rand
   }
 }
 
-/**
- * A click on a country. Any country starting with the letter counts, even
- * one too small to be expected at this difficulty.
- */
+/** A click on a country: found if it starts with the letter, a mistake if not. */
 export function pickCountry(game: LetterGameState, country: CountryFeature): LetterGameState {
   if (game.finished) return game
   if (game.found.includes(country)) return { ...game, last: { country, result: 'again' } }
@@ -65,15 +76,11 @@ export function pickCountry(game: LetterGameState, country: CountryFeature): Let
     return { ...game, mistakes: game.mistakes + 1, last: { country, result: 'territory' } }
   }
   const found = [...game.found, country]
-  const targets = game.targets.includes(country) ? game.targets : [...game.targets, country]
-  return { ...game, found, targets, last: { country, result: 'found' }, finished: found.length === targets.length }
+  return { ...game, found, last: { country, result: 'found' }, finished: found.length === game.targets.length }
 }
 
 export function giveUp(game: LetterGameState): LetterGameState {
   return game.finished ? game : { ...game, finished: true, gaveUp: true }
 }
-
-/** Share of the countries found, as a whole percentage */
-export const letterScore = (game: LetterGameState) => Math.round((game.found.length / game.targets.length) * 100)
 
 export const missing = (game: LetterGameState) => game.targets.filter((c) => !game.found.includes(c))

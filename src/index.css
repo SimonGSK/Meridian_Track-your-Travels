@@ -890,6 +890,66 @@ body,
   font-weight: 700;
 }
 
+/* Letter hunt: choosing a letter */
+
+.letter-group h4 {
+  margin: 0;
+  font-size: 14px;
+}
+
+.letter-group-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin: 10px 0 8px;
+}
+
+.letter-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(52px, 1fr));
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.letter-tile {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 6px 0 5px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface-raised);
+  cursor: pointer;
+}
+
+.letter-tile:hover {
+  background: var(--surface-hover);
+  border-color: rgba(95, 179, 255, 0.5);
+}
+
+.letter-tile.complete {
+  border-color: var(--good);
+}
+
+.letter-tile-letter {
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.letter-tile-best {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.letter-tile.complete .letter-tile-best {
+  color: var(--good);
+}
+
 /* Game setup and answers */
 
 .side-panel-body .game-heading {

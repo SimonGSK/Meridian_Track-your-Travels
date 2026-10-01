@@ -28,8 +28,8 @@ describe('useGame', () => {
     const { result } = renderHook(() => useGame())
     act(() => result.current.start('shape', 'medium'))
     expect(result.current.game).toMatchObject({ kind: 'rounds', id: 'shape', difficulty: 'medium' })
-    act(() => result.current.start('letter', 'hard'))
-    expect(result.current.game).toMatchObject({ kind: 'letter', difficulty: 'hard' })
+    act(() => result.current.startLetter('S'))
+    expect(result.current.game).toMatchObject({ kind: 'letter', letter: 'S', difficulty: 'hard' })
   })
 
   it('keeps "find the country" scores (points) apart from the old 1-per-round ones', () => {
@@ -68,23 +68,24 @@ describe('useGame', () => {
     expect(result.current.best).toEqual({ 'name:easy': 6 })
   })
 
-  it('gives up the letter hunt, saving the share found', () => {
+  it('gives up the letter hunt, saving the countries found for that letter', () => {
     const { result } = renderHook(() => useGame())
-    act(() => result.current.start('letter', 'easy'))
+    act(() => result.current.startLetter('K'))
     const game = result.current.game as LetterGameState
     act(() => result.current.pick(game.targets[0]))
     act(() => result.current.advance())
-    const after = result.current.game as LetterGameState
-    expect(after).toMatchObject({ finished: true, gaveUp: true })
-    expect(result.current.best['letter:easy']).toBe(Math.round((1 / after.targets.length) * 100))
+    expect(result.current.game).toMatchObject({ finished: true, gaveUp: true })
+    expect(result.current.best['letter:K']).toBe(1)
   })
 
-  it('finishes the letter hunt when everything is found, saving 100%', () => {
+  it('finishes the letter hunt when everything is found, keeping the best per letter', () => {
     const { result } = renderHook(() => useGame())
-    act(() => result.current.start('letter', 'easy'))
+    act(() => result.current.startLetter('Z'))
     for (const country of (result.current.game as LetterGameState).targets) act(() => result.current.pick(country))
     expect(result.current.game?.finished).toBe(true)
-    expect(result.current.best['letter:easy']).toBe(100)
+    expect(result.current.best['letter:Z']).toBe(2)
+    act(() => result.current.startLetter('Z'))
+    expect(result.current.previousBest).toBe(2)
   })
 
   it('quits', () => {

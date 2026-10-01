@@ -2,7 +2,7 @@ import { useCallback, useState } from 'react'
 import type { CountryFeature } from '../countries'
 import { usePersistentState } from '../storage'
 import { answer, newRoundGame, next, type Difficulty, type GameId, type RoundGameState } from './games'
-import { giveUp, letterScore, newLetterGame, pickCountry, type LetterGameState } from './letterGame'
+import { giveUp, newLetterGame, pickCountry, type LetterGameState } from './letterGame'
 
 export type GameState = RoundGameState | LetterGameState
 
@@ -13,6 +13,9 @@ export type BestScores = Record<string, number>
 // "Find the country" used to score 1 per round; its points-based scores are kept apart
 export const bestKey = (id: GameId, difficulty: Difficulty) =>
   id === 'find' ? `find-points:${difficulty}` : `${id}:${difficulty}`
+/** The letter hunt keeps a best score (countries found) per letter */
+export const letterKey = (letter: string) => `letter:${letter}`
+const keyOf = (game: GameState) => (game.kind === 'letter' ? letterKey(game.letter) : bestKey(game.id, game.difficulty))
 
 const isBestScores = (value: unknown): value is BestScores =>
   typeof value === 'object' &&
@@ -20,8 +23,8 @@ const isBestScores = (value: unknown): value is BestScores =>
   !Array.isArray(value) &&
   Object.values(value).every((n) => typeof n === 'number')
 
-/** Points, or for the letter hunt the share of countries found (%) */
-export const gameScore = (game: GameState) => (game.kind === 'letter' ? letterScore(game) : game.score)
+/** Points, or for the letter hunt the number of countries found */
+export const gameScore = (game: GameState) => (game.kind === 'letter' ? game.found.length : game.score)
 
 /** The game being played, if any, plus best scores saved in this browser. */
 export function useGame() {
@@ -34,16 +37,24 @@ export function useGame() {
     (after: GameState) => {
       setGame(after)
       if (!after.finished || game?.finished) return
-      const key = bestKey(after.id, after.difficulty)
+      const key = keyOf(after)
       if (gameScore(after) > (best[key] ?? -1)) setBest({ ...best, [key]: gameScore(after) })
     },
     [game, best, setBest],
   )
 
   const start = useCallback(
-    (id: GameId, difficulty: Difficulty) => {
+    (id: Exclude<GameId, 'letter'>, difficulty: Difficulty) => {
       setPreviousBest(best[bestKey(id, difficulty)])
-      setGame(id === 'letter' ? newLetterGame(difficulty) : newRoundGame(id, difficulty))
+      setGame(newRoundGame(id, difficulty))
+    },
+    [best],
+  )
+
+  const startLetter = useCallback(
+    (letter: string) => {
+      setPreviousBest(best[letterKey(letter)])
+      setGame(newLetterGame(letter))
     },
     [best],
   )
@@ -63,5 +74,5 @@ export function useGame() {
 
   const quit = useCallback(() => setGame(null), [])
 
-  return { game, best, previousBest, start, pick, advance, quit }
+  return { game, best, previousBest, start, startLetter, pick, advance, quit }
 }

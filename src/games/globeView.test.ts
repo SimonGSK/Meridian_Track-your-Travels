@@ -84,14 +84,7 @@ describe('round games', () => {
 })
 
 describe('letter hunt', () => {
-  const kGame = () => {
-    for (let seed = 1; seed < 500; seed++) {
-      let s = seed
-      const g = newLetterGame('medium', () => ((s = (s * 16807) % 2147483647) - 1) / 2147483646)
-      if (g.letter === 'K') return g
-    }
-    throw new Error('no K')
-  }
+  const kGame = () => newLetterGame('K')
 
   it('is answered on the globe, starting zoomed out', () => {
     expect(globeAnswers(kGame())).toBe(true)
