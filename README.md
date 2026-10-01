@@ -1,6 +1,6 @@
 # Countries of the World
 
-An interactive 3D globe: spin it, hover a country to see its name and flag, click it to fly there and open its info panel.
+An interactive 3D globe: spin it, hover a country to see its name and flag, click it to fly there and see its capital, population and area.
 
 The menu on the left (a tab bar on phones) has:
 
@@ -16,7 +16,7 @@ The menu on the left (a tab bar on phones) has:
   - *Name that country*: a country lights up on the globe; which one is it?
   - *Shape quiz*: name the country from its outline.
 
-  Games played in rounds are Easy (big countries, four answers to pick from), Medium (all but the smallest) or Hard (all 197). On Medium and Hard you type answers with no suggestions; any known spelling counts ("East Timor", "Burma"), and the answer shows the name used today.
+  Games played in rounds are Easy (big countries, four answers to pick from), Medium (all but the smallest), Hard (all 197) or All countries (every one of the 197, one after another; stop whenever you like). Beyond Easy you type answers with no suggestions; any known spelling counts ("East Timor", "Burma", "Ceylon"), punctuation and spacing don't matter, and the answer shows the name used today. Tiny countries that are answers get a dot so you can see them.
 - **Design**: switch the globe between Classic, Political (neighbors always in different colors), Night, Vintage and Minimal.
 
 The globe spins on its own until you touch it, and again once it's been left alone for 30 seconds. Tiny countries and islands get a ring marker, and clicks just beside a small island still count.
@@ -48,6 +48,7 @@ Then open http://localhost:5173.
 | `npm run test:e2e` | End-to-end tests against the real WebGL globe (Playwright) |
 | `npm run data:extra` | Regenerate `src/data/extra-countries.json` (places too small for the 1:50m map) |
 | `npm run data:regions` | Regenerate `src/data/regions.json` (states and provinces) |
+| `npm run data:facts` | Download capitals, population and area from the World Bank into `src/data/country-facts.json` |
 
 The first time you run the end-to-end tests, install the browser:
 
@@ -71,6 +72,7 @@ src/
     westernSahara.ts   shows all of Western Sahara (see below)
     extra-countries.json  Tuvalu and Gibraltar, from the 1:10m map
     regions.ts         states and provinces: names, lookup, loading (shapes in regions.json)
+    facts.ts           capital, population and area (data in country-facts.json)
   storage.ts           state saved in the browser
   nav/                 the menu and the side panel
   explore/             tips and settings
@@ -121,6 +123,8 @@ Some corrections to the map data:
 - **Western Sahara.** Natural Earth draws only the inland strip east of the Moroccan sand wall as Western Sahara and counts the coast as Morocco. We show the whole territory, bordering Morocco along 27°40′N, as the UN and most maps do.
 - **Tuvalu and Gibraltar** are too small for the 1:50m map and are copied from the 1:10m map.
 - **The Maldives** are in the map but are a few tiny atolls, so like other small places they get a marker.
+
+Capitals, population (2024) and total area come from the [World Bank's open data](https://data.worldbank.org/) (CC BY 4.0). Places it doesn't cover (Taiwan, Vatican City, Western Sahara, Somaliland, Northern Cyprus and several territories) use recent censuses and estimates from `src/data/country-facts-extra.json`, marked as estimates in the app. Somalia's and Cyprus's figures include Somaliland and Northern Cyprus.
 
 States and provinces come from Natural Earth's 1:50m states and provinces, which covers the USA (50 states and D.C.), Canada, Australia and Brazil. They're copied out of [sane-topojson](https://github.com/etpinard/sane-topojson) (MIT) and load in the background after the globe. More countries would need Natural Earth's much larger 1:10m dataset.
 
