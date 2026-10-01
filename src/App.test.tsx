@@ -638,7 +638,7 @@ describe('App', () => {
       it('asks for typed answers on medium', async () => {
         await startGame(/Shape quiz/, 'Medium')
         const target = lastRoundGame.current!.rounds[0].target.properties.name
-        await userEvent.type(screen.getByRole('combobox'), `${target}{Enter}`)
+        await userEvent.type(screen.getByRole('textbox', { name: 'Your answer' }), `${target}{Enter}`)
         expect(feedback()).toHaveTextContent('Correct!')
         expect(painted()).toEqual({ [target]: DEFAULT_THEME.correct })
         const [lng, lat] = byName(target).properties.centroid

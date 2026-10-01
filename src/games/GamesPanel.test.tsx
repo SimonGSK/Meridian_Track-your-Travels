@@ -71,7 +71,7 @@ describe('GamesPanel: rounds', () => {
     expect(screen.getByText('Find this country on the globe')).toBeInTheDocument()
     expect(screen.getByText(g.rounds[0].target.properties.name)).toBeInTheDocument()
     expect(screen.getByText('Round 1 of 5')).toBeInTheDocument()
-    expect(screen.queryByRole('combobox')).not.toBeInTheDocument()
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
   })
 
   it('shows the flag to identify, with four choices on easy', async () => {
@@ -95,7 +95,7 @@ describe('GamesPanel: rounds', () => {
   it('asks for typed answers on medium and hard', async () => {
     const { onPick } = setup({ game: roundGame('shape', 'medium') })
     expect(screen.queryAllByRole('button', { name: /^(Denmark|France|Brazil|Japan|Kenya)$/ })).toHaveLength(0)
-    await userEvent.type(screen.getByRole('combobox'), 'Swaziland{Enter}')
+    await userEvent.type(screen.getByRole('textbox', { name: 'Your answer' }), 'Swaziland{Enter}')
     expect(onPick).toHaveBeenCalledWith(byName('Eswatini'), 'Swaziland')
   })
 

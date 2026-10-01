@@ -948,26 +948,6 @@ body,
   color: var(--text-muted);
 }
 
-.suggestions {
-  margin: 6px 0 0;
-  padding: 4px;
-  list-style: none;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: rgba(8, 16, 30, 0.95);
-}
-
-.suggestions li {
-  padding: 8px 10px;
-  border-radius: 7px;
-  cursor: pointer;
-}
-
-.suggestions li:hover,
-.suggestions li[aria-selected='true'] {
-  background: rgba(95, 179, 255, 0.18);
-}
-
 .input-hint {
   margin: 6px 0 0;
   font-size: 13px;

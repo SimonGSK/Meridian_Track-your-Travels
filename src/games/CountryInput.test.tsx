@@ -6,7 +6,7 @@ import CountryInput from './CountryInput'
 function setup() {
   const onAnswer = vi.fn()
   render(<CountryInput onAnswer={onAnswer} />)
-  const input = screen.getByRole('combobox', { name: 'Your answer' })
+  const input = screen.getByRole('textbox', { name: 'Your answer' })
   const answered = () => onAnswer.mock.calls.map(([country, alias]) => [country.properties.name, alias])
   return { input, answered }
 }
@@ -17,57 +17,32 @@ describe('CountryInput', () => {
     expect(input).toHaveFocus()
   })
 
-  it('suggests countries as you type', async () => {
+  it('suggests nothing while typing, so it gives nothing away', async () => {
     const { input } = setup()
     await userEvent.type(input, 'nor')
-    const options = screen.getAllByRole('option').map((o) => o.textContent)
-    expect(options).toContain('Norway')
-    expect(options).toContain('North Korea')
-    expect(input).toHaveAttribute('aria-expanded', 'true')
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument()
+    expect(screen.queryByRole('option')).not.toBeInTheDocument()
+    expect(screen.queryByText('Norway')).not.toBeInTheDocument()
   })
 
-  it('does not suggest territories', async () => {
-    const { input } = setup()
-    await userEvent.type(input, 'greenl')
-    expect(screen.queryAllByRole('option')).toHaveLength(0)
-  })
-
-  it('answers with a suggestion clicked', async () => {
+  it('answers with the name typed, on Enter, and clears the box', async () => {
     const { input, answered } = setup()
-    await userEvent.type(input, 'norw')
-    await userEvent.click(screen.getByRole('option', { name: 'Norway' }))
+    await userEvent.type(input, 'Norway{Enter}')
     expect(answered()).toEqual([['Norway', null]])
     expect(input).toHaveValue('')
   })
 
-  it('answers with a suggestion chosen with the arrow keys', async () => {
+  it('needs the whole name', async () => {
     const { input, answered } = setup()
-    await userEvent.type(input, 'nor{ArrowDown}{ArrowDown}')
-    const second = screen.getAllByRole('option')[1]
-    expect(second).toHaveAttribute('aria-selected', 'true')
-    expect(input).toHaveAttribute('aria-activedescendant', second.id)
-    await userEvent.keyboard('{Enter}')
-    expect(answered()[0][0]).toBe(second.textContent)
+    await userEvent.type(input, 'denm{Enter}')
+    expect(answered()).toEqual([])
+    expect(screen.getByRole('alert')).toHaveTextContent('No country called “denm”')
   })
 
-  it('moves back up the suggestions, and off them, with ArrowUp', async () => {
-    const { input } = setup()
-    await userEvent.type(input, 'nor{ArrowDown}{ArrowDown}{ArrowUp}')
-    expect(screen.getAllByRole('option')[0]).toHaveAttribute('aria-selected', 'true')
-    await userEvent.keyboard('{ArrowUp}')
-    expect(input).not.toHaveAttribute('aria-activedescendant')
-  })
-
-  it('takes an exact name on Enter, even when another suggestion comes first', async () => {
+  it('tells Niger from Nigeria', async () => {
     const { input, answered } = setup()
     await userEvent.type(input, 'niger{Enter}')
     expect(answered()).toEqual([['Niger', null]])
-  })
-
-  it('takes the top suggestion for a partial name on Enter', async () => {
-    const { input, answered } = setup()
-    await userEvent.type(input, 'denm{Enter}')
-    expect(answered()).toEqual([['Denmark', null]])
   })
 
   it.each([
@@ -80,19 +55,20 @@ describe('CountryInput', () => {
     expect(answered()).toEqual([[country, typed]])
   })
 
-  it('shows which old name a suggestion matched', async () => {
-    const { input } = setup()
-    await userEvent.type(input, 'swazi')
-    expect(screen.getByRole('option')).toHaveTextContent('Eswatini (Swaziland)')
-  })
-
   it('does not count case or accents as another spelling', async () => {
     const { input, answered } = setup()
     await userEvent.type(input, "cote d'ivoire{Enter}")
     expect(answered()).toEqual([["Côte d'Ivoire", null]])
   })
 
-  it('says when no country has that name, without answering', async () => {
+  it('ignores an empty answer', async () => {
+    const { input, answered } = setup()
+    await userEvent.type(input, '   {Enter}')
+    expect(answered()).toEqual([])
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  it('says when no country has that name, without answering, until you type again', async () => {
     const { input, answered } = setup()
     await userEvent.type(input, 'Atlantis{Enter}')
     expect(screen.getByRole('alert')).toHaveTextContent('No country called “Atlantis”')

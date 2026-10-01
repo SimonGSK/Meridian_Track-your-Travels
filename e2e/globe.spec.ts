@@ -267,10 +267,10 @@ test.describe('games', () => {
     await page.getByRole('button', { name: /^Medium/ }).click()
     await expect(page.getByRole('img', { name: 'The outline to identify' })).toBeVisible()
 
-    const input = page.getByRole('combobox', { name: 'Your answer' })
+    const input = page.getByRole('textbox', { name: 'Your answer' })
     await expect(input).toBeFocused()
     await input.fill('Swaziland')
-    await expect(page.getByRole('option', { name: /Eswatini/ })).toBeVisible()
+    await expect(page.getByRole('option')).toHaveCount(0) // no suggestions
     await input.press('Enter')
     await expect(feedback(page)).toHaveText(/Correct|The answer is/)
     await expect(page.getByRole('button', { name: 'Next' })).toBeFocused()
