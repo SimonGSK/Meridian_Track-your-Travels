@@ -48,6 +48,7 @@ Then open http://localhost:5173.
 | `npm run test:watch` | Same, re-running on changes |
 | `npm run test:coverage` | Unit and component tests with a coverage report |
 | `npm run test:e2e` | End-to-end tests against the real WebGL globe (Playwright) |
+| `npm run data:map` | Regenerate `src/data/countries-50m.json` (the country shapes, with lakes cut out) |
 | `npm run data:extra` | Regenerate `src/data/extra-countries.json` (places too small for the 1:50m map) |
 | `npm run data:regions` | Regenerate `src/data/regions.json` (states and provinces) |
 | `npm run data:facts` | Download capitals, population and area from the World Bank into `src/data/country-facts.json` |
@@ -75,6 +76,7 @@ src/
     names.ts           display names, alternative spellings, countries vs territories
     continents.ts      each place's continent
     westernSahara.ts   shows all of Western Sahara (see below)
+    countries-50m.json    the country shapes, with lakes cut out
     extra-countries.json  Tuvalu and Gibraltar, from the 1:10m map
     regions.ts         states and provinces: names, lookup, loading (shapes in regions.json)
     facts.ts           capital, population and area (data in country-facts.json)
@@ -127,6 +129,7 @@ Each place has:
 
 Some corrections to the map data:
 
+- **Lakes.** Natural Earth's country shapes cover their lakes (lakes are a separate layer), so the Great Lakes, Lake Victoria and Baikal would be land. `scripts/extract-map.mjs` cuts its 275 lakes at 1:50m out of the countries, and `extract-regions.mjs` out of the states, so they show as water and pointing at them finds no country. The cutting is done with Clipper on the map's own grid: every other point stays exactly where it was (so neighbors still share their borders), and points along borders that follow a parallel, like the 49th between the USA and Canada, are kept, as without them those borders would bulge into great circles on the globe. Borders that ran through lakes are now lake shores.
 - **Western Sahara.** Natural Earth draws only the inland strip east of the Moroccan sand wall as Western Sahara and counts the coast as Morocco. We show the whole territory, bordering Morocco along 27°40′N, as the UN and most maps do.
 - **Tuvalu and Gibraltar** are too small for the 1:50m map and are copied from the 1:10m map.
 - **The Maldives** are in the map but are a few tiny atolls, so like other small places they get a marker.
@@ -134,6 +137,8 @@ Some corrections to the map data:
 Capitals, population (2024) and total area come from the [World Bank's open data](https://data.worldbank.org/) (CC BY 4.0). Places it doesn't cover (Taiwan, Vatican City, Western Sahara, Somaliland, Northern Cyprus and several territories) use recent censuses and estimates from `src/data/country-facts-extra.json`, marked as estimates in the app. Somalia's and Cyprus's figures include Somaliland and Northern Cyprus.
 
 Cities come from [GeoNames](https://www.geonames.org/) (CC BY 4.0), via [all-the-cities](https://github.com/zeke/all-the-cities). For each place, `scripts/extract-cities.mjs` keeps the capital, every city of a million or more, the next biggest (more for more populous countries, from 50,000 people), and a hand-picked list of famous smaller ones (Venice, Key West, Chefchaouen…), leaving out suburbs within 25 km of a city already picked. GeoNames often uses local spellings, so the script has English names for well-known cities ("Cologne", not "Köln") and leaves out transliteration marks; it also has a short list of GeoNames entries that are districts, camps or campuses rather than cities. Overseas regions like Réunion are listed under the country the map draws them in.
+
+Lakes come from Natural Earth's 1:50m lakes, also via sane-topojson.
 
 States and provinces come from Natural Earth's 1:50m states and provinces, which covers the USA (50 states and D.C.), Canada, Australia and Brazil. They're copied out of [sane-topojson](https://github.com/etpinard/sane-topojson) (MIT) and load in the background after the globe. More countries would need Natural Earth's much larger 1:10m dataset.
 
