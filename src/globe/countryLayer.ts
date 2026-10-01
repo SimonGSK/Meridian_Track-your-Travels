@@ -26,6 +26,8 @@ const BORDER_LIFT = 0.0004
 const TINY_LIFT = 0.0002
 /** On-screen size of the ring marking tiny places, in pixels */
 export const MARKER_SIZE_PX = 12
+/** On-screen size of the dot on tiny places that are game answers */
+export const EMPHASIS_SIZE_PX = 16
 
 export type CountryLayer = {
   object: Group
@@ -33,6 +35,8 @@ export type CountryLayer = {
   paint(country: CountryFeature, color: ColorRepresentation): void
   setBorders(color: ColorRepresentation, opacity: number): void
   setMarkersVisible(visible: boolean): void
+  /** Big filled dots on tiny places in these colors (game answers), so they can be seen at any zoom */
+  emphasize(colors: ReadonlyMap<CountryFeature, ColorRepresentation>): void
   dispose(): void
 }
 
@@ -110,9 +114,24 @@ export function createCountryLayer(
     }),
   )
 
+  // Filled dots for tiny places that are game answers, on top of their rings
+  const emphasisGeometry = new BufferGeometry()
+  const emphasis = new Points(
+    emphasisGeometry,
+    new PointsMaterial({
+      size: EMPHASIS_SIZE_PX,
+      sizeAttenuation: false,
+      vertexColors: true,
+      map: dotTexture(),
+      alphaTest: 0.5,
+      transparent: true,
+    }),
+  )
+  emphasis.renderOrder = 1
+
   const object = new Group()
   object.name = 'countries'
-  object.add(land, lines, markers)
+  object.add(land, lines, markers, emphasis)
 
   const paintColor = new Color()
   return {
@@ -141,6 +160,18 @@ export function createCountryLayer(
     setMarkersVisible(visible) {
       markers.visible = visible
     },
+    emphasize(emphasized) {
+      const shown = [...emphasized].filter(([country]) => markerIndex.has(country))
+      const position: number[] = []
+      const color: number[] = []
+      for (const [country, value] of shown) {
+        position.push(...toUnitVector(country.properties.centroid).map((v) => v * markerRadius * (1 + BORDER_LIFT)))
+        paintColor.set(value)
+        color.push(paintColor.r, paintColor.g, paintColor.b)
+      }
+      emphasisGeometry.setAttribute('position', new Float32BufferAttribute(position, 3))
+      emphasisGeometry.setAttribute('color', new Float32BufferAttribute(color, 3))
+    },
     dispose() {
       landGeometry.dispose()
       land.material.dispose()
@@ -149,8 +180,29 @@ export function createCountryLayer(
       markerGeometry.dispose()
       markers.material.map?.dispose()
       markers.material.dispose()
+      emphasisGeometry.dispose()
+      emphasis.material.map?.dispose()
+      emphasis.material.dispose()
     },
   }
+}
+
+/** A white dot with a dark edge, tinted per dot by its vertex color (the edge stays dark). */
+function dotTexture() {
+  const size = 64
+  const canvas = document.createElement('canvas')
+  canvas.width = canvas.height = size
+  const context = canvas.getContext('2d')
+  if (!context) return null // no canvas (tests): dots draw as squares
+  context.beginPath()
+  context.arc(size / 2, size / 2, size / 2 - 2, 0, Math.PI * 2)
+  context.fillStyle = '#000'
+  context.fill()
+  context.beginPath()
+  context.arc(size / 2, size / 2, size / 2 - 9, 0, Math.PI * 2)
+  context.fillStyle = '#fff'
+  context.fill()
+  return new CanvasTexture(canvas)
 }
 
 /** A white ring on transparency, tinted per marker by its vertex color. */

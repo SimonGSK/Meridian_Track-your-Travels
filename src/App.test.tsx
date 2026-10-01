@@ -46,7 +46,7 @@ const { PLACES, globe, layer, regionLayer, sceneObjects } = vi.hoisted(() => {
       getGlobeRadius: () => 100,
     },
     sceneObjects,
-    layer: { object: {}, paint: vi.fn(), setBorders: vi.fn(), setMarkersVisible: vi.fn(), dispose: vi.fn() },
+    layer: { object: {}, paint: vi.fn(), setBorders: vi.fn(), setMarkersVisible: vi.fn(), emphasize: vi.fn(), dispose: vi.fn() },
     regionLayer: { object: {}, show: vi.fn(), setOutlineColor: vi.fn(), dispose: vi.fn() },
   }
 })
@@ -689,6 +689,10 @@ describe('App', () => {
         await userEvent.type(input, 'Holland{Enter}')
         expect(screen.getByText('2 / 46')).toBeInTheDocument()
         expect(painted()).toEqual({ Denmark: DEFAULT_THEME.correct, Netherlands: DEFAULT_THEME.correct })
+
+        await userEvent.type(input, 'Malta{Enter}')
+        const [emphasized] = layer.emphasize.mock.lastCall!
+        expect([...(emphasized as Map<{ properties: { name: string } }, string>)].map(([c]) => c.properties.name)).toContain('Malta')
 
         hover(200) // France: no name while playing, it would give answers away
         await act(() => new Promise((r) => setTimeout(r, 50)))

@@ -16,11 +16,11 @@ describe('createCountryLayer', () => {
   const allColors = () => Array.from({ length: colors.count }, (_, i) => colorAt(i))
   const hex = (color: string) => new Color(color).getHexString()
 
-  it('draws all countries as one mesh, one set of lines and one set of markers', () => {
-    expect(layer.object.children).toHaveLength(3)
+  it('draws all countries as one mesh and one set of lines, with markers and dots for tiny places', () => {
+    expect(layer.object.children).toHaveLength(4)
     expect(layer.object.children.filter((c) => c instanceof Mesh)).toHaveLength(1)
     expect(layer.object.children.filter((c) => c instanceof LineSegments)).toHaveLength(1)
-    expect(layer.object.children.filter((c) => c instanceof Points)).toHaveLength(1)
+    expect(layer.object.children.filter((c) => c instanceof Points)).toHaveLength(2)
   })
 
   it('marks every tiny place, in its own color', () => {
@@ -58,6 +58,21 @@ describe('createCountryLayer', () => {
     layer.paint(a, LAND)
     layer.paint(b, HOVER)
     expect(colors.updateRanges).toHaveLength(2)
+  })
+
+  it('puts a dot on tiny places that are game answers, in their colors', () => {
+    const [ring, dots] = layer.object.children.filter((c): c is Points<BufferGeometry> => c instanceof Points)
+    const named = (name: string) => countries.find((c) => c.properties.name === name)!
+    layer.emphasize(new Map([[named('Grenada'), '#ff0000'], [named('Nauru'), '#00ff00'], [named('Brazil'), '#0000ff']]))
+    expect(dots.geometry.getAttribute('position').count).toBe(2) // Brazil is big enough to see
+    const color = dots.geometry.getAttribute('color')
+    expect(new Color(color.getX(0), color.getY(0), color.getZ(0)).getHexString()).toBe('ff0000')
+    expect(dots.material).not.toBe(ring.material)
+    layer.setMarkersVisible(false)
+    expect(dots.visible).toBe(true) // shown even when the rings are switched off
+    layer.setMarkersVisible(true)
+    layer.emphasize(new Map())
+    expect(dots.geometry.getAttribute('position').count).toBe(0)
   })
 
   it('shows and hides the markers', () => {
@@ -104,13 +119,15 @@ describe('createRaisedCountry', () => {
 
 describe('marker rings', () => {
   it('draws a ring texture for the markers when a canvas is available', () => {
-    const context = { strokeStyle: '', lineWidth: 0, beginPath: vi.fn(), arc: vi.fn(), stroke: vi.fn() }
+    const context = { strokeStyle: '', fillStyle: '', lineWidth: 0, beginPath: vi.fn(), arc: vi.fn(), stroke: vi.fn(), fill: vi.fn() }
     const spy = vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(context as never)
     const layer = createCountryLayer(countries.slice(0, 5), borders, RADIUS)
-    const markers = layer.object.children.find((c): c is Points<BufferGeometry, PointsMaterial> => c instanceof Points)!
+    const [markers, dots] = layer.object.children.filter((c): c is Points<BufferGeometry, PointsMaterial> => c instanceof Points)
     expect(markers.material.map).not.toBeNull()
+    expect(dots.material.map).not.toBeNull()
     expect(context.arc).toHaveBeenCalled()
-    expect(context.stroke).toHaveBeenCalled()
+    expect(context.stroke).toHaveBeenCalled() // the ring
+    expect(context.fill).toHaveBeenCalled() // the dot
     spy.mockRestore()
     layer.dispose()
   })

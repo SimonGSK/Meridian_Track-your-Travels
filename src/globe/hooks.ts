@@ -16,6 +16,8 @@ import type { Theme } from './themes'
 const MARKER_HIT_PX = 8
 const NEAR_MISS_PX = 6
 
+const NOTHING_EMPHASIZED: ReadonlyMap<CountryFeature, string> = new Map()
+
 export const SPIN_SPEED = 0.4
 /** How long the globe must be left alone before it starts spinning again */
 export const IDLE_DELAY_MS = 30_000
@@ -30,7 +32,10 @@ export function useCountryLayer(
   globe: GlobeMethods | null,
   theme: Theme,
   colorOf: (country: CountryFeature) => string,
-  { showMarkers = true } = {},
+  {
+    showMarkers = true,
+    emphasized = NOTHING_EMPHASIZED,
+  }: { showMarkers?: boolean; emphasized?: ReadonlyMap<CountryFeature, string> } = {},
 ) {
   const layer = useRef<CountryLayer | null>(null)
   const painted = useRef(new Map<CountryFeature, string>())
@@ -56,6 +61,10 @@ export function useCountryLayer(
   useEffect(() => {
     layer.current?.setMarkersVisible(showMarkers)
   }, [globe, showMarkers])
+
+  useEffect(() => {
+    layer.current?.emphasize(emphasized)
+  }, [globe, emphasized])
 
   useEffect(() => {
     const current = layer.current

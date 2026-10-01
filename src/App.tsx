@@ -111,7 +111,9 @@ export default function App() {
       countryColor(country, { theme, hovered: colorHovered, visited: colorVisited, highlights }),
     [theme, colorHovered, colorVisited, highlights],
   )
-  useCountryLayer(globe, theme, colorOf, { showMarkers: settings.showMarkers })
+  // Game answers on tiny islands get a dot, or they'd be invisible
+  const gameColors = useMemo(() => gameHighlights(game, theme), [game, theme])
+  useCountryLayer(globe, theme, colorOf, { showMarkers: settings.showMarkers, emphasized: gameColors })
   useSelectedCountry(globe, editing ? null : selected, theme.selected)
 
   const fills = useMemo(
