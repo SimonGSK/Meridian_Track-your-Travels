@@ -43,13 +43,22 @@ export function pinPosition({ lat, lng, raised }: Pin, globeRadius: number) {
 }
 
 /** Whether a point on the globe faces the camera, rather than being hidden behind the globe */
-const facesCamera = (position: Vector3, camera: Vector3) =>
-  position.dot(camera) - position.lengthSq() > 0
+/**
+ * How squarely a pin faces the camera: 1 in the middle of the globe, 0 at
+ * its edge. Pins near the edge would stick out past it, so they fade out
+ * between these two, and are gone beyond.
+ */
+export const PIN_HIDDEN_BELOW = 0.3
+export const PIN_SOLID_ABOVE = 0.55
+
+/** The globe is centered on the origin, so a point's position is also its normal */
+export const facing = (position: Vector3, camera: Vector3) =>
+  position.clone().normalize().dot(camera.clone().sub(position).normalize())
 
 /**
  * Pins drawn on top of everything, the same size on screen at any zoom.
  * They skip the depth test, or the globe would cut off their heads near its
- * edge; the shader hides the ones on the far side instead.
+ * edge; the shader fades out the ones near the edge and hides those beyond.
  */
 export function createPinLayer(globeRadius: number): PinLayer {
   const geometry = new BufferGeometry()
@@ -58,20 +67,23 @@ export function createPinLayer(globeRadius: number): PinLayer {
     uniforms: { map: { value: texture }, size: { value: PIN_SIZE_PX } },
     vertexShader: `
       uniform float size;
+      varying float fade;
       void main() {
         vec4 world = modelMatrix * vec4(position, 1.0);
-        // The globe is centered on the origin, so a point's position is also its normal
-        bool facing = dot(world.xyz, cameraPosition - world.xyz) > 0.0;
-        gl_Position = facing ? projectionMatrix * viewMatrix * world : vec4(2.0, 2.0, 2.0, 1.0);
+        // As facing() below: the globe is centered on the origin, so a point's position is also its normal
+        float facing = dot(normalize(world.xyz), normalize(cameraPosition - world.xyz));
+        fade = smoothstep(${PIN_HIDDEN_BELOW.toFixed(2)}, ${PIN_SOLID_ABOVE.toFixed(2)}, facing);
+        gl_Position = fade > 0.0 ? projectionMatrix * viewMatrix * world : vec4(2.0, 2.0, 2.0, 1.0);
         gl_PointSize = size;
       }
     `,
     fragmentShader: `
       uniform sampler2D map;
+      varying float fade;
       void main() {
         vec4 color = texture2D(map, vec2(gl_PointCoord.x, 1.0 - gl_PointCoord.y));
         if (color.a < 0.5) discard;
-        gl_FragColor = color;
+        gl_FragColor = vec4(color.rgb, color.a * fade);
       }
     `,
     transparent: true,
@@ -138,7 +150,7 @@ export function pinAt<P extends Pin>(globe: GlobeMethods, pins: readonly P[], { 
   let closestDistance = Infinity
   for (const pin of pins) {
     const position = pinPosition(pin, radius)
-    if (!facesCamera(position, camera.position)) continue
+    if (facing(position, camera.position) <= PIN_HIDDEN_BELOW) continue
     const { x: ndcX, y: ndcY } = position.project(camera)
     const tipX = rect.left + ((ndcX + 1) / 2) * rect.width
     const tipY = rect.top + ((1 - ndcY) / 2) * rect.height

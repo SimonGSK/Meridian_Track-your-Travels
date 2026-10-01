@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { PerspectiveCamera, type BufferAttribute, type ShaderMaterial } from 'three'
 import type { GlobeMethods } from 'react-globe.gl'
-import { PIN_SIZE_PX, createPinLayer, pinAt, pinPosition } from './pinLayer'
+import { PIN_HIDDEN_BELOW, PIN_SIZE_PX, createPinLayer, facing, pinAt, pinPosition } from './pinLayer'
 import { toUnitVector } from './sphereMesh'
 import { LAND_ALTITUDE, SELECTED_ALTITUDE } from './style'
 
@@ -58,6 +58,21 @@ describe('pinAt', () => {
   it('ignores pins on the far side of the globe', () => {
     const behind = { name: 'behind', lat: 0, lng: 180 } // right behind the front one on screen
     expect(pinAt(fakeGlobe(), [behind], { x: CENTER, y: CENTER - HEAD_ABOVE_TIP })).toBeNull()
+  })
+
+  it('ignores pins near the edge of the globe, where they fade out, but not further in', () => {
+    const globe = fakeGlobe()
+    const camera = globe.camera() as PerspectiveCamera
+    const headOf = (pin: { lat: number; lng: number }) => {
+      const { x, y } = pinPosition(pin, RADIUS).project(camera)
+      return { x: ((x + 1) / 2) * SIZE, y: ((1 - y) / 2) * SIZE - HEAD_ABOVE_TIP }
+    }
+    const nearEdge = { lat: 0, lng: 60 } // in view, but close to the edge
+    expect(facing(pinPosition(nearEdge, RADIUS), camera.position)).toBeLessThan(PIN_HIDDEN_BELOW)
+    expect(pinAt(globe, [nearEdge], headOf(nearEdge))).toBeNull()
+
+    const further = { lat: 0, lng: 30 }
+    expect(pinAt(globe, [further], headOf(further))).toBe(further)
   })
 
   it('picks the pin whose head is closest', () => {
