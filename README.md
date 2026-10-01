@@ -4,7 +4,7 @@ An interactive 3D globe: spin it, hover a country to see its name and flag, clic
 
 The design (navy and amber, after a mock-up made in Lovable) has a top bar with the four tabs, where the globe is looking and how many places you've visited. The selected country shows on the left: its ISO code, capital, inhabitants and area, the cities you've visited there, its states, and a button to put it in your visited atlas. The open tab's cards are on the right. On phones the tabs move to the bottom and panels open as sheets.
 
-- **Explore**: your games at a glance (with your best scores), the designs as swatches, layers to show or hide (visited countries, visited states, city pins, rings around small islands), and a search of the whole atlas, countries by any name and cities.
+- **Explore**: your games at a glance (with your best scores), the designs as swatches, layers to show or hide (visited countries, visited states, city pins, rings around small islands), and a search of the whole atlas, countries by any name and cities. The games and the design cards can be hidden with the × in their corner, and brought back from the line under the search.
 - **Visited**: keep track of where you've been, out of the world's 197 countries, with the count and percentage for each continent (territories are counted separately). Your places are listed by continent. Search to add places (old names like "Swaziland" work too), or click a country and press "Add to visited atlas". They're colored on the globe.
 
   For the USA, Canada, Australia and Brazil you can also mark the states, provinces and territories you've visited: click "… states explored" in the country's panel and tick them, or click them on the globe. They're drawn over the country in a darker shade.
@@ -19,9 +19,17 @@ The design (navy and amber, after a mock-up made in Lovable) has a top bar with 
   - *Shape quiz*: name the country from its outline.
 
   Games played in rounds are Easy (big countries, four answers to pick from), Medium (all but the smallest), Hard (all 197) or All countries (every one of the 197, one after another; stop whenever you like). Beyond Easy you type answers with no suggestions; any known spelling counts ("East Timor", "Burma", "Ceylon"), punctuation and spacing don't matter, and the answer shows the name used today. Tiny countries that are answers get a dot so you can see them.
-- **Design**: switch the globe between Midnight (the default), Classic, Vintage, Political (neighbors always in different colors), Night and Minimal.
+- **Design**: switch the globe between Midnight (the default), Classic, Vintage, Political (neighbors always in different colors), Night and Minimal. The layers are here too, and how to make the globe your Mac's screensaver (below).
 
-The globe spins on its own until you touch it, and again once it's been left alone for 30 seconds. Tiny countries and islands get a ring marker, and clicks just beside a small island still count.
+The globe spins on its own until you touch it, and again once it's been left alone for 30 seconds. Tiny countries and islands get a ring marker, and clicks just beside a small island still count, also with the rings hidden. City pins fade out as they near the edge of the globe.
+
+## Screensaver
+
+The globe can be your Mac's screensaver, spinning with your places on it. With `?screensaver` in the address the app shows only the globe, and the pointer doesn't stop it. A screensaver keeps its own storage, so the address carries your places, design and layers in its `#places=…` part.
+
+1. Run `npm run build:screensaver`. It builds the app into one self-contained file, `screensaver/index.html`, that opens from disk without a server, and copies it to `/Users/Shared/Meridian/` (screensavers can't read Documents, Desktop or Downloads).
+2. Install [WebViewScreenSaver](https://github.com/liquidx/webviewscreensaver) (Apache 2.0), which shows a web page as a screensaver: `brew install --cask webviewscreensaver`. Its README suggests adding `--no-quarantine`, which skips macOS's Gatekeeper check for it; without it, you may need to allow it in System Settings › Privacy & Security.
+3. In the app, open Design and copy the screensaver address. In System Settings › Screen Saver, pick WebViewScreenSaver, click Options and paste it. Copy it again after adding places.
 
 Visited places, states and cities, best scores, the design and the settings are saved in your browser (`localStorage`). Nothing is sent anywhere.
 
@@ -42,6 +50,7 @@ Then open http://localhost:5173.
 | --- | --- |
 | `npm run dev` | Start the dev server |
 | `npm run build` | Type-check and build for production into `dist/` |
+| `npm run build:screensaver` | Build the screensaver file and copy it to `/Users/Shared/Meridian/` (see Screensaver) |
 | `npm run preview` | Serve the production build |
 | `npm run lint` | Lint with Oxlint |
 | `npm test` | Unit and component tests (Vitest) |
@@ -134,10 +143,11 @@ Some corrections to the map data:
 - **Western Sahara.** Natural Earth draws only the inland strip east of the Moroccan sand wall as Western Sahara and counts the coast as Morocco. We show the whole territory, bordering Morocco along 27°40′N, as the UN and most maps do.
 - **Tuvalu and Gibraltar** are too small for the 1:50m map and are copied from the 1:10m map.
 - **The Maldives** are in the map but are a few tiny atolls, so like other small places they get a marker.
+- **Monaco's area.** The World Bank gives 75 km²; it's about 2 km², set in `country-facts-extra.json`.
 
 Capitals, population (2024) and total area come from the [World Bank's open data](https://data.worldbank.org/) (CC BY 4.0). Places it doesn't cover (Taiwan, Vatican City, Western Sahara, Somaliland, Northern Cyprus and several territories) use recent censuses and estimates from `src/data/country-facts-extra.json`, marked as estimates in the app. Somalia's and Cyprus's figures include Somaliland and Northern Cyprus.
 
-Cities come from [GeoNames](https://www.geonames.org/) (CC BY 4.0), via [all-the-cities](https://github.com/zeke/all-the-cities). For each place, `scripts/extract-cities.mjs` keeps the capital, every city of a million or more, the next biggest (more for more populous countries, from 50,000 people), and a hand-picked list of famous smaller ones (Venice, Key West, Chefchaouen…), leaving out suburbs within 25 km of a city already picked. GeoNames often uses local spellings, so the script has English names for well-known cities ("Cologne", not "Köln") and leaves out transliteration marks; it also has a short list of GeoNames entries that are districts, camps or campuses rather than cities. Overseas regions like Réunion are listed under the country the map draws them in.
+Cities come from [GeoNames](https://www.geonames.org/) (CC BY 4.0), via [all-the-cities](https://github.com/zeke/all-the-cities). For each place, `scripts/extract-cities.mjs` keeps the capital, every city of a million or more, the next biggest (more for more populous countries, from 50,000 people), and a hand-picked list of famous smaller ones (Venice, Key West, Chefchaouen…), leaving out suburbs within 25 km of a city already picked. GeoNames often uses local spellings, so the script has English names for well-known cities ("Cologne", not "Köln") and leaves out transliteration marks; it also has a short list of GeoNames entries that are districts, camps or campuses rather than cities. Overseas regions like Réunion are listed under the country the map draws them in. A few places the all-the-cities extract leaves out (Vilanculos) are added by hand, with their GeoNames ids.
 
 Lakes come from Natural Earth's 1:50m lakes, also via sane-topojson.
 
