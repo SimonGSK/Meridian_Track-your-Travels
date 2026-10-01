@@ -4,10 +4,12 @@ An interactive 3D globe: spin it, hover a country to see its name and flag, clic
 
 The menu on the left (a tab bar on phones) has:
 
-- **Explore**: tips on using the globe, and settings to show or hide visited countries, visited states and the markers around small islands.
+- **Explore**: tips on using the globe, and settings to show or hide visited countries, visited states, city pins and the markers around small islands.
 - **Visited**: keep track of where you've been, out of the world's 197 countries, with the count and percentage for each continent (territories are counted separately). Your places are listed by continent. Search to add places (old names like "Swaziland" work too), or click a country and press "Mark as visited". They're colored on the globe.
 
   For the USA, Canada, Australia and Brazil you can also mark the states, provinces and territories you've visited: click the country (on the globe or in the list) and tick them in its panel, or click them on the globe. They're drawn over the country in a darker shade.
+
+  Every country's panel also lists its big and well-known cities (the capital first) to tick off. Each city you've visited gets a pin on the globe; point at a pin to see the city's name, or click it to open its country. Ticking a city also marks its country, and its state, as visited.
 - **Games**:
   - *Find the country*: click the named country on the globe, with three tries (3, 2 or 1 points). Hard leaves out the 49 biggest countries.
   - *Letter hunt*: click every country starting with a letter. Each letter belongs to one difficulty (easy D F H J K R U V Z, medium A E G I L N P T, hard B C M S); pick any letter, or a random one, and see your best for each.
@@ -21,7 +23,7 @@ The menu on the left (a tab bar on phones) has:
 
 The globe spins on its own until you touch it, and again once it's been left alone for 30 seconds. Tiny countries and islands get a ring marker, and clicks just beside a small island still count.
 
-Visited places and states, best scores, the design and the settings are saved in your browser (`localStorage`). Nothing is sent anywhere.
+Visited places, states and cities, best scores, the design and the settings are saved in your browser (`localStorage`). Nothing is sent anywhere.
 
 Built with React, TypeScript and Vite, using [react-globe.gl](https://github.com/vasturiano/react-globe.gl) (three.js) for the globe, [world-atlas](https://github.com/topojson/world-atlas) (Natural Earth 1:50m) for country shapes and [flag-icons](https://github.com/lipis/flag-icons) for flags (bundled locally, so no requests go to third parties).
 
@@ -49,6 +51,7 @@ Then open http://localhost:5173.
 | `npm run data:extra` | Regenerate `src/data/extra-countries.json` (places too small for the 1:50m map) |
 | `npm run data:regions` | Regenerate `src/data/regions.json` (states and provinces) |
 | `npm run data:facts` | Download capitals, population and area from the World Bank into `src/data/country-facts.json` |
+| `npm run data:cities` | Regenerate `src/data/cities.json` (each place's big and well-known cities) |
 
 The first time you run the end-to-end tests, install the browser:
 
@@ -62,6 +65,8 @@ npx playwright install chromium
 src/
   App.tsx              ties it together: globe, hover/selection, menu, games, camera flights
   CountryPanel.tsx     panel shown for the selected country
+  RegionPicker.tsx     its states to tick off
+  CityPicker.tsx       its cities to tick off
   FlagCorner.tsx       hovered country's flag, bottom-right
   Tooltip.tsx          country name that follows the mouse
   countries.ts         every place: shape, names, codes, size, map color; lookup by point or name
@@ -73,10 +78,11 @@ src/
     extra-countries.json  Tuvalu and Gibraltar, from the 1:10m map
     regions.ts         states and provinces: names, lookup, loading (shapes in regions.json)
     facts.ts           capital, population and area (data in country-facts.json)
+    cities.ts          big and well-known cities: loading, lookup (data in cities.json)
   storage.ts           state saved in the browser
   nav/                 the menu and the side panel
   explore/             tips and settings
-  visited/             visited countries and states
+  visited/             visited countries, states and cities
   design/              design picker
   games/               game rules (games.ts, letterGame.ts), what the globe shows (globeView.ts),
                        state and best scores (useGame.ts), the panel, answer box and outlines
@@ -84,6 +90,7 @@ src/
     sphereMesh.ts      triangulating countries on the sphere
     countryLayer.ts    all countries merged into one mesh, plus borders and markers; the raised country
     regionLayer.ts     states and provinces drawn over their country
+    pinLayer.ts        pins on visited cities, and finding the pin under the pointer
     colors.ts          which color each country gets (game answers > hover > visited > land)
     themes.ts          the designs
     hooks.ts           the layers, pointer picking, depth precision, idle spin
@@ -125,6 +132,8 @@ Some corrections to the map data:
 - **The Maldives** are in the map but are a few tiny atolls, so like other small places they get a marker.
 
 Capitals, population (2024) and total area come from the [World Bank's open data](https://data.worldbank.org/) (CC BY 4.0). Places it doesn't cover (Taiwan, Vatican City, Western Sahara, Somaliland, Northern Cyprus and several territories) use recent censuses and estimates from `src/data/country-facts-extra.json`, marked as estimates in the app. Somalia's and Cyprus's figures include Somaliland and Northern Cyprus.
+
+Cities come from [GeoNames](https://www.geonames.org/) (CC BY 4.0), via [all-the-cities](https://github.com/zeke/all-the-cities). For each place, `scripts/extract-cities.mjs` keeps the capital, every city of a million or more, the next biggest (more for more populous countries, from 50,000 people), and a hand-picked list of famous smaller ones (Venice, Key West, Chefchaouen…), leaving out suburbs within 25 km of a city already picked. GeoNames often uses local spellings, so the script has English names for well-known cities ("Cologne", not "Köln") and leaves out transliteration marks; it also has a short list of GeoNames entries that are districts, camps or campuses rather than cities. Overseas regions like Réunion are listed under the country the map draws them in.
 
 States and provinces come from Natural Earth's 1:50m states and provinces, which covers the USA (50 states and D.C.), Canada, Australia and Brazil. They're copied out of [sane-topojson](https://github.com/etpinard/sane-topojson) (MIT) and load in the background after the globe. More countries would need Natural Earth's much larger 1:10m dataset.
 
