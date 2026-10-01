@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { neighbors } from 'topojson-client'
 import type { GeometryCollection, Topology } from 'topojson-specification'
-import worldData from 'world-atlas/countries-50m.json'
+import worldData from './data/countries-50m.json'
 import { MAP_COLOR_COUNT, TINY_KM2, borders, countries, findCountryAt, findCountryNear } from './countries'
 
 const nameAt = (lat: number, lng: number) => findCountryAt(lat, lng)?.properties.name ?? null
@@ -130,6 +130,34 @@ describe('findCountryAt', () => {
   it('returns null over the ocean', () => {
     expect(nameAt(30, -40)).toBeNull() // Atlantic
     expect(nameAt(0, -140)).toBeNull() // Pacific
+  })
+
+  it.each([
+    [47.7, -87.5, 'Lake Superior'],
+    [44, -87, 'Lake Michigan'],
+    [45.82, -84.75, 'the Straits of Mackinac, between Lakes Michigan and Huron'],
+    [-1, 33, 'Lake Victoria'],
+    [-15.8, -69.4, 'Lake Titicaca'],
+    [53.5, 108.2, 'Lake Baikal'], // in Russia's mainland, which reaches across the antimeridian
+    [46.43, 6.55, 'Lake Geneva'],
+  ])('returns null over lakes: %s, %s is %s', (lat, lng) => {
+    expect(nameAt(lat, lng)).toBeNull()
+  })
+
+  it.each([
+    [41.85, -87.65, 'United States'], // Chicago, on Lake Michigan
+    [43.7, -79.42, 'Canada'], // Toronto, on Lake Ontario
+    [0.32, 32.58, 'Uganda'], // Kampala, by Lake Victoria
+    [46.2, 6.14, 'Switzerland'], // Geneva
+  ])('finds the land beside lakes: %s, %s is in %s', (lat, lng, name) => {
+    expect(nameAt(lat, lng)).toBe(name)
+  })
+
+  it('keeps borders along parallels straight where lakes were cut out', () => {
+    // On the globe edges are great circles; without every point along the 49th parallel this border would bulge north
+    expect(nameAt(48.95, -110)).toBe('United States')
+    expect(nameAt(49.05, -110)).toBe('Canada')
+    expect(nameAt(48.95, -100)).toBe('United States')
   })
 })
 

@@ -15,7 +15,8 @@
     "test:coverage": "vitest run --coverage",
     "data:regions": "node scripts/extract-regions.mjs",
     "data:facts": "node scripts/fetch-country-facts.mjs",
-    "data:cities": "node scripts/extract-cities.mjs"
+    "data:cities": "node scripts/extract-cities.mjs",
+    "data:map": "node scripts/extract-map.mjs"
   },
   "dependencies": {
     "d3-geo": "^3.1.1",
@@ -47,9 +48,11 @@
     "@vitejs/plugin-react": "^6.1.1",
     "@vitest/coverage-v8": "^5.0.3",
     "all-the-cities": "^3.1.0",
+    "clipper-lib": "^6.4.2",
     "jsdom": "^30.1.1",
     "oxlint": "^1.81.0",
     "sane-topojson": "^4.0.0",
+    "topojson-server": "^3.0.1",
     "typescript": "~6.0.2",
     "vite": "^8.3.0",
     "vitest": "^5.0.2"

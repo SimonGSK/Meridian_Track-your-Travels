@@ -49,6 +49,14 @@ describe('findRegionAt', () => {
   it('returns null outside every region', () => {
     expect(nameAt(30, -40, 'United States')).toBeNull()
   })
+
+  it('leaves lakes out', () => {
+    expect(nameAt(52.5, -97.5, 'Canada')).toBeNull() // Lake Winnipeg
+    expect(nameAt(49.9, -97.14, 'Canada')).toBe('Manitoba') // Winnipeg
+    expect(nameAt(41.1, -112.5, 'United States')).toBeNull() // Great Salt Lake
+    expect(nameAt(40.76, -111.89, 'United States')).toBe('Utah') // Salt Lake City
+    expect(nameAt(48.95, -110, 'United States')).toBe('Montana') // its border along the 49th parallel stays put
+  })
 })
 
 describe('parseRegions', () => {
