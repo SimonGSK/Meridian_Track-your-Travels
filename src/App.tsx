@@ -126,6 +126,8 @@ export default function App() {
   useCountryLayer(globe, theme, colorOf, { showMarkers: settings.showMarkers, emphasized: gameColors })
   useSelectedCountry(globe, editing ? null : selected, theme.selected)
 
+  // A hovered country's visited states turn the hover color with it (only countries with states matter here)
+  const hoveredWithRegions = hovered && hasRegions(hovered) ? hovered : null
   const fills = useMemo(
     () =>
       regions && !showsGame(game)
@@ -135,11 +137,12 @@ export default function App() {
             isShownCountry: (c) => settings.showRegions && visited.has(c.properties.name),
             editing,
             hovered: hoveredRegion,
+            hoveredCountry: hoveredWithRegions,
             color: visitedRegionColor(theme),
             hoverColor: theme.hover,
           })
         : new Map<RegionFeature, string>(),
-    [regions, game, visitedRegions, settings.showRegions, visited, editing, hoveredRegion, theme],
+    [regions, game, visitedRegions, settings.showRegions, visited, editing, hoveredRegion, hoveredWithRegions, theme],
   )
   const outlines = useMemo(() => (regions ? regionOutlines(regions, fills, editing) : []), [regions, fills, editing])
   useRegionLayer(globe, regions, fills, outlines, theme)

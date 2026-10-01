@@ -8,18 +8,31 @@ type FillOptions = {
   isShownCountry: (country: CountryFeature) => boolean
   /** The country whose regions are being picked, shown whatever the settings */
   editing: CountryFeature | null
+  /** The region pointed at while picking */
   hovered: RegionFeature | null
+  /** The country pointed at: its visited regions take the hover color with it (except while picking) */
+  hoveredCountry?: CountryFeature | null
   color: string
   hoverColor: string
 }
 
 /** Regions to color on the globe: visited ones, and the one pointed at while picking. */
-export function regionFills({ regions, visitedRegions, isShownCountry, editing, hovered, color, hoverColor }: FillOptions) {
+export function regionFills({
+  regions,
+  visitedRegions,
+  isShownCountry,
+  editing,
+  hovered,
+  hoveredCountry = null,
+  color,
+  hoverColor,
+}: FillOptions) {
   const fills = new Map<RegionFeature, string>()
   for (const region of regions) {
     if (!visitedRegions.has(region.properties.id)) continue
     const country = countryByAlpha2(region.properties.country)
-    if (country && (country === editing || isShownCountry(country))) fills.set(region, color)
+    if (!country || (country !== editing && !isShownCountry(country))) continue
+    fills.set(region, country === hoveredCountry && country !== editing ? hoverColor : color)
   }
   if (hovered) fills.set(hovered, hoverColor)
   return fills

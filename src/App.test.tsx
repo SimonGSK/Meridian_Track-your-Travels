@@ -414,6 +414,17 @@ describe('App', () => {
       await waitFor(() => expect(shownRegions()).toEqual({ Texas: DEFAULT_THEME.hover }))
     })
 
+    it('colors visited states with the rest of their country when it is pointed at', async () => {
+      await openUnitedStates()
+      click(800)
+      fireEvent.keyDown(window, { key: 'Escape' })
+      hover(800)
+      await waitFor(() => expect(painted()['United States']).toBe(DEFAULT_THEME.hover))
+      await waitFor(() => expect(shownRegions()).toEqual({ California: DEFAULT_THEME.hover }))
+      hover(300)
+      await waitFor(() => expect(shownRegions()).toEqual({ California: visitedRegionColor(DEFAULT_THEME) }))
+    })
+
     it('keeps showing visited states after closing the country, unless switched off', async () => {
       await openUnitedStates()
       click(800)

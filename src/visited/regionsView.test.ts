@@ -33,6 +33,23 @@ describe('regionFills', () => {
   it('highlights the region pointed at', () => {
     expect(names(regionFills({ ...base, hovered: region('Ohio') })).Ohio).toBe('#ffff00')
   })
+
+  it('colors the visited regions of the country pointed at like the rest of it', () => {
+    const hoveredCountry = country('United States')
+    expect(names(regionFills({ ...base, hoveredCountry }))).toEqual({ California: '#ffff00', Texas: '#ffff00' })
+    expect(names(regionFills({ ...base, hoveredCountry: country('Canada') }))).toEqual({
+      California: '#111111',
+      Texas: '#111111',
+    })
+  })
+
+  it('keeps visited regions in their color while picking them', () => {
+    const us = country('United States')
+    expect(names(regionFills({ ...base, editing: us, hoveredCountry: us }))).toEqual({
+      California: '#111111',
+      Texas: '#111111',
+    })
+  })
 })
 
 describe('regionOutlines', () => {
