@@ -28,6 +28,7 @@ import { useVisitedCities } from './visited/useVisitedCities'
 import { regionFills, regionOutlines, regionProgress } from './visited/regionsView'
 import Tooltip from './Tooltip'
 import {
+  stopGlide,
   useCities,
   useCountryLayer,
   useCountryPointer,
@@ -99,6 +100,7 @@ export default function App() {
       const from = globe.pointOfView()
       const [lng, lat] = country.properties.centroid
       const altitude = fit ? fitAltitude(country.properties.extent) : flightAltitude(from.altitude)
+      stopGlide(globe)
       globe.pointOfView({ lat, lng, altitude }, flightDuration(from, { lat, lng }))
     },
     [globe],

@@ -1,9 +1,17 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, renderHook } from '@testing-library/react'
-import { BufferGeometry, EventDispatcher, Mesh, MeshLambertMaterial, PerspectiveCamera, Scene } from 'three'
+import { BufferGeometry, EventDispatcher, Mesh, MeshLambertMaterial, PerspectiveCamera, Scene, Spherical } from 'three'
 import type { GlobeMethods } from 'react-globe.gl'
 import { countries, type CountryFeature } from '../countries'
-import { IDLE_DELAY_MS, SPIN_SPEED, useDepthPrecision, useSelectedCountry, useSmoothAutoRotate } from './hooks'
+import {
+  IDLE_DELAY_MS,
+  SPIN_SPEED,
+  hitDistances,
+  stopGlide,
+  useDepthPrecision,
+  useSelectedCountry,
+  useSmoothAutoRotate,
+} from './hooks'
 import { SELECTED_ALTITUDE } from './style'
 
 type FakeControls = EventDispatcher<{ start: object; end: object }> & {
@@ -42,18 +50,21 @@ describe('useSmoothAutoRotate', () => {
     expect(controls.autoRotateSpeed).toBe(SPIN_SPEED)
   })
 
-  it('eases the spin out when not allowed, e.g. while a country is selected', () => {
+  it('stops at once when not allowed, so a flight to a selected country lands on it', () => {
     const { controls, rerender } = setup()
     advance(5000)
 
     rerender({ allowed: false })
+    expect(controls.autoRotateSpeed).toBe(0)
+    expect(controls.autoRotate).toBe(false)
+    advance(5000)
+    expect(controls.autoRotateSpeed).toBe(0)
+
+    // And eases back in when allowed again
+    rerender({ allowed: true })
     advance(100)
     expect(controls.autoRotateSpeed).toBeGreaterThan(0)
     expect(controls.autoRotateSpeed).toBeLessThan(SPIN_SPEED)
-
-    advance(5000)
-    expect(controls.autoRotateSpeed).toBe(0)
-    expect(controls.autoRotate).toBe(false)
   })
 
   it('stops when the pointer moves over the globe, and resumes 30 s after it last moved', () => {
@@ -175,5 +186,27 @@ describe('useDepthPrecision', () => {
   it('stops the camera zooming into the raised countries', () => {
     const { controls } = setup(300)
     expect(controls.minDistance).toBeGreaterThan(100 * (1 + SELECTED_ALTITUDE))
+  })
+})
+
+describe('hitDistances', () => {
+  it('keeps tiny places clickable when their rings are hidden, in a smaller circle', () => {
+    const shown = hitDistances(0.001, true)
+    const hidden = hitDistances(0.001, false)
+    expect(hidden.markerRadius).toBeGreaterThan(0)
+    expect(hidden.markerRadius).toBeLessThan(shown.markerRadius)
+    expect(hidden.tolerance).toBe(shown.tolerance)
+  })
+})
+
+describe('stopGlide', () => {
+  it("clears the turn the camera controls still have left", () => {
+    const glide = new Spherical(0, 0.01, 0.02)
+    stopGlide({ controls: () => ({ _sphericalDelta: glide }) } as unknown as GlobeMethods)
+    expect([glide.radius, glide.phi, glide.theta]).toEqual([0, 0, 0])
+  })
+
+  it('does nothing if the controls keep it elsewhere', () => {
+    expect(() => stopGlide({ controls: () => ({}) } as unknown as GlobeMethods)).not.toThrow()
   })
 })

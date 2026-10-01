@@ -17,6 +17,14 @@ import type { Theme } from './themes'
 /** How close (in pixels) the pointer must be to a tiny country's marker, or to any country's coast */
 const MARKER_HIT_PX = 8
 const NEAR_MISS_PX = 6
+/** With the rings hidden, tiny places still answer to a smaller circle, or Monaco couldn't be clicked at all */
+const HIDDEN_MARKER_HIT_PX = 5
+
+/** How far from a tiny place's middle, and from any coast, the pointer counts as on it (radians) */
+export const hitDistances = (perPixel: number, markersShown: boolean) => ({
+  markerRadius: (markersShown ? MARKER_HIT_PX : HIDDEN_MARKER_HIT_PX) * perPixel,
+  tolerance: NEAR_MISS_PX * perPixel,
+})
 
 const NOTHING_EMPHASIZED: ReadonlyMap<CountryFeature, string> = new Map()
 
@@ -147,6 +155,18 @@ export function useDepthPrecision(globe: GlobeMethods | null) {
 }
 
 /**
+ * Ends the camera's glide. The globe's OrbitControls damp every turn, so a
+ * spin or a drag keeps turning the camera for a moment after it stops, which
+ * would carry a flight past the country it's flying to. The leftover turn is
+ * in an internal field, so this checks it's there.
+ */
+export function stopGlide(globe: GlobeMethods) {
+  const glide = (globe.controls() as { _sphericalDelta?: { set(radius: number, phi: number, theta: number): void } })
+    ._sphericalDelta
+  glide?.set(0, 0, 0)
+}
+
+/**
  * Idle spin that eases in and out instead of starting and stopping abruptly.
  * Any interaction with the globe (moving the pointer over it, dragging,
  * zooming) stops it; it resumes once the globe has been left alone for
@@ -197,6 +217,13 @@ export function useSmoothAutoRotate(globe: GlobeMethods | null, allowed: boolean
   useEffect(() => {
     const controls = globe?.controls()
     if (!controls) return
+    // Not allowed (a country was picked, a game started): stop at once, or the
+    // spin would carry the camera past the country it's flying to
+    if (!allowed) {
+      controls.autoRotate = false
+      controls.autoRotateSpeed = 0
+      return
+    }
     let frame = 0
     const step = () => {
       controls.autoRotateSpeed = approach(controls.autoRotateSpeed, targetSpeed, SPIN_EASING)
@@ -205,7 +232,7 @@ export function useSmoothAutoRotate(globe: GlobeMethods | null, allowed: boolean
     }
     step()
     return () => cancelAnimationFrame(frame)
-  }, [globe, targetSpeed])
+  }, [globe, targetSpeed, allowed])
 }
 
 type PointerOptions = {
@@ -233,10 +260,7 @@ export function useCountryPointer(globe: GlobeMethods | null, { onHover, onClick
       // How far one pixel is on the globe here, to turn pixel tolerances into distances
       const beside = screenToLatLng(globe, x + 1, y) ?? screenToLatLng(globe, x - 1, y)
       const perPixel = beside ? geoDistance([pos.lng, pos.lat], [beside.lng, beside.lat]) : 0
-      const country = findCountryNear(pos.lat, pos.lng, {
-        markerRadius: markers ? MARKER_HIT_PX * perPixel : 0,
-        tolerance: NEAR_MISS_PX * perPixel,
-      })
+      const country = findCountryNear(pos.lat, pos.lng, hitDistances(perPixel, markers))
       return [country, pos]
     },
     [globe, markers],
