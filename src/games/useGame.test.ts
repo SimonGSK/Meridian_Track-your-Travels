@@ -88,6 +88,19 @@ describe('useGame', () => {
     expect(result.current.previousBest).toBe(2)
   })
 
+  it('plays "name them all", saving the best per continent', () => {
+    const { result } = renderHook(() => useGame())
+    act(() => result.current.startAll('Oceania'))
+    expect(result.current.game).toMatchObject({ kind: 'all', scope: 'Oceania' })
+    const fiji = countries.find((c) => c.properties.name === 'Fiji')!
+    act(() => result.current.pick(fiji))
+    act(() => result.current.advance())
+    expect(result.current.game).toMatchObject({ finished: true, gaveUp: true })
+    expect(result.current.best['all:Oceania']).toBe(1)
+    act(() => result.current.startAll('Oceania'))
+    expect(result.current.previousBest).toBe(1)
+  })
+
   it('quits', () => {
     const { result } = renderHook(() => useGame())
     act(() => result.current.start('find', 'easy'))

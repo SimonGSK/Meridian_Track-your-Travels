@@ -5,6 +5,7 @@ import GamesPanel from './GamesPanel'
 import { answer, newRoundGame, next, type Difficulty, type RoundGameId, type RoundGameState } from './games'
 import { giveUp, newLetterGame, pickCountry, type LetterGameState } from './letterGame'
 import type { GameState } from './useGame'
+import { giveUpAll, nameCountry, newAllGame } from './allGame'
 import { countries } from '../countries'
 
 const byName = (name: string) => countries.find((c) => c.properties.name === name)!
@@ -18,6 +19,7 @@ function setup(overrides: Partial<Parameters<typeof GamesPanel>[0]> = {}) {
     previousBest: undefined,
     onStart: vi.fn(),
     onStartLetter: vi.fn(),
+    onStartAll: vi.fn(),
     onPick: vi.fn(),
     onNext: vi.fn(),
     onQuit: vi.fn(),
@@ -30,7 +32,7 @@ function setup(overrides: Partial<Parameters<typeof GamesPanel>[0]> = {}) {
 describe('GamesPanel: choosing a game', () => {
   it('lists every game, without asking for a difficulty yet', () => {
     setup()
-    for (const title of ['Find the country', 'Letter hunt', 'Flag quiz', 'Name that country', 'Shape quiz']) {
+    for (const title of ['Find the country', 'Letter hunt', 'Name them all', 'Flag quiz', 'Name that country', 'Shape quiz']) {
       expect(screen.getByRole('button', { name: new RegExp(title) })).toBeInTheDocument()
     }
     expect(screen.queryByRole('button', { name: /^Easy/ })).not.toBeInTheDocument()
@@ -250,6 +252,7 @@ describe('GamesPanel: letter hunt', () => {
       previousBest: undefined,
       onStart: vi.fn(),
       onStartLetter: vi.fn(),
+      onStartAll: vi.fn(),
       onPick: vi.fn(),
       onNext: vi.fn(),
       onQuit: vi.fn(),
@@ -265,5 +268,49 @@ describe('GamesPanel: letter hunt', () => {
     rerender(<GamesPanel {...props} game={null} />)
     expect(screen.queryByRole('heading', { name: 'Letter hunt' })).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Shape quiz/ })).toBeInTheDocument()
+  })
+})
+
+describe('GamesPanel: name them all', () => {
+  it('offers the whole world or a continent, with the best for each', async () => {
+    const onStartAll = vi.fn()
+    setup({ onStartAll, best: { 'all:Europe': 31 } })
+    await userEvent.click(screen.getByRole('button', { name: /Name them all/ }))
+    expect(screen.getByRole('button', { name: /^The whole world/ })).toHaveTextContent('197 countries')
+    expect(screen.getByRole('button', { name: /^Europe/ })).toHaveTextContent('Best: 31 / 46')
+    await userEvent.click(screen.getByRole('button', { name: /^Oceania/ }))
+    expect(onStartAll).toHaveBeenCalledWith('Oceania')
+  })
+
+  it('takes typed names, without suggestions', async () => {
+    const { onPick } = setup({ game: newAllGame('world') })
+    await userEvent.type(screen.getByRole('textbox', { name: 'Name a country' }), 'Burma{Enter}')
+    expect(onPick).toHaveBeenCalledWith(byName('Myanmar'), 'Burma')
+    expect(screen.queryByRole('option')).not.toBeInTheDocument()
+  })
+
+  it('shows progress, by continent for the whole world, and a clock', () => {
+    const game = nameCountry(nameCountry(newAllGame('world'), byName('Kenya')), byName('Peru'))
+    setup({ game })
+    expect(screen.getByText('2 / 197')).toBeInTheDocument()
+    expect(screen.getByRole('status')).toHaveTextContent('Peru ✓')
+    expect(screen.getByRole('list', { name: 'Named' })).toHaveTextContent('PeruKenya') // newest first
+    expect(screen.getByRole('list', { name: 'Named by continent' })).toHaveTextContent('Africa1 / 54')
+    expect(screen.getByText(/^\d+:\d\d$/)).toBeInTheDocument()
+  })
+
+  it('explains names that do not count', () => {
+    setup({ game: nameCountry(nameCountry(newAllGame('Europe'), byName('France')), byName('Japan')) })
+    expect(screen.getByRole('status')).toHaveTextContent("Japan isn't in Europe.")
+  })
+
+  it('shows the time and what was missed on the results', async () => {
+    const game = giveUpAll(nameCountry(newAllGame('South America', 0), byName('Peru'), null, 0), 65_000)
+    const { onStartAll } = setup({ game })
+    expect(screen.getByText('1 / 12')).toBeInTheDocument()
+    expect(screen.getByText('countries named in 1:05')).toBeInTheDocument()
+    expect(screen.getByText(/^Argentina, Bolivia/)).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Play again' }))
+    expect(onStartAll).toHaveBeenCalledWith('South America')
   })
 })

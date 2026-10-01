@@ -9,6 +9,7 @@ import ExplorePanel from './explore/ExplorePanel'
 import { useSettings } from './explore/useSettings'
 import GamesPanel from './games/GamesPanel'
 import type { Difficulty, RoundGameId } from './games/games'
+import type { Scope } from './games/allGame'
 import { flightTarget, gameHighlights, globeAnswers, isPlaying, overviewKey, showsGame } from './games/globeView'
 import { useGame } from './games/useGame'
 import { useTheme } from './design/useTheme'
@@ -56,7 +57,8 @@ export default function App() {
   const [selected, setSelected] = useState<CountryFeature | null>(null)
   const [view, setView] = useState<ViewId | null>(null)
   const { visited, add: addVisited, remove: removeVisited, toggle: toggleVisited } = useVisited()
-  const { game, best, previousBest, start: startGame, startLetter, pick, advance, quit: quitGame } = useGame()
+  const { game, best, previousBest, start: startGame, startLetter, startAll, pick, advance, quit: quitGame } =
+    useGame()
   const playing = isPlaying(game)
   const globeIsAnswer = globeAnswers(game)
   const { width, height } = useWindowSize()
@@ -193,6 +195,10 @@ export default function App() {
     selectCountry(null)
     startLetter(letter)
   }
+  const playAll = (scope: Scope) => {
+    selectCountry(null)
+    startAll(scope)
+  }
 
   // Leaving the Games panel ends the game
   const changeView = (next: ViewId | null) => {
@@ -281,6 +287,7 @@ export default function App() {
               previousBest={previousBest}
               onStart={playGame}
               onStartLetter={playLetter}
+              onStartAll={playAll}
               onPick={pick}
               onNext={advance}
               onQuit={quitGame}

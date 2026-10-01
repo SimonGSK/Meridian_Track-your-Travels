@@ -678,6 +678,30 @@ describe('App', () => {
       })
     })
 
+    describe('name them all', () => {
+      it('lights up each country named, and shows the rest when giving up', async () => {
+        render(<App />)
+        await userEvent.click(screen.getByRole('button', { name: 'Games' }))
+        await userEvent.click(screen.getByRole('button', { name: /Name them all/ }))
+        await userEvent.click(screen.getByRole('button', { name: /^Europe/ }))
+        const input = screen.getByRole('textbox', { name: 'Name a country' })
+        await userEvent.type(input, 'Denmark{Enter}')
+        await userEvent.type(input, 'Holland{Enter}')
+        expect(screen.getByText('2 / 46')).toBeInTheDocument()
+        expect(painted()).toEqual({ Denmark: DEFAULT_THEME.correct, Netherlands: DEFAULT_THEME.correct })
+
+        hover(200) // France: no name while playing, it would give answers away
+        await act(() => new Promise((r) => setTimeout(r, 50)))
+        expect(tooltip()).not.toBeInTheDocument()
+
+        await userEvent.click(screen.getByRole('button', { name: 'Give up and show the rest' }))
+        const colors = painted()
+        expect(colors.Denmark).toBe(DEFAULT_THEME.correct)
+        expect(colors.France).toBe(DEFAULT_THEME.selected)
+        expect(colors.Japan).toBeUndefined() // not in Europe
+      })
+    })
+
     it('ends the game when the panel is closed', async () => {
       await startGame(/Name that country/)
       await userEvent.click(screen.getByRole('button', { name: 'Close panel' }))

@@ -278,6 +278,23 @@ test.describe('games', () => {
     await expect(page.getByRole('button', { name: 'Next' })).toBeFocused()
   })
 
+  test('name them all: type countries until giving up', async ({ page }) => {
+    await openGlobe(page)
+    await page.getByRole('button', { name: 'Games' }).click()
+    await page.getByRole('button', { name: /Name them all/ }).click()
+    await page.getByRole('button', { name: /^Oceania/ }).click()
+    const input = page.getByRole('textbox', { name: 'Name a country' })
+    await expect(input).toBeFocused()
+    for (const name of ['Australia', 'New Zealand', 'fiji']) {
+      await input.fill(name)
+      await input.press('Enter')
+    }
+    await expect(page.getByText('3 / 14')).toBeVisible()
+    await page.getByRole('button', { name: 'Give up and show the rest' }).click()
+    await expect(page.getByText(/countries named in \d+:\d\d/)).toBeVisible()
+    await expect(page.getByText(/^Kiribati, /)).toBeVisible()
+  })
+
   test('name that country: can be played to the end', async ({ page }) => {
     test.slow() // ten rounds, each with a camera flight
     await openGlobe(page)

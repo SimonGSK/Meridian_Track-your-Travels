@@ -4,6 +4,7 @@ import { CLASSIC } from '../globe/themes'
 import { answer, newRoundGame, next, type RoundGameId } from './games'
 import { flightTarget, gameHighlights, globeAnswers, isPlaying, overviewKey, showsGame } from './globeView'
 import { giveUp, newLetterGame, pickCountry } from './letterGame'
+import { giveUpAll, nameCountry, newAllGame } from './allGame'
 
 const byName = (name: string) => countries.find((c) => c.properties.name === name)!
 const pool = ['Denmark', 'France', 'Brazil', 'Japan', 'Kenya'].map(byName)
@@ -103,5 +104,24 @@ describe('letter hunt', () => {
     const colors = names(gameHighlights(game, CLASSIC))
     expect(colors.Kenya).toBe(CLASSIC.correct)
     expect(colors.Kazakhstan).toBe(CLASSIC.selected)
+  })
+})
+
+describe('name them all', () => {
+  it('lights up countries as they are named, without moving the camera', () => {
+    const game = nameCountry(newAllGame('world'), byName('Kenya'))
+    expect(names(gameHighlights(game, CLASSIC))).toEqual({ Kenya: CLASSIC.correct })
+    expect(flightTarget(game)).toBeNull()
+    expect(globeAnswers(game)).toBe(false) // you type the answers
+    expect(overviewKey(game)).toBe('all-world')
+  })
+
+  it('shows what was missed on the results', () => {
+    const game = giveUpAll(nameCountry(newAllGame('Oceania'), byName('Fiji')))
+    expect(showsGame(game)).toBe(true)
+    const colors = names(gameHighlights(game, CLASSIC))
+    expect(colors.Fiji).toBe(CLASSIC.correct)
+    expect(colors.Australia).toBe(CLASSIC.selected)
+    expect(Object.keys(colors)).toHaveLength(14)
   })
 })

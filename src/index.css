@@ -890,6 +890,33 @@ body,
   font-weight: 700;
 }
 
+/* Name them all */
+
+.all-score {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.all-score .big-score {
+  margin: 0;
+  font-size: 36px;
+}
+
+.elapsed {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.missed p {
+  margin: 4px 0;
+  text-align: left;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
 /* Letter hunt: choosing a letter */
 
 .letter-group h4 {

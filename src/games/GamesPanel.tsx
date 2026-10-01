@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { flagUrl } from '../flags'
 import type { CountryFeature } from '../countries'
 import CountryInput from './CountryInput'
@@ -18,7 +18,17 @@ import {
   type RoundGameState,
 } from './games'
 import { countriesStartingWith, lettersOf, missing, randomLetter, type LetterGameState } from './letterGame'
-import { bestKey, gameScore, letterKey, type BestScores, type GameState } from './useGame'
+import { bestKey, gameScore, letterKey, scopeKey, type BestScores, type GameState } from './useGame'
+import {
+  SCOPES,
+  countriesIn,
+  formatDuration,
+  missingAll,
+  scopeLabel,
+  type AllGameState,
+  type Scope,
+} from './allGame'
+import { CONTINENTS } from '../data/continents'
 
 type Props = {
   game: GameState | null
@@ -26,6 +36,7 @@ type Props = {
   previousBest: number | undefined
   onStart: (id: RoundGameId, difficulty: Difficulty) => void
   onStartLetter: (letter: string) => void
+  onStartAll: (scope: Scope) => void
   onPick: (country: CountryFeature, alias?: string | null) => void
   onNext: () => void
   onQuit: () => void
@@ -45,13 +56,16 @@ export default function GamesPanel(props: Props) {
   const choice = { chosen, setChosen }
   if (!game) return <GameList {...props} {...choice} />
   if (game.finished) return <Results {...props} {...choice} game={game} />
-  return game.kind === 'letter' ? <LetterHunt {...props} game={game} /> : <RoundPlay {...props} game={game} />
+  if (game.kind === 'letter') return <LetterHunt {...props} game={game} />
+  if (game.kind === 'all') return <NameThemAll {...props} game={game} />
+  return <RoundPlay {...props} game={game} />
 }
 
 /** All games; picking one asks for the difficulty, or for the letter hunt the letter. */
-function GameList({ best, onStart, onStartLetter, chosen, setChosen }: Props & Chosen) {
+function GameList({ best, onStart, onStartLetter, onStartAll, chosen, setChosen }: Props & Chosen) {
   const back = () => setChosen(null)
   if (chosen === 'letter') return <LetterChoice best={best} onStartLetter={onStartLetter} onBack={back} />
+  if (chosen === 'all') return <ScopeChoice best={best} onStartAll={onStartAll} onBack={back} />
   if (chosen) return <DifficultyChoice id={chosen} best={best} onStart={onStart} onBack={back} />
   return (
     <>
@@ -116,7 +130,7 @@ const PROMPTS: Record<RoundGameState['id'], string> = {
 function GameHeader({ game }: { game: GameState }) {
   return (
     <p className="game-title">
-      {titleOf(game.id)} · {difficultyLabel(game.difficulty)}
+      {titleOf(game.id)} · {game.kind === 'all' ? scopeLabel(game.scope) : difficultyLabel(game.difficulty)}
     </p>
   )
 }
@@ -286,10 +300,16 @@ function verdict(share: number) {
   return 'Keep exploring the globe and try again!'
 }
 
-function Results({ game, previousBest, onStart, onStartLetter, onQuit, setChosen }: Props & Chosen & { game: GameState }) {
+function Results(props: Props & Chosen & { game: GameState }) {
+  const { game, previousBest, onStart, onStartLetter, onStartAll, onQuit, setChosen } = props
   const score = gameScore(game)
   const newBest = previousBest !== undefined && score > previousBest
-  const share = game.kind === 'letter' ? score / game.targets.length : score / maxScore(game)
+  const share = game.kind === 'rounds' ? score / maxScore(game) : score / game.targets.length
+  const playAgain = () => {
+    if (game.kind === 'letter') onStartLetter(game.letter)
+    else if (game.kind === 'all') onStartAll(game.scope)
+    else onStart(game.id, game.difficulty)
+  }
   const backTo = (id: GameId | null) => {
     setChosen(id)
     onQuit()
@@ -311,6 +331,8 @@ function Results({ game, previousBest, onStart, onStartLetter, onQuit, setChosen
             <p className="muted">Missed (highlighted on the globe): {missing(game).map((c) => c.properties.name).join(', ')}</p>
           )}
         </>
+      ) : game.kind === 'all' ? (
+        <AllResults game={game} />
       ) : (
         <>
           <p className="big-score">
@@ -324,7 +346,7 @@ function Results({ game, previousBest, onStart, onStartLetter, onQuit, setChosen
       <button
         type="button"
         className="primary-button"
-        onClick={() => (game.kind === 'letter' ? onStartLetter(game.letter) : onStart(game.id, game.difficulty))}
+        onClick={playAgain}
       >
         Play again
       </button>
@@ -387,5 +409,163 @@ function LetterChoice({ best, onStartLetter, onBack }: {
         </section>
       ))}
     </div>
+  )
+}
+
+/** Choose the whole world or a continent for "name them all", with the best for each. */
+function ScopeChoice({ best, onStartAll, onBack }: {
+  best: BestScores
+  onStartAll: (scope: Scope) => void
+  onBack: () => void
+}) {
+  return (
+    <div className="game">
+      <button type="button" className="text-button" onClick={onBack}>
+        ← All games
+      </button>
+      <h3 className="game-heading">{titleOf('all')}</h3>
+      <p className="muted">
+        Type every country you can think of, from memory. Each one lights up on the globe. Give up when you're
+        stuck to see what you missed.
+      </p>
+      <p className="game-prompt">Which countries?</p>
+      <ul className="game-list">
+        {SCOPES.map((scope) => {
+          const total = countriesIn(scope).length
+          const score = best[scopeKey(scope)]
+          return (
+            <li key={scope}>
+              <button type="button" className="game-card" onClick={() => onStartAll(scope)}>
+                <strong>{scopeLabel(scope)}</strong>
+                <span className="muted">{total} countries</span>
+                {score !== undefined && (
+                  <span className="best-score">
+                    Best: {score} / {total}
+                  </span>
+                )}
+              </button>
+            </li>
+          )
+        })}
+      </ul>
+    </div>
+  )
+}
+
+/** Counts up from `since`, or shows the time taken once `until` is set. */
+function Elapsed({ since, until }: { since: number; until: number | null }) {
+  const [now, setNow] = useState(() => Date.now())
+  useEffect(() => {
+    if (until !== null) return
+    const timer = setInterval(() => setNow(Date.now()), 1000)
+    return () => clearInterval(timer)
+  }, [until])
+  return <span className="elapsed">{formatDuration((until ?? now) - since)}</span>
+}
+
+function NameThemAll({ game, onPick, onNext, onQuit }: Props & { game: AllGameState }) {
+  const { last } = game
+  const name = last?.country.properties.name
+  const outside = game.scope === 'world' ? '' : game.scope
+  const feedback = last && {
+    found: last.alias ? `${name} ✓ (you wrote ${last.alias})` : `${name} ✓`,
+    again: `You already named ${name}.`,
+    elsewhere: `${name} isn't in ${outside}.`,
+    territory: `${name} is a territory, not a country.`,
+  }[last.result]
+
+  return (
+    <div className="game">
+      <GameHeader game={game} />
+      <div className="all-score">
+        <span className="big-score">
+          {game.found.length} / {game.targets.length}
+        </span>
+        <Elapsed since={game.startedAt} until={game.endedAt} />
+      </div>
+      <div
+        className="progress"
+        role="progressbar"
+        aria-label="Countries named"
+        aria-valuemin={0}
+        aria-valuemax={game.targets.length}
+        aria-valuenow={game.found.length}
+      >
+        <div style={{ width: `${(game.found.length / game.targets.length) * 100}%` }} />
+      </div>
+
+      <CountryInput label="Name a country" onAnswer={onPick} />
+      <p className={`feedback${last ? (last.result === 'found' ? ' correct' : ' wrong') : ''}`} role="status">
+        {feedback}
+      </p>
+
+      {game.scope === 'world' && <ContinentProgress game={game} />}
+      {game.found.length > 0 && (
+        <ul className="found-list" aria-label="Named">
+          {[...game.found].reverse().map((c) => (
+            <li key={c.properties.name}>{c.properties.name}</li>
+          ))}
+        </ul>
+      )}
+
+      <button type="button" className="primary-button secondary" onClick={onNext}>
+        Give up and show the rest
+      </button>
+      <button type="button" className="text-button" onClick={onQuit}>
+        Quit game
+      </button>
+    </div>
+  )
+}
+
+/** How many of each continent's countries have been named */
+function ContinentProgress({ game }: { game: AllGameState }) {
+  return (
+    <ul className="continent-stats" aria-label="Named by continent">
+      {CONTINENTS.filter((c) => countriesIn(c).length > 0).map((continent) => {
+        const total = countriesIn(continent).length
+        const count = game.found.filter((c) => c.properties.continent === continent).length
+        return (
+          <li key={continent}>
+            <span className="continent-name">{continent}</span>
+            <span className="continent-count">
+              {count} / {total}
+            </span>
+            <span />
+            <div className="progress small" aria-hidden="true">
+              <div style={{ width: `${(count / total) * 100}%` }} />
+            </div>
+          </li>
+        )
+      })}
+    </ul>
+  )
+}
+
+function AllResults({ game }: { game: AllGameState }) {
+  const missed = missingAll(game)
+  const byContinent = CONTINENTS.map((continent) => ({
+    continent,
+    names: missed.filter((c) => c.properties.continent === continent).map((c) => c.properties.name),
+  })).filter((group) => group.names.length > 0)
+
+  return (
+    <>
+      <p className="big-score">
+        {game.found.length} / {game.targets.length}
+      </p>
+      <p>countries named in {formatDuration((game.endedAt ?? game.startedAt) - game.startedAt)}</p>
+      {missed.length > 0 && (
+        <div className="missed">
+          <p className="muted">Missed, highlighted on the globe:</p>
+          {byContinent.map(({ continent, names }) => (
+            <p key={continent} className="muted">
+              {game.scope === 'world' && <strong>{continent}: </strong>}
+              {names.join(', ')}
+            </p>
+          ))}
+        </div>
+      )}
+    </>
   )
 }

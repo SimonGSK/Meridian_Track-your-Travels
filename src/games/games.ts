@@ -1,13 +1,15 @@
 import { countries, type CountryFeature } from '../countries'
 import { flagUrl } from '../flags'
 
-export type GameId = 'find' | 'flags' | 'name' | 'shape' | 'letter'
-export type RoundGameId = Exclude<GameId, 'letter'>
+export type GameId = 'find' | 'flags' | 'name' | 'shape' | 'letter' | 'all'
+/** Games played in rounds, at a difficulty */
+export type RoundGameId = Exclude<GameId, 'letter' | 'all'>
 export type Difficulty = 'easy' | 'medium' | 'hard'
 
 export const GAMES: { id: GameId; title: string; description: string }[] = [
   { id: 'find', title: 'Find the country', description: 'We name a country, you click it on the globe.' },
   { id: 'letter', title: 'Letter hunt', description: 'Click every country that starts with a letter.' },
+  { id: 'all', title: 'Name them all', description: 'Type every country you can think of, from memory.' },
   { id: 'flags', title: 'Flag quiz', description: 'Which country has this flag?' },
   { id: 'name', title: 'Name that country', description: 'A country lights up on the globe. Which one is it?' },
   { id: 'shape', title: 'Shape quiz', description: 'Name the country from its outline alone.' },
@@ -55,6 +57,7 @@ export function gamePool(id: GameId, difficulty: Difficulty): CountryFeature[] {
 /** Easy games pick from four answers; harder ones are typed. Finding is always done on the globe. */
 export function answerMode(id: GameId, difficulty: Difficulty): 'globe' | 'choices' | 'typing' {
   if (id === 'find' || id === 'letter') return 'globe'
+  if (id === 'all') return 'typing'
   return difficulty === 'easy' ? 'choices' : 'typing'
 }
 

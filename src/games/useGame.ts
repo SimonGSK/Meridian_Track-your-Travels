@@ -1,10 +1,11 @@
 import { useCallback, useState } from 'react'
 import type { CountryFeature } from '../countries'
 import { usePersistentState } from '../storage'
-import { answer, newRoundGame, next, type Difficulty, type GameId, type RoundGameState } from './games'
+import { answer, newRoundGame, next, type Difficulty, type GameId, type RoundGameId, type RoundGameState } from './games'
 import { giveUp, newLetterGame, pickCountry, type LetterGameState } from './letterGame'
+import { giveUpAll, nameCountry, newAllGame, type AllGameState, type Scope } from './allGame'
 
-export type GameState = RoundGameState | LetterGameState
+export type GameState = RoundGameState | LetterGameState | AllGameState
 
 export const BEST_SCORES_KEY = 'countries-app.best-scores'
 
@@ -15,7 +16,13 @@ export const bestKey = (id: GameId, difficulty: Difficulty) =>
   id === 'find' ? `find-points:${difficulty}` : `${id}:${difficulty}`
 /** The letter hunt keeps a best score (countries found) per letter */
 export const letterKey = (letter: string) => `letter:${letter}`
-const keyOf = (game: GameState) => (game.kind === 'letter' ? letterKey(game.letter) : bestKey(game.id, game.difficulty))
+/** "Name them all" keeps a best score (countries named) per continent, or the world */
+export const scopeKey = (scope: Scope) => `all:${scope}`
+function keyOf(game: GameState) {
+  if (game.kind === 'letter') return letterKey(game.letter)
+  if (game.kind === 'all') return scopeKey(game.scope)
+  return bestKey(game.id, game.difficulty)
+}
 
 const isBestScores = (value: unknown): value is BestScores =>
   typeof value === 'object' &&
@@ -23,8 +30,8 @@ const isBestScores = (value: unknown): value is BestScores =>
   !Array.isArray(value) &&
   Object.values(value).every((n) => typeof n === 'number')
 
-/** Points, or for the letter hunt the number of countries found */
-export const gameScore = (game: GameState) => (game.kind === 'letter' ? game.found.length : game.score)
+/** Points, or for the letter hunt and "name them all" the number of countries found */
+export const gameScore = (game: GameState) => (game.kind === 'rounds' ? game.score : game.found.length)
 
 /** The game being played, if any, plus best scores saved in this browser. */
 export function useGame() {
@@ -44,9 +51,17 @@ export function useGame() {
   )
 
   const start = useCallback(
-    (id: Exclude<GameId, 'letter'>, difficulty: Difficulty) => {
+    (id: RoundGameId, difficulty: Difficulty) => {
       setPreviousBest(best[bestKey(id, difficulty)])
       setGame(newRoundGame(id, difficulty))
+    },
+    [best],
+  )
+
+  const startAll = useCallback(
+    (scope: Scope) => {
+      setPreviousBest(best[scopeKey(scope)])
+      setGame(newAllGame(scope))
     },
     [best],
   )
@@ -62,17 +77,23 @@ export function useGame() {
   /** Answer a round, or click a country in the letter hunt. `alias` is the name typed, if not the usual one. */
   const pick = useCallback(
     (country: CountryFeature, alias: string | null = null) => {
-      if (game) update(game.kind === 'letter' ? pickCountry(game, country) : answer(game, country, alias))
+      if (!game) return
+      if (game.kind === 'letter') update(pickCountry(game, country))
+      else if (game.kind === 'all') update(nameCountry(game, country, alias))
+      else update(answer(game, country, alias))
     },
     [game, update],
   )
 
-  /** Next round, or give up the letter hunt */
+  /** Next round, or give up the letter hunt or "name them all" */
   const advance = useCallback(() => {
-    if (game) update(game.kind === 'letter' ? giveUp(game) : next(game))
+    if (!game) return
+    if (game.kind === 'letter') update(giveUp(game))
+    else if (game.kind === 'all') update(giveUpAll(game))
+    else update(next(game))
   }, [game, update])
 
   const quit = useCallback(() => setGame(null), [])
 
-  return { game, best, previousBest, start, startLetter, pick, advance, quit }
+  return { game, best, previousBest, start, startLetter, startAll, pick, advance, quit }
 }
