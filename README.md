@@ -4,7 +4,7 @@ An interactive 3D globe: spin it, hover a country to see its name and flag, clic
 
 The design (navy and amber, after a mock-up made in Lovable) has a top bar with the four tabs, where the globe is looking and how many places you've visited. The selected country shows on the left: its ISO code, capital, inhabitants and area, the cities you've visited there, its states, and a button to put it in your visited atlas. The open tab's cards are on the right. On phones the tabs move to the bottom and panels open as sheets.
 
-- **Explore**: your games at a glance (with your best scores), the designs as swatches, layers to show or hide (visited countries, visited states, city pins, flights, rings around small islands), and a search of the whole atlas, countries by any name and cities. The games and the design cards can be hidden with the × in their corner, and brought back from the line under the search.
+- **Explore**: two round buttons in the corner, so the globe has the room. The magnifying glass opens a search of the whole atlas, countries by any name and cities. The gear opens the designs as swatches and the layers to show or hide (visited countries, visited states, city pins, flights, rings around small islands). On phones both are shown in the sheet.
 - **Visited**: switch between your countries and your flights, each with a small box of figures. Keep track of where you've been, out of the world's 197 countries, with the count and percentage for each continent (territories are counted separately). Your places are listed by continent. Search to add places (old names like "Swaziland" work too), or click a country and press "Add to visited atlas". They're colored on the globe.
 
   For the USA, Canada, Australia and Brazil you can also mark the states, provinces and territories you've visited: click "… states explored" in the country's panel and tick them, or click them on the globe. They're drawn over the country in a darker shade.
@@ -110,7 +110,7 @@ src/
   screensaver.ts       the screensaver mode, and carrying your places in its address
   ui/                  the cards with "(B) GAMES ··· 06" headers, and the boxes of figures
   nav/                 the top bar, tabs, the column of cards on the right
-  explore/             the Explore cards: games, design and layers, atlas search; settings
+  explore/             the Explore tools: atlas search, design and layers; settings
   visited/             visited countries, states and cities; flights, and the airport search
   design/              design picker, and how to set up the screensaver
   games/               game rules (games.ts, letterGame.ts), what the globe shows (globeView.ts),
