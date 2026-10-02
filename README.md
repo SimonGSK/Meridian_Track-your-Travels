@@ -11,7 +11,7 @@ The design (navy and amber, after a mock-up made in Lovable) has a top bar with 
 
   Every country's panel also has its visited cities, and a box to add more from its big and well-known cities (focus it to see the biggest). Each city you've visited gets a pin on the globe; point at a pin to see the city's name, or click it to open its country. Adding a city also marks its country, and its state, as visited.
 
-  Under Flights, add the flights you've taken, from one city to another (the box shows each city's country, as there's more than one London; "From" then starts where the last flight landed, and ⇅ swaps them for the flight back). Each route is drawn on the globe as an arc, rising with the distance, with a dash running from where the flight left; a route flown both ways or more than once is drawn once. The figures are how many flights, how far as the plane flies, and how many times around the Earth that makes. Click a flight to see its route from above, highlighted, until you press Escape or click the globe. Adding a flight doesn't mark its cities as visited: changing planes isn't visiting.
+  Under Flights, add the flights you've taken, between airports: every international airport, and the regional ones with airline service (3,244 in all). Search by city, airport name or code ("Copenhagen", "Heathrow", "CPH"); each result shows the airport's name and country. "From" then starts where the last flight landed, and ⇅ swaps them for the flight back. Each route is drawn on the globe as a thin arc, rising with the distance, with a little plane flying along it from where the flight left, turned the way it's going; a route flown both ways or more than once is drawn once. The figures are how many flights, how far as the plane flies, and how many times around the Earth that makes. Click a flight to see its route from above, highlighted, until you press Escape or click the globe. Adding a flight doesn't mark its cities as visited: changing planes isn't visiting. (The first flights were saved between cities; they move to the city's main airport by themselves.)
 - **Games**:
   - *Find the country*: click the named country on the globe, with three tries (3, 2 or 1 points). Hard leaves out the 49 biggest countries.
   - *Letter hunt*: click every country starting with a letter. Each letter belongs to one difficulty (easy D F H J K R U V Z, medium A E G I L N P T, hard B C M S); pick any letter, or a random one, and see your best for each.
@@ -37,7 +37,7 @@ The globe can be your Mac's screensaver, spinning with your places on it. With `
 
 The screensaver doesn't update by itself. After changing your places or design, copy the address again and paste it in Options; after changing the app, run `npm run build:screensaver` again.
 
-Visited places, states and cities, best scores, the design and the settings are saved in your browser (`localStorage`). Nothing is sent anywhere.
+Visited places, states, cities and flights, best scores, the design and the settings are saved in your browser (`localStorage`). Nothing is sent anywhere.
 
 Built with React, TypeScript and Vite, using [react-globe.gl](https://github.com/vasturiano/react-globe.gl) (three.js) for the globe, [world-atlas](https://github.com/topojson/world-atlas) (Natural Earth 1:50m) for country shapes and [flag-icons](https://github.com/lipis/flag-icons) for flags. The fonts are Fraunces, Inter and JetBrains Mono (SIL Open Font License), from Fontsource. Flags and fonts are bundled, so no requests go to third parties.
 
@@ -68,12 +68,20 @@ Then open http://localhost:5173.
 | `npm run data:regions` | Regenerate `src/data/regions.json` (states and provinces) |
 | `npm run data:facts` | Download capitals, population and area from the World Bank into `src/data/country-facts.json` |
 | `npm run data:cities` | Regenerate `src/data/cities.json` (each place's big and well-known cities) |
+| `npm run data:airports` | Download the airports with scheduled flights from OurAirports into `src/data/airports.json` |
 
 The first time you run the end-to-end tests, install the browser:
 
 ```bash
 npx playwright install chromium
 ```
+
+## Tests
+
+- **Unit and component tests** (Vitest and Testing Library, in jsdom): the data, the game rules, the globe's layers against a real three.js camera, every panel, and the whole app with a stand-in for the WebGL globe. About 630 tests, covering over 99% of the lines.
+- **End-to-end tests** (Playwright): the real app with its WebGL globe in headless Chromium, on a desktop and a phone (touch, tab bar, sheets): hovering and clicking countries, visited places, states, cities and flights kept after reloading, the settings, the designs, every game, and the screensaver.
+
+`.github/workflows/tests.yml` runs all of it on GitHub for every pull request and every push to `main`: lint, the unit tests, the build (which type-checks), and the end-to-end tests.
 
 ## How it works
 
@@ -82,7 +90,7 @@ src/
   App.tsx              ties it together: globe, hover/selection, menu, games, camera flights
   CountryPanel.tsx     panel shown for the selected country
   RegionPicker.tsx     its states to tick off
-  CityPicker.tsx       its cities to tick off
+  CityPicker.tsx       its visited cities, and a box to add more
   FlagCorner.tsx       hovered country's flag, bottom-right
   Tooltip.tsx          country name that follows the mouse
   countries.ts         every place: shape, names, codes, size, map color; lookup by point or name
@@ -96,12 +104,15 @@ src/
     regions.ts         states and provinces: names, lookup, loading (shapes in regions.json)
     facts.ts           capital, population and area (data in country-facts.json)
     cities.ts          big and well-known cities: loading, lookup (data in cities.json)
+    airports.ts        airports with scheduled flights: loading, search (data in airports.json)
+    flights.ts         flights: distances, figures, routes, moving old city flights to airports
   storage.ts           state saved in the browser
-  ui/Card.tsx          the cards with "(B) GAMES ··· 06" headers
+  screensaver.ts       the screensaver mode, and carrying your places in its address
+  ui/                  the cards with "(B) GAMES ··· 06" headers, and the boxes of figures
   nav/                 the top bar, tabs, the column of cards on the right
   explore/             the Explore cards: games, design and layers, atlas search; settings
-  visited/             visited countries, states and cities
-  design/              design picker
+  visited/             visited countries, states and cities; flights, and the airport search
+  design/              design picker, and how to set up the screensaver
   games/               game rules (games.ts, letterGame.ts), what the globe shows (globeView.ts),
                        state and best scores (useGame.ts), the panel, answer box and outlines
   globe/
@@ -109,6 +120,7 @@ src/
     countryLayer.ts    all countries merged into one mesh, plus borders and markers; the raised country
     regionLayer.ts     states and provinces drawn over their country
     pinLayer.ts        pins on visited cities, and finding the pin under the pointer
+    flightLayer.ts     flight routes as arcs, with planes flying along them
     colors.ts          which color each country gets (game answers > hover > visited > land)
     themes.ts          the designs
     hooks.ts           the layers, pointer picking, depth precision, idle spin
@@ -117,6 +129,7 @@ src/
     style.ts           heights
 e2e/                   Playwright tests
 scripts/               data extraction
+.github/workflows/     the tests, run on GitHub
 ```
 
 A few choices keep the globe smooth:
@@ -154,6 +167,8 @@ Some corrections to the map data:
 Capitals, population (2024) and total area come from the [World Bank's open data](https://data.worldbank.org/) (CC BY 4.0). Places it doesn't cover (Taiwan, Vatican City, Western Sahara, Somaliland, Northern Cyprus and several territories) use recent censuses and estimates from `src/data/country-facts-extra.json`, marked as estimates in the app. Somalia's and Cyprus's figures include Somaliland and Northern Cyprus.
 
 Cities come from [GeoNames](https://www.geonames.org/) (CC BY 4.0), via [all-the-cities](https://github.com/zeke/all-the-cities). For each place, `scripts/extract-cities.mjs` keeps the capital, every city of a million or more, the next biggest (more for more populous countries, from 50,000 people), and a hand-picked list of famous smaller ones (Venice, Key West, Chefchaouen…), leaving out suburbs within 25 km of a city already picked. GeoNames often uses local spellings, so the script has English names for well-known cities ("Cologne", not "Köln") and leaves out transliteration marks; it also has a short list of GeoNames entries that are districts, camps or campuses rather than cities. Overseas regions like Réunion are listed under the country the map draws them in. A few places the all-the-cities extract leaves out (Vilanculos) are added by hand, with their GeoNames ids.
+
+Airports come from [OurAirports](https://ourairports.com/data/) (public domain): `scripts/fetch-airports.mjs` keeps the large and medium airports with scheduled airline service and an IATA code, which covers every international airport.
 
 Lakes come from Natural Earth's 1:50m lakes, also via sane-topojson.
 
