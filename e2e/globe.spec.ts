@@ -272,30 +272,34 @@ test.describe('screensaver', () => {
 test.describe('explore', () => {
   test('layers switch off, and stay off after reloading', async ({ page }) => {
     await openGlobe(page)
-    // Explore is open from the start on big screens
+    // Explore is open from the start on big screens, as a magnifying glass and a gear
+    const gear = page.getByRole('button', { name: 'Design and layers' })
     const visitedSwitch = page.getByRole('switch', { name: /Visited countries/ })
     const markerSwitch = page.getByRole('switch', { name: /Small islands/ })
     const pinSwitch = page.getByRole('switch', { name: /City pins/ })
+    await gear.click()
     await expect(visitedSwitch).toBeChecked()
     await visitedSwitch.click()
     await markerSwitch.click()
     await pinSwitch.click()
 
     await page.reload()
+    await gear.click()
     await expect(visitedSwitch).not.toBeChecked()
     await expect(markerSwitch).not.toBeChecked()
     await expect(pinSwitch).not.toBeChecked()
   })
 
-  test('searching the atlas shows the country, and a game card opens the game', async ({ page }) => {
+  test('the magnifying glass opens a search of the atlas, which shows the country found', async ({ page }) => {
     await openGlobe(page)
-    await page.getByRole('searchbox', { name: 'Search the atlas' }).fill('kyoto')
+    await expect(page.getByRole('region', { name: /Games/ })).toHaveCount(0)
+    await page.getByRole('button', { name: 'Search the atlas' }).click()
+    const search = page.getByRole('searchbox', { name: 'Search the atlas' })
+    await expect(search).toBeFocused()
+    await search.fill('kyoto')
     await page.getByRole('button', { name: /^Kyoto/ }).click()
     await expect(panel(page).getByRole('heading', { name: 'Japan' })).toBeVisible()
-
-    await page.getByRole('region', { name: /Games/ }).getByRole('button', { name: /^Flag quiz/ }).click()
-    await expect(page.getByRole('heading', { name: 'Flag quiz' })).toBeVisible()
-    await expect(page.getByRole('button', { name: 'Games', exact: true })).toHaveAttribute('aria-expanded', 'true')
+    await expect(search).toHaveCount(0)
   })
 })
 

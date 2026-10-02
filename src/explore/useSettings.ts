@@ -12,10 +12,6 @@ export type Settings = {
   showCities: boolean
   /** Lines for the flights you've taken */
   showFlights: boolean
-  /** The Explore tab's games card */
-  showGamesCard: boolean
-  /** The Explore tab's design and layers card */
-  showDesignCard: boolean
 }
 
 export const SETTINGS_KEY = 'countries-app.settings'
@@ -25,20 +21,23 @@ export const DEFAULT_SETTINGS: Settings = {
   showRegions: true,
   showCities: true,
   showFlights: true,
-  showGamesCard: true,
-  showDesignCard: true,
 }
 
 const isSettings = (value: unknown): value is Partial<Settings> =>
-  typeof value === 'object' &&
-  value !== null &&
-  Object.entries(value).every(([key, v]) => key in DEFAULT_SETTINGS && typeof v === 'boolean')
+  typeof value === 'object' && value !== null && Object.values(value).every((v) => typeof v === 'boolean')
+
+/** Only the settings there are now: older versions saved some that are gone (which Explore cards to show) */
+const known = (saved: Partial<Settings>) =>
+  Object.fromEntries(Object.entries(saved).filter(([key]) => key in DEFAULT_SETTINGS)) as Partial<Settings>
 
 /** Map settings, saved in this browser. */
 export function useSettings() {
   const [saved, setSaved] = usePersistentState<Partial<Settings>>(SETTINGS_KEY, {}, isSettings)
   // Settings added later get their default
-  const settings: Settings = { ...DEFAULT_SETTINGS, ...saved }
-  const change = useCallback((changes: Partial<Settings>) => setSaved((prev) => ({ ...prev, ...changes })), [setSaved])
+  const settings: Settings = { ...DEFAULT_SETTINGS, ...known(saved) }
+  const change = useCallback(
+    (changes: Partial<Settings>) => setSaved((prev) => ({ ...known(prev), ...changes })),
+    [setSaved],
+  )
   return [settings, change] as const
 }

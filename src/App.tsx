@@ -80,7 +80,7 @@ export default function App() {
   const [hovered, setHovered] = useState<CountryFeature | null>(null)
   const [selected, setSelected] = useState<CountryFeature | null>(null)
   const [screensaver] = useState(() => isScreensaver())
-  // Big screens start with the Explore cards open; phones with just the globe
+  // Big screens start with Explore open; phones with just the globe
   const [view, setView] = useState<ViewId | null>(() => (isPhone() ? null : 'explore'))
   /** The game whose setup is open in the Games tab */
   const [chosenGame, setChosenGame] = useState<GameId | null>(null)
@@ -337,10 +337,6 @@ export default function App() {
     }
     setView(next)
   }
-  const openGame = (id: GameId) => {
-    setChosenGame(id)
-    changeView('games')
-  }
 
   // From a list in the side panel. On phones the panel covers the country panel, so close it.
   const showCountry = useCallback(
@@ -437,10 +433,9 @@ export default function App() {
               onChange={changeSettings}
               theme={theme}
               onThemeChange={setTheme}
-              best={best}
-              onOpenGame={openGame}
               onFind={showCountry}
               cities={cities}
+              compact={!isPhone()}
             />
           )}
           {view === 'visited' && (

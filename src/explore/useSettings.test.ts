@@ -11,8 +11,6 @@ describe('useSettings', () => {
       showRegions: true,
       showCities: true,
       showFlights: true,
-      showGamesCard: true,
-      showDesignCard: true,
     })
   })
 
@@ -27,6 +25,15 @@ describe('useSettings', () => {
   it('fills in settings missing from what was saved', () => {
     localStorage.setItem(SETTINGS_KEY, JSON.stringify({ showVisited: false }))
     expect(renderHook(() => useSettings()).result.current[0]).toEqual({ ...DEFAULT_SETTINGS, showVisited: false })
+  })
+
+  it('forgets settings that are gone, keeping the rest', () => {
+    // Older versions could hide the Explore cards
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify({ showGamesCard: false, showCities: false }))
+    const { result } = renderHook(() => useSettings())
+    expect(result.current[0]).toEqual({ ...DEFAULT_SETTINGS, showCities: false })
+    act(() => result.current[1]({ showFlights: false }))
+    expect(JSON.parse(localStorage.getItem(SETTINGS_KEY)!)).toEqual({ showCities: false, showFlights: false })
   })
 
   it('ignores corrupted settings', () => {
