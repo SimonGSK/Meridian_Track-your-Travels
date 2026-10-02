@@ -11,7 +11,8 @@ export default defineConfig({
     include: ['src/**/*.test.{ts,tsx}'],
     coverage: {
       include: ['src/**'],
-      exclude: ['src/**/*.test.*', 'src/test/**', 'src/main.tsx'],
+      // Data files are generated and checked by their own tests
+      exclude: ['src/**/*.test.*', 'src/test/**', 'src/main.tsx', 'src/**/*.json'],
     },
   },
 })

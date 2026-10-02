@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import ScreensaverCard from './ScreensaverCard'
@@ -30,6 +30,22 @@ describe('ScreensaverCard', () => {
     expect(await navigator.clipboard.readText()).toBe(
       (screen.getByRole('textbox', { name: 'Screensaver address' }) as HTMLInputElement).value,
     )
+  })
+
+  it('leaves the address in the box to copy by hand when there is no clipboard', async () => {
+    const user = userEvent.setup()
+    vi.spyOn(navigator.clipboard, 'writeText').mockRejectedValueOnce(new Error('denied'))
+    render(<ScreensaverCard />)
+    await user.click(screen.getByRole('button', { name: 'Copy address' }))
+    expect(screen.getByRole('button', { name: 'Copy address' })).toBeInTheDocument()
+    expect((screen.getByRole('textbox', { name: 'Screensaver address' }) as HTMLInputElement).value).toMatch(/^file:/)
+  })
+
+  it('selects the whole address when you click into it, to copy by hand', async () => {
+    render(<ScreensaverCard />)
+    const box = screen.getByRole('textbox', { name: 'Screensaver address' }) as HTMLInputElement
+    await userEvent.click(box)
+    expect([box.selectionStart, box.selectionEnd]).toEqual([0, box.value.length])
   })
 
   it('previews the screensaver in a new tab', () => {

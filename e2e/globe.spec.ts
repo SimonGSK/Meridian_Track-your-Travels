@@ -248,6 +248,27 @@ test.describe('flights', () => {
   })
 })
 
+test.describe('screensaver', () => {
+  test('shows just the globe, with the places the address brings', async ({ page }) => {
+    const errors: string[] = []
+    page.on('pageerror', (e) => errors.push(e.message))
+    page.on('console', (msg) => msg.type() === 'error' && errors.push(msg.text()))
+    const places = Buffer.from(
+      JSON.stringify({
+        'countries-app.visited': JSON.stringify(['Denmark', 'Japan']),
+        'countries-app.flights': JSON.stringify([{ id: 'a', from: 'CPH', to: 'HND' }]),
+      }),
+    ).toString('base64url')
+    await page.goto(`/?screensaver#places=${places}`)
+    await expect(page.getByTestId('globe')).toHaveAttribute('aria-busy', 'false')
+    await expect(page.getByRole('navigation')).toHaveCount(0)
+    await expect(page.getByRole('heading')).toHaveCount(0)
+    expect(await page.evaluate(() => JSON.parse(localStorage.getItem('countries-app.visited')!))).toEqual(['Denmark', 'Japan'])
+    await page.waitForTimeout(1000)
+    expect(errors).toEqual([])
+  })
+})
+
 test.describe('explore', () => {
   test('layers switch off, and stay off after reloading', async ({ page }) => {
     await openGlobe(page)

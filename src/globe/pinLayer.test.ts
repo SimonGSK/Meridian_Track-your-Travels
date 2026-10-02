@@ -12,6 +12,7 @@ import {
   pinPosition,
 } from './pinLayer'
 import { toUnitVector } from './sphereMesh'
+import { fakeCanvas } from '../test/fakeCanvas'
 import { LAND_ALTITUDE, SELECTED_ALTITUDE } from './style'
 
 const RADIUS = 100
@@ -111,6 +112,26 @@ describe('createPinLayer', () => {
     expect([uniforms.hiddenBelow.value, uniforms.solidAbove.value]).toEqual([PIN_HIDDEN_BELOW, PIN_SOLID_ABOVE])
     layer.setFade(SCREENSAVER_PIN_FADE)
     expect(uniforms.hiddenBelow.value).toBeLessThan(PIN_HIDDEN_BELOW)
+    layer.dispose()
+  })
+})
+
+describe('pin texture', () => {
+  it('draws a pin in the color asked for, with a white dot and a dark edge', () => {
+    const { drawing, restore } = fakeCanvas()
+    const layer = createPinLayer(RADIUS)
+    layer.setColor('#ff4757')
+    expect(drawing.fills).toEqual(['#ff4757', '#fff'])
+    expect(drawing.strokes).toHaveLength(1)
+    layer.dispose()
+    restore()
+  })
+
+  it('sizes pins in device pixels', () => {
+    const layer = createPinLayer(RADIUS)
+    const renderer = { getPixelRatio: () => 2 }
+    layer.object.onBeforeRender(renderer as never, null as never, null as never, null as never, null as never, null as never)
+    expect((layer.object.material as ShaderMaterial).uniforms.size.value).toBe(PIN_SIZE_PX * 2)
     layer.dispose()
   })
 })
