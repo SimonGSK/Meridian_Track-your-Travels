@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react'
 import { searchCountries, type CountryFeature } from '../countries'
-import { countryOfCity, type City } from '../data/cities'
+import { countryOfCity, findCities, type City } from '../data/cities'
 import { normalizeName } from '../data/names'
 import { THEMES, type Theme } from '../globe/themes'
 import { GAMES, type GameId } from '../games/games'
@@ -124,15 +124,11 @@ function AtlasSearch({ cities, onFind }: Pick<Props, 'cities' | 'onFind'>) {
           note: matchedAlias ? `“${matchedAlias}”` : country.properties.continent,
           country,
         })),
-        ...(cities ?? [])
-          // From the start of any word: "nelspruit" finds "Mbombela (Nelspruit)"
-          .filter((city) => normalizeName(city.name).split(/[\s(]+/).some((word) => word.startsWith(wanted)))
-          .sort((a, b) => b.population - a.population)
-          .slice(0, 4)
-          .flatMap((city) => {
-            const country = countryOfCity(city)
-            return country ? [{ key: `city-${city.id}`, name: city.name, note: country.properties.name, country }] : []
-          }),
+        // From the start of any word: "nelspruit" finds "Mbombela (Nelspruit)"
+        ...findCities(cities ?? [], query, 4).flatMap((city) => {
+          const country = countryOfCity(city)
+          return country ? [{ key: `city-${city.id}`, name: city.name, note: country.properties.name, country }] : []
+        }),
       ]
     : []
 
