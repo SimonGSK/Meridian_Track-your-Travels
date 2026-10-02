@@ -2,48 +2,100 @@ import { describe, expect, it, vi } from 'vitest'
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import ExplorePanel from './ExplorePanel'
-import { gameSummary } from './gameSummary'
 import { DEFAULT_SETTINGS, type Settings } from './useSettings'
 import { MIDNIGHT, THEMES } from '../globe/themes'
 import { loadCities } from '../data/cities'
 
 const cities = await loadCities()
 
-function setup({ settings = DEFAULT_SETTINGS, best = {} }: { settings?: Settings; best?: Record<string, number> } = {}) {
+function setup({ settings = DEFAULT_SETTINGS, compact = true }: { settings?: Settings; compact?: boolean } = {}) {
   const props = {
     settings,
     onChange: vi.fn(),
     theme: MIDNIGHT,
     onThemeChange: vi.fn(),
-    best,
-    onOpenGame: vi.fn(),
     onFind: vi.fn(),
     cities,
+    compact,
   }
   render(<ExplorePanel {...props} />)
   return props
 }
 
+const magnifier = () => screen.getByRole('button', { name: 'Search the atlas' })
+const gear = () => screen.getByRole('button', { name: 'Design and layers' })
+const search = () => screen.getByRole('searchbox', { name: 'Search the atlas' })
+const found = () => within(screen.getByRole('list', { name: 'Places found' })).getAllByRole('button')
+
 describe('ExplorePanel', () => {
-  describe('games', () => {
-    it('lists every game, opening the one clicked', async () => {
-      const { onOpenGame } = setup()
-      const games = screen.getByRole('region', { name: /Games/ })
-      expect(within(games).getAllByRole('listitem')).toHaveLength(6)
-      await userEvent.click(within(games).getByRole('button', { name: /^Flag quiz/ }))
-      expect(onOpenGame).toHaveBeenCalledWith('flags')
+  describe('buttons', () => {
+    it('starts as just a magnifying glass and a gear', () => {
+      setup()
+      expect(magnifier()).toHaveAttribute('aria-expanded', 'false')
+      expect(gear()).toHaveAttribute('aria-expanded', 'false')
+      expect(screen.queryByRole('searchbox')).not.toBeInTheDocument()
+      expect(screen.queryByRole('switch')).not.toBeInTheDocument()
     })
 
-    it('shows your best next to a game, or what it is about', () => {
-      setup({ best: { 'flags:easy': 8, 'flags:hard': 5 } })
-      expect(screen.getByRole('button', { name: /^Flag quiz/ })).toHaveTextContent('Best 80%')
-      expect(screen.getByRole('button', { name: /^Find the country/ })).toHaveTextContent('Point it out')
+    it('opens the search with the magnifying glass, ready to type', async () => {
+      setup()
+      await userEvent.click(magnifier())
+      expect(magnifier()).toHaveAttribute('aria-expanded', 'true')
+      expect(search()).toHaveFocus()
+      await userEvent.click(magnifier())
+      expect(screen.queryByRole('searchbox')).not.toBeInTheDocument()
+    })
+
+    it('opens the design and layers with the gear', async () => {
+      setup()
+      await userEvent.click(gear())
+      expect(gear()).toHaveAttribute('aria-expanded', 'true')
+      expect(screen.getByRole('region', { name: /Design & layers/ })).toBeInTheDocument()
+      await userEvent.click(gear())
+      expect(screen.queryByRole('switch')).not.toBeInTheDocument()
+    })
+
+    it('opens one at a time', async () => {
+      setup()
+      await userEvent.click(magnifier())
+      await userEvent.click(gear())
+      expect(screen.queryByRole('searchbox')).not.toBeInTheDocument()
+      expect(screen.getAllByRole('switch').length).toBeGreaterThan(0)
+      await userEvent.click(magnifier())
+      expect(screen.queryByRole('switch')).not.toBeInTheDocument()
+    })
+
+    it('closes with Escape', async () => {
+      setup()
+      await userEvent.click(gear())
+      await userEvent.keyboard('{Escape}')
+      expect(screen.queryByRole('switch')).not.toBeInTheDocument()
+      expect(gear()).toHaveAttribute('aria-expanded', 'false')
+    })
+
+    it('puts an empty search away when you click elsewhere, but not one with something typed', async () => {
+      setup()
+      await userEvent.click(magnifier())
+      await userEvent.click(document.body)
+      expect(screen.queryByRole('searchbox')).not.toBeInTheDocument()
+      await userEvent.click(magnifier())
+      await userEvent.type(search(), 'den')
+      await userEvent.click(document.body)
+      expect(search()).toHaveValue('den')
+    })
+
+    it('shows both open on phones, in their sheet', () => {
+      setup({ compact: false })
+      expect(screen.queryByRole('button', { name: 'Design and layers' })).not.toBeInTheDocument()
+      expect(search()).toBeInTheDocument()
+      expect(screen.getByRole('region', { name: /Design & layers/ })).toBeInTheDocument()
     })
   })
 
   describe('design and layers', () => {
     it('offers every design as a swatch, marking the current one', async () => {
       const { onThemeChange } = setup()
+      await userEvent.click(gear())
       const designs = screen.getByRole('group', { name: 'Design' })
       expect(within(designs).getAllByRole('button')).toHaveLength(THEMES.length)
       expect(within(designs).getByRole('button', { name: 'Midnight' })).toHaveAttribute('aria-pressed', 'true')
@@ -51,8 +103,9 @@ describe('ExplorePanel', () => {
       expect(onThemeChange).toHaveBeenCalledWith('vintage')
     })
 
-    it('has a switch for each layer, showing its state', () => {
+    it('has a switch for each layer, showing its state', async () => {
       setup({ settings: { ...DEFAULT_SETTINGS, showMarkers: false } })
+      await userEvent.click(gear())
       expect(screen.getByRole('switch', { name: /Visited countries/ })).toBeChecked()
       expect(screen.getByRole('switch', { name: /Visited states/ })).toBeChecked()
       expect(screen.getByRole('switch', { name: /City pins/ })).toBeChecked()
@@ -61,6 +114,7 @@ describe('ExplorePanel', () => {
 
     it('turns layers on and off', async () => {
       const { onChange } = setup({ settings: { ...DEFAULT_SETTINGS, showMarkers: false } })
+      await userEvent.click(gear())
       await userEvent.click(screen.getByRole('switch', { name: /City pins/ }))
       expect(onChange).toHaveBeenCalledWith({ showCities: false })
       await userEvent.click(screen.getByRole('switch', { name: /Small islands/ }))
@@ -68,38 +122,9 @@ describe('ExplorePanel', () => {
     })
   })
 
-  describe('hiding cards', () => {
-    it('hides the games or the design card', async () => {
-      const { onChange } = setup()
-      await userEvent.click(screen.getByRole('button', { name: 'Hide Games' }))
-      expect(onChange).toHaveBeenCalledWith({ showGamesCard: false })
-      await userEvent.click(screen.getByRole('button', { name: 'Hide Design & layers' }))
-      expect(onChange).toHaveBeenCalledWith({ showDesignCard: false })
-    })
-
-    it('leaves hidden cards out, with a way to show them again', async () => {
-      const { onChange } = setup({ settings: { ...DEFAULT_SETTINGS, showGamesCard: false, showDesignCard: false } })
-      expect(screen.queryByRole('region', { name: /Games/ })).not.toBeInTheDocument()
-      expect(screen.queryByRole('switch')).not.toBeInTheDocument()
-      expect(screen.getByRole('searchbox', { name: 'Search the atlas' })).toBeInTheDocument()
-      await userEvent.click(screen.getByRole('button', { name: 'Games' }))
-      expect(onChange).toHaveBeenCalledWith({ showGamesCard: true })
-      await userEvent.click(screen.getByRole('button', { name: 'Design & layers' }))
-      expect(onChange).toHaveBeenCalledWith({ showDesignCard: true })
-    })
-
-    it('has nothing to show again when every card is there', () => {
-      setup()
-      expect(screen.queryByText(/Show again/)).not.toBeInTheDocument()
-    })
-  })
-
   describe('search', () => {
-    const search = () => screen.getByRole('searchbox', { name: 'Search the atlas' })
-    const found = () => within(screen.getByRole('list', { name: 'Places found' })).getAllByRole('button')
-
     it('finds countries by any of their names, and shows the one picked', async () => {
-      const { onFind } = setup()
+      const { onFind } = setup({ compact: false })
       await userEvent.type(search(), 'swazi')
       expect(found()[0]).toHaveTextContent(/^Eswatini/)
       await userEvent.click(found()[0])
@@ -107,38 +132,30 @@ describe('ExplorePanel', () => {
       expect(search()).toHaveValue('')
     })
 
-    it('finds cities, showing their country', async () => {
+    it('puts itself away after finding a place', async () => {
       const { onFind } = setup()
+      await userEvent.click(magnifier())
+      await userEvent.keyboard('denmark{Enter}')
+      expect(onFind).toHaveBeenCalledWith(expect.objectContaining({ properties: expect.objectContaining({ name: 'Denmark' }) }))
+      expect(screen.queryByRole('searchbox')).not.toBeInTheDocument()
+    })
+
+    it('finds cities, showing their country', async () => {
+      const { onFind } = setup({ compact: false })
       await userEvent.type(search(), 'aarhu{Enter}')
       expect(onFind).toHaveBeenCalledWith(expect.objectContaining({ properties: expect.objectContaining({ name: 'Denmark' }) }))
     })
 
     it('finds cities by any word of their name', async () => {
-    const { onFind } = setup()
-    await userEvent.type(search(), 'nelspruit{Enter}')
-    expect(onFind).toHaveBeenCalledWith(expect.objectContaining({ properties: expect.objectContaining({ name: 'South Africa' }) }))
-  })
+      const { onFind } = setup({ compact: false })
+      await userEvent.type(search(), 'nelspruit{Enter}')
+      expect(onFind).toHaveBeenCalledWith(expect.objectContaining({ properties: expect.objectContaining({ name: 'South Africa' }) }))
+    })
 
-  it('says when nothing matches', async () => {
-      setup()
+    it('says when nothing matches', async () => {
+      setup({ compact: false })
       await userEvent.type(search(), 'xyzzy')
       expect(screen.getByText(/Nothing called/)).toBeInTheDocument()
     })
-  })
-})
-
-describe('gameSummary', () => {
-  it('shows the best share over all difficulties', () => {
-    expect(gameSummary('shape', { 'shape:easy': 5, 'shape:medium': 9 })).toBe('Best 90%')
-  })
-
-  it('counts countries named, and letters completed', () => {
-    expect(gameSummary('all', { 'all:world': 120 })).toBe('120 / 197')
-    expect(gameSummary('letter', { 'letter:Z': 2, 'letter:K': 1 })).toMatch(/^1 \/ \d+ letters$/) // Zambia and Zimbabwe; not all the K's
-  })
-
-  it('says what a game is about before it has been played', () => {
-    expect(gameSummary('all', {})).toBe('From memory')
-    expect(gameSummary('letter', {})).toBe('A to Z')
   })
 })

@@ -519,7 +519,8 @@ input::placeholder {
 }
 
 .atlas-search input {
-  flex: 1;
+  /* A width to start from, or the results would share its line */
+  flex: 1 1 160px;
   min-width: 0;
   height: 46px;
   border: none;
@@ -748,30 +749,65 @@ input[type='checkbox'] {
   opacity: 0.35;
 }
 
-/* A hidden card's way back, and the button that hides it */
-.card-hide {
+/* Explore: a magnifying glass and a gear, opening the search and the design and layers */
+.explore-tools {
+  display: grid;
+  justify-items: end;
+  gap: 10px;
+  /* Only the buttons and what they open take clicks, not the empty column around them */
+  pointer-events: none;
+}
+
+.explore-tools > *,
+.tool-row > * {
+  pointer-events: auto;
+}
+
+.tool-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  gap: 10px;
+  width: 100%;
+  pointer-events: none;
+}
+
+.tool-row .atlas-search {
+  flex: 1;
+  min-width: 0;
+  animation: slide-in 0.18s ease-out;
+}
+
+.explore-tools > .card {
+  width: 100%;
+  animation: slide-in 0.18s ease-out;
+}
+
+.tool-button {
+  flex: none;
   display: grid;
   place-items: center;
-  width: 22px;
-  height: 22px;
-  margin: -4px -6px -4px 0;
-  border: none;
+  width: 46px;
+  height: 46px;
+  border: 1px solid var(--line-strong);
   border-radius: 50%;
-  background: none;
-  color: var(--text-dim);
-  cursor: pointer;
-}
-
-.card-hide:hover {
-  background: var(--surface-hover);
+  background: var(--card);
+  backdrop-filter: blur(12px);
   color: var(--text);
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    color 0.15s;
 }
 
-.restore-cards {
-  margin: 0;
-  padding: 0 4px;
-  color: var(--text-muted);
-  font-size: 13px;
+.tool-button:hover {
+  border-color: var(--accent);
+}
+
+.tool-button[aria-expanded='true'] {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-ink);
 }
 
 /* The screensaver: just the globe */
@@ -1803,6 +1839,9 @@ code {
   }
   .side-panel > .card:first-of-type .card-header {
     padding-right: 40px;
+  }
+  .sheet-close + .atlas-search {
+    margin-right: 44px;
   }
   .card {
     padding: 14px 14px;

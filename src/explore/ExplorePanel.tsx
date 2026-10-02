@@ -1,13 +1,10 @@
-import { useState, type ReactNode } from 'react'
+import { useEffect, useState, type MouseEvent } from 'react'
 import { searchCountries, type CountryFeature } from '../countries'
 import { countryOfCity, findCities, type City } from '../data/cities'
 import { normalizeName } from '../data/names'
 import { THEMES, type Theme } from '../globe/themes'
-import { GAMES, type GameId } from '../games/games'
-import type { BestScores } from '../games/useGame'
-import { CloseIcon, SearchIcon } from '../icons'
+import { GearIcon, SearchIcon } from '../icons'
 import Card from '../ui/Card'
-import { gameSummary } from './gameSummary'
 import LayerList from './LayerList'
 import type { Settings } from './useSettings'
 
@@ -16,81 +13,84 @@ type Props = {
   onChange: (changes: Partial<Settings>) => void
   theme: Theme
   onThemeChange: (id: string) => void
-  best: BestScores
-  /** Opens a game's setup in the Games tab */
-  onOpenGame: (id: GameId) => void
   /** Shows a country found by searching */
   onFind: (country: CountryFeature) => void
   cities: readonly City[] | null
+  /** Just two buttons, opening the search and the design and layers. Phones show both open, in their sheet. */
+  compact?: boolean
 }
 
-/** The Explore tab: games at a glance, the design and layers, and a search of the atlas. */
-export default function ExplorePanel(props: Props) {
-  const { settings, onChange } = props
-  const hidden = CARDS.filter((card) => !settings[card.setting])
+type Tool = 'search' | 'settings'
+
+/**
+ * The Explore tab: a search of the atlas, and the design and layers. On big
+ * screens they're two round buttons, a magnifying glass and a gear, that
+ * open them, so the globe has the room.
+ */
+export default function ExplorePanel({ compact = true, ...props }: Props) {
+  const [open, setOpen] = useState<Tool | null>(null)
+  const toggle = (tool: Tool) => setOpen((current) => (current === tool ? null : tool))
+  // Keeps the focus in the search, so it doesn't put itself away just before its button toggles it
+  const keepFocus = (e: MouseEvent) => e.preventDefault()
+
+  // Escape closes what's open before anything else
+  useEffect(() => {
+    if (!open) return
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return
+      e.stopPropagation()
+      setOpen(null)
+    }
+    document.addEventListener('keydown', onKeyDown, true)
+    return () => document.removeEventListener('keydown', onKeyDown, true)
+  }, [open])
+
+  if (!compact) {
+    return (
+      <>
+        <AtlasSearch cities={props.cities} onFind={props.onFind} />
+        <LayersCard {...props} />
+      </>
+    )
+  }
+
   return (
-    <>
-      {settings.showGamesCard && (
-        <GamesCard {...props} actions={<HideButton label="Games" onHide={() => onChange({ showGamesCard: false })} />} />
-      )}
-      {settings.showDesignCard && (
-        <LayersCard
-          {...props}
-          actions={<HideButton label="Design & layers" onHide={() => onChange({ showDesignCard: false })} />}
-        />
-      )}
-      <AtlasSearch cities={props.cities} onFind={props.onFind} />
-      {hidden.length > 0 && (
-        <p className="restore-cards">
-          Show again:{' '}
-          {hidden.map((card, i) => (
-            <span key={card.setting}>
-              {i > 0 && ' · '}
-              <button type="button" className="link-button" onClick={() => onChange({ [card.setting]: true })}>
-                {card.label}
-              </button>
-            </span>
-          ))}
-        </p>
-      )}
-    </>
+    <div className="explore-tools">
+      <div className="tool-row">
+        {open === 'search' && (
+          <AtlasSearch cities={props.cities} onFind={props.onFind} onClose={() => setOpen(null)} autoFocus />
+        )}
+        <button
+          type="button"
+          className="tool-button"
+          aria-label="Search the atlas"
+          aria-expanded={open === 'search'}
+          title="Search the atlas"
+          onMouseDown={keepFocus}
+          onClick={() => toggle('search')}
+        >
+          <SearchIcon size={20} />
+        </button>
+      </div>
+      <button
+        type="button"
+        className="tool-button"
+        aria-label="Design and layers"
+        aria-expanded={open === 'settings'}
+        title="Design and layers"
+        onMouseDown={keepFocus}
+        onClick={() => toggle('settings')}
+      >
+        <GearIcon size={20} />
+      </button>
+      {open === 'settings' && <LayersCard {...props} />}
+    </div>
   )
 }
 
-/** The cards that can be hidden from Explore */
-const CARDS = [
-  { setting: 'showGamesCard', label: 'Games' },
-  { setting: 'showDesignCard', label: 'Design & layers' },
-] as const
-
-function HideButton({ label, onHide }: { label: string; onHide: () => void }) {
+function LayersCard({ settings, onChange, theme, onThemeChange }: Props) {
   return (
-    <button type="button" className="card-hide" onClick={onHide} aria-label={`Hide ${label}`} title={`Hide ${label}`}>
-      <CloseIcon size={14} />
-    </button>
-  )
-}
-
-function GamesCard({ best, onOpenGame, actions }: Props & { actions: ReactNode }) {
-  return (
-    <Card letter="B" label="Games" meta={String(GAMES.length).padStart(2, '0')} actions={actions}>
-      <ul className="row-list">
-        {GAMES.map((game) => (
-          <li key={game.id}>
-            <button type="button" className="row-button" onClick={() => onOpenGame(game.id)}>
-              <span>{game.title}</span>
-              <span className="row-meta">{gameSummary(game.id, best)}</span>
-            </button>
-          </li>
-        ))}
-      </ul>
-    </Card>
-  )
-}
-
-function LayersCard({ settings, onChange, theme, onThemeChange, actions }: Props & { actions: ReactNode }) {
-  return (
-    <Card letter="C" label="Design & layers" meta={theme.name.toUpperCase()} actions={actions}>
+    <Card letter="B" label="Design & layers" meta={theme.name.toUpperCase()}>
       <div className="swatches" role="group" aria-label="Design">
         {THEMES.map((t) => (
           <button
@@ -113,7 +113,16 @@ function LayersCard({ settings, onChange, theme, onThemeChange, actions }: Props
 type Result = { key: string; name: string; note: string; country: CountryFeature }
 
 /** Countries by any of their names, and cities, each showing its country */
-function AtlasSearch({ cities, onFind }: Pick<Props, 'cities' | 'onFind'>) {
+function AtlasSearch({
+  cities,
+  onFind,
+  onClose,
+  autoFocus = false,
+}: Pick<Props, 'cities' | 'onFind'> & {
+  /** After finding a place, or leaving the box empty */
+  onClose?: () => void
+  autoFocus?: boolean
+}) {
   const [query, setQuery] = useState('')
   const wanted = normalizeName(query)
   const results: Result[] = wanted
@@ -135,16 +144,23 @@ function AtlasSearch({ cities, onFind }: Pick<Props, 'cities' | 'onFind'>) {
   const find = (result: Result) => {
     onFind(result.country)
     setQuery('')
+    onClose?.()
   }
 
   return (
-    <div className="atlas-search" role="search">
-      <SearchIcon />
+    <div
+      className="atlas-search"
+      role="search"
+      // Clicking away from an empty box puts it away
+      onBlur={(e) => !query && !e.currentTarget.contains(e.relatedTarget) && onClose?.()}
+    >
+      {!onClose && <SearchIcon />}
       <input
         type="search"
         aria-label="Search the atlas"
         placeholder="Search the atlas"
         autoComplete="off"
+        autoFocus={autoFocus}
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         onKeyDown={(e) => e.key === 'Enter' && results[0] && find(results[0])}

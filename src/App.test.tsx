@@ -122,6 +122,8 @@ const tooltip = () => screen.queryByRole('tooltip')
 const countryPanel = () => screen.queryByRole('complementary')
 const panelHeading = () => countryPanel()?.querySelector('h2') ?? null
 const sidePanel = () => document.getElementById('side-panel')
+/** Explore's gear, opening the design and layers */
+const openLayers = () => userEvent.click(screen.getByRole('button', { name: 'Design and layers' }))
 /** Names of countries currently raised on the globe */
 const raised = () => [...sceneObjects].flatMap((o) => ('raised' in o ? [o.raised as string] : []))
 const flag = () => screen.queryByRole('img', { name: /^Flag of/ })
@@ -309,12 +311,13 @@ describe('App', () => {
   })
 
   describe('top bar and Explore', () => {
-    it('starts with the Explore cards open', () => {
+    it('starts with Explore open, as a magnifying glass and a gear', () => {
       render(<App />)
       expect(sidePanel()).toHaveAccessibleName('Explore')
       expect(screen.getByRole('button', { name: 'Explore' })).toHaveAttribute('aria-expanded', 'true')
-      expect(screen.getByRole('region', { name: /Games/ })).toBeInTheDocument()
-      expect(screen.getByRole('region', { name: /Design & layers/ })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Search the atlas' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Design and layers' })).toBeInTheDocument()
+      expect(screen.queryByRole('region', { name: /Games/ })).not.toBeInTheDocument()
     })
 
     it('shows where the globe is looking, and how many places are visited', async () => {
@@ -326,32 +329,12 @@ describe('App', () => {
       expect(screen.getByText('1 visited')).toBeInTheDocument()
     })
 
-    it('opens a game from its card, ready to choose the difficulty', async () => {
-      render(<App />)
-      await userEvent.click(within(screen.getByRole('region', { name: /Games/ })).getByRole('button', { name: /^Shape quiz/ }))
-      expect(sidePanel()).toHaveAccessibleName('Games')
-      expect(screen.getByRole('heading', { name: 'Shape quiz' })).toBeInTheDocument()
-      expect(screen.getByRole('button', { name: /^Easy/ })).toBeInTheDocument()
-    })
-
     it('finds a country with the atlas search and shows it', async () => {
       render(<App />)
+      await userEvent.click(screen.getByRole('button', { name: 'Search the atlas' }))
       await userEvent.type(screen.getByRole('searchbox', { name: 'Search the atlas' }), 'denm{Enter}')
       expect(panelHeading()).toHaveTextContent('Denmark')
       expect(globe.pointOfView).toHaveBeenLastCalledWith(expect.objectContaining({ lat: expect.any(Number) }), expect.any(Number))
-    })
-
-    it('hides the games card, and remembers it', async () => {
-      const first = render(<App />)
-      await userEvent.click(screen.getByRole('button', { name: 'Hide Games' }))
-      expect(screen.queryByRole('region', { name: /Games/ })).not.toBeInTheDocument()
-      first.unmount()
-
-      render(<App />)
-      expect(screen.queryByRole('region', { name: /Games/ })).not.toBeInTheDocument()
-      // "Show again", in the column (the tab is also called Games)
-      await userEvent.click(within(sidePanel()!).getByRole('button', { name: 'Games' }))
-      expect(screen.getByRole('region', { name: /Games/ })).toBeInTheDocument()
     })
 
     it('has the layers in the Design tab too', async () => {
@@ -362,6 +345,7 @@ describe('App', () => {
 
     it('switches design with the swatches', async () => {
       render(<App />)
+      await openLayers()
       await userEvent.click(within(screen.getByRole('group', { name: 'Design' })).getByRole('button', { name: 'Night' }))
       expect(layer.setBorders).toHaveBeenLastCalledWith(NIGHT.border, NIGHT.borderOpacity)
       expect(screen.getByRole('region', { name: /Design & layers/ })).toHaveTextContent('NIGHT')
@@ -542,6 +526,7 @@ describe('App', () => {
       expect(shownRegions()).toEqual({ California: visitedRegionColor(DEFAULT_THEME) })
 
       await userEvent.click(screen.getByRole('button', { name: 'Explore' }))
+      await openLayers()
       await userEvent.click(screen.getByRole('switch', { name: /Visited states/ }))
       expect(shownRegions()).toEqual({})
     })
@@ -656,6 +641,7 @@ describe('App', () => {
     it('hides the pins when switched off, and during games', async () => {
       await addAarhusAndClose()
       await userEvent.click(screen.getByRole('button', { name: 'Explore' }))
+      await openLayers()
       await userEvent.click(screen.getByRole('switch', { name: /City pins/ }))
       expect(pinned()).toEqual([])
       await userEvent.click(screen.getByRole('switch', { name: /City pins/ }))
@@ -744,6 +730,7 @@ describe('App', () => {
       withFlights(fly('CPH', 'BKK'))
       render(<App />)
       await waitFor(() => expect(drawn()).toEqual(['CPH-BKK']))
+      await openLayers()
       await userEvent.click(screen.getByRole('switch', { name: /Flights/ }))
       expect(drawn()).toEqual([])
       await userEvent.click(screen.getByRole('switch', { name: /Flights/ }))
@@ -757,7 +744,10 @@ describe('App', () => {
   })
 
   describe('explore settings', () => {
-    const openExplore = () => userEvent.click(screen.getByRole('button', { name: 'Explore' }))
+    const openExplore = async () => {
+      await userEvent.click(screen.getByRole('button', { name: 'Explore' }))
+      await openLayers()
+    }
 
     it('hides visited countries on the globe, keeping the list', async () => {
       render(<App />)
