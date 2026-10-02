@@ -10,6 +10,7 @@ describe('useSettings', () => {
       showMarkers: true,
       showRegions: true,
       showCities: true,
+      showFlights: true,
       showGamesCard: true,
       showDesignCard: true,
     })

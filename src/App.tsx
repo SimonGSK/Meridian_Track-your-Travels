@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import Globe, { type GlobeMethods } from 'react-globe.gl'
-import { MeshPhongMaterial } from 'three'
+import { Color, MeshPhongMaterial } from 'three'
 import type { CountryFeature } from './countries'
 import { citiesLabel, citiesOf, countryOfCity, type City } from './data/cities'
 import { findRegionAt, hasRegions, regionsLabel, regionsOf, type RegionFeature } from './data/regions'
@@ -28,6 +28,11 @@ import VisitedPanel from './visited/VisitedPanel'
 import { useVisited } from './visited/useVisited'
 import { useVisitedRegions } from './visited/useVisitedRegions'
 import { useVisitedCities } from './visited/useVisitedCities'
+import { useFlights } from './visited/useFlights'
+import FlightsPanel from './visited/FlightsPanel'
+import VisitedTab, { type VisitedView } from './visited/VisitedTab'
+import { routeOf, uniqueRoutes, type Route } from './data/flights'
+import { geoInterpolate } from 'd3-geo'
 import { regionFills, regionOutlines, regionProgress } from './visited/regionsView'
 import Tooltip from './Tooltip'
 import {
@@ -46,11 +51,25 @@ import { PIN_FADE, SCREENSAVER_PIN_FADE, pinAt } from './globe/pinLayer'
 import { hoveredRegionColor, visitedRegionColor } from './globe/themes'
 import type { LatLng, Point } from './globe/interaction'
 import { INITIAL_VIEW, SCREENSAVER_VIEW, fitAltitude, flightAltitude, flightDuration } from './globe/interaction'
+import { LAND_ALTITUDE } from './globe/style'
 import { countryColor } from './globe/colors'
 
 const RENDERER_CONFIG = { antialias: true, alpha: true, powerPreference: 'high-performance' } as const
 
 const NO_VISITS: ReadonlySet<string> = new Set()
+
+/** Flight arcs leave from just above the land, so their ends aren't hidden in it */
+const FLIGHT_BASE = LAND_ALTITUDE * 1.5
+type FlightArc = { dash: boolean }
+const arcStroke = (arc: object) => ((arc as FlightArc).dash ? 0.8 : 0.45)
+const arcDashLength = (arc: object) => ((arc as FlightArc).dash ? 0.08 : 1)
+const arcDashGap = (arc: object) => ((arc as FlightArc).dash ? 1.2 : 0)
+const arcDashAnimateTime = (arc: object) => ((arc as FlightArc).dash ? 3500 : 0)
+/** "#9fd3ff" at 45% → "rgba(159, 211, 255, 0.45)" */
+const withAlpha = (hex: string, alpha: number) => {
+  const { r, g, b } = new Color(hex)
+  return `rgba(${Math.round(r * 255)}, ${Math.round(g * 255)}, ${Math.round(b * 255)}, ${alpha})`
+}
 
 /** Phones show one panel at a time, as a sheet over the globe */
 const PHONE = '(max-width: 640px)'
@@ -101,6 +120,10 @@ export default function App() {
   const cities = useCities()
   const { visitedCities, toggle: toggleCityId } = useVisitedCities()
   const [hoveredCity, setHoveredCity] = useState<City | null>(null)
+  const { flights, add: addFlight, remove: removeFlight } = useFlights()
+  const [visitedView, setVisitedView] = useState<VisitedView>('countries')
+  /** A flight picked in the list, shown on the globe (and highlighted) until the view moves on */
+  const [shownRoute, setShownRoute] = useState<Route | null>(null)
 
   const globeMaterial = useMemo(
     () => new MeshPhongMaterial({ color: theme.ocean, shininess: theme.oceanShininess }),
@@ -124,9 +147,33 @@ export default function App() {
   const selectCountry = useCallback(
     (country: CountryFeature | null) => {
       setSelected(country)
+      setShownRoute(null)
       if (country) flyTo(country)
     },
     [flyTo],
+  )
+
+  const cityById = useMemo(() => new Map((cities ?? []).map((c) => [c.id, c])), [cities])
+  const routes = useMemo(
+    () => flights.flatMap((flight) => routeOf(flight, cityById) ?? []),
+    [flights, cityById],
+  )
+
+  /** Flies to show a flight's whole route, from above its middle */
+  const showRoute = useCallback(
+    (route: Route) => {
+      selectCountry(null)
+      setShownRoute(route)
+      if (!globe) return
+      const [lng, lat] = geoInterpolate([route.from.lng, route.from.lat], [route.to.lng, route.to.lat])(0.5)
+      // Wide enough for the route, and for the arc rising above it
+      const altitude = fitAltitude((route.km / 111) * 1.3)
+      const from = globe.pointOfView()
+      stopGlide(globe)
+      globe.pointOfView({ lat, lng, altitude }, flightDuration(from, { lat, lng }))
+      if (isPhone()) setView(null)
+    },
+    [globe, selectCountry],
   )
 
   // A selected country with states isn't raised: it stays flat so its states can be picked on the globe
@@ -211,6 +258,20 @@ export default function App() {
     [cities, settings.showCities, game, visitedCities, editing, selected],
   )
   usePinLayer(globe, pinned, theme.pin, screensaver ? SCREENSAVER_PIN_FADE : PIN_FADE)
+
+  // Each route as a faint line with a bright dash running along it, from where the flight left
+  const flightArcs = useMemo(() => {
+    if (!settings.showFlights || showsGame(game)) return []
+    return uniqueRoutes(routes).flatMap((route) => {
+      const shown = !!shownRoute && uniqueRoutes([route, shownRoute]).length === 1
+      const ends = { startLat: route.from.lat, startLng: route.from.lng, endLat: route.to.lat, endLng: route.to.lng }
+      const color = shown ? theme.selected : theme.flight
+      return [
+        { ...ends, key: `${route.flight.id}-line`, dash: false, color: withAlpha(color, shown ? 0.9 : 0.45) },
+        { ...ends, key: `${route.flight.id}-dash`, dash: true, color },
+      ]
+    })
+  }, [routes, settings.showFlights, game, shownRoute, theme])
   const cityAt = useCallback(
     (point: Point | null) => (globe && point && pinned.length > 0 ? (pinAt(globe, pinned, point)?.city ?? null) : null),
     [globe, pinned],
@@ -222,7 +283,7 @@ export default function App() {
     [editing, editingRegions],
   )
   useDepthPrecision(globe)
-  useSmoothAutoRotate(globe, !selected && !playing)
+  useSmoothAutoRotate(globe, !selected && !playing && !shownRoute)
 
   const onGlobeClick = useCallback(
     (country: CountryFeature | null, position: LatLng | null, point: Point) => {
@@ -306,6 +367,7 @@ export default function App() {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key !== 'Escape') return
       if (selected) selectCountry(null)
+      else if (shownRoute) setShownRoute(null)
       else {
         quitGame()
         setView(null)
@@ -313,7 +375,7 @@ export default function App() {
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [selected, selectCountry, quitGame])
+  }, [selected, shownRoute, selectCountry, quitGame])
 
 
   const globeView = (
@@ -326,6 +388,15 @@ export default function App() {
       globeMaterial={globeMaterial}
       atmosphereColor={theme.atmosphere}
       atmosphereAltitude={0.18}
+      arcsData={flightArcs}
+      arcStartAltitude={FLIGHT_BASE}
+      arcEndAltitude={FLIGHT_BASE}
+      arcAltitudeAutoScale={0.3}
+      arcColor="color"
+      arcStroke={arcStroke}
+      arcDashLength={arcDashLength}
+      arcDashGap={arcDashGap}
+      arcDashAnimateTime={arcDashAnimateTime}
       // Picking happens in useCountryPointer, far cheaper than raycasting every mesh
       enablePointerInteraction={false}
       onGlobeReady={() => {
@@ -393,25 +464,43 @@ export default function App() {
             />
           )}
           {view === 'visited' && (
-            <Card letter="B" label="Visited atlas" meta={`${visited.size} places`}>
-              <VisitedPanel
-                visited={visited}
-                onAdd={addVisited}
-                onRemove={removeVisited}
-                onShow={showCountry}
-                note={(country) => {
-                  const notes = []
-                  if (regions && hasRegions(country)) {
-                    const { visited: count, total } = regionProgress(regions, visitedRegions, country)
-                    if (count > 0) notes.push(`${count} of ${total} ${regionsLabel(country).toLowerCase()}`)
-                  }
-                  const cityCount = cities ? citiesOf(cities, country).filter((c) => visitedCities.has(c.id)).length : 0
-                  if (cityCount > 0) notes.push(citiesLabel(cityCount))
-                  return notes.join(' · ') || null
-                }}
-                cityCount={cities ? cities.filter((c) => visitedCities.has(c.id)).length : 0}
-              />
-            </Card>
+            <VisitedTab
+              view={visitedView}
+              onViewChange={setVisitedView}
+              places={visited.size}
+              flights={routes.length}
+              countries={
+                <VisitedPanel
+                  visited={visited}
+                  onAdd={addVisited}
+                  onRemove={removeVisited}
+                  onShow={showCountry}
+                  note={(country) => {
+                    const notes = []
+                    if (regions && hasRegions(country)) {
+                      const { visited: count, total } = regionProgress(regions, visitedRegions, country)
+                      if (count > 0) notes.push(`${count} of ${total} ${regionsLabel(country).toLowerCase()}`)
+                    }
+                    const cityCount = cities ? citiesOf(cities, country).filter((c) => visitedCities.has(c.id)).length : 0
+                    if (cityCount > 0) notes.push(citiesLabel(cityCount))
+                    return notes.join(' · ') || null
+                  }}
+                  cityCount={cities ? cities.filter((c) => visitedCities.has(c.id)).length : 0}
+                />
+              }
+              flightsPanel={
+                <FlightsPanel
+                  routes={routes}
+                  cities={cities}
+                  onAdd={addFlight}
+                  onRemove={(id) => {
+                    if (shownRoute?.flight.id === id) setShownRoute(null)
+                    removeFlight(id)
+                  }}
+                  onShow={showRoute}
+                />
+              }
+            />
           )}
           {view === 'design' && (
             <>

@@ -18,6 +18,8 @@ export type Theme = {
   visited: string
   /** Pins on visited cities */
   pin: string
+  /** Lines for flights taken */
+  flight: string
   /** Game feedback */
   correct: string
   wrong: string
@@ -39,6 +41,7 @@ export const MIDNIGHT: Theme = {
   selected: '#f5be5b',
   visited: '#e1a03e',
   pin: '#e5553a',
+  flight: '#9fd3ff',
   correct: '#8fd694',
   wrong: '#ff5f56',
   background: '#08131e',
@@ -59,6 +62,7 @@ export const CLASSIC: Theme = {
   selected: '#ff7846',
   visited: '#5b8def',
   pin: '#ff4757',
+  flight: '#ffffff',
   correct: '#b4f25c',
   wrong: '#ff5a5f',
   background: '#02040a',
@@ -79,6 +83,7 @@ export const POLITICAL: Theme = {
   selected: '#e63946',
   visited: '#2f6fdb',
   pin: '#b5179e',
+  flight: '#1d3557',
   correct: '#15803d',
   wrong: '#dc2626',
   background: '#050a14',
@@ -99,6 +104,7 @@ export const NIGHT: Theme = {
   selected: '#ffd166',
   visited: '#7b5cff',
   pin: '#ff9f1c',
+  flight: '#ffd166',
   correct: '#39ff88',
   wrong: '#ff3b5c',
   background: '#000000',
@@ -119,6 +125,7 @@ export const VINTAGE: Theme = {
   selected: '#9c3d22',
   visited: '#5f8f6e',
   pin: '#a4161a',
+  flight: '#6b3a1d',
   correct: '#2f7d3a',
   wrong: '#b83227',
   background: '#120d08',
@@ -139,6 +146,7 @@ export const MINIMAL: Theme = {
   selected: '#2563eb',
   visited: '#0ea5a4',
   pin: '#e11d48',
+  flight: '#1f2937',
   correct: '#16a34a',
   wrong: '#dc2626',
   background: '#0b0f14',

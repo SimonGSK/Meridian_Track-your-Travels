@@ -5,6 +5,7 @@ const LAYERS: { key: keyof Settings; label: string; description: string; dot: 'a
   { key: 'showVisited', label: 'Visited countries', description: "Color the countries you've visited", dot: 'accent' },
   { key: 'showRegions', label: 'Visited states', description: "Color the states you've visited, a shade darker", dot: 'accent' },
   { key: 'showCities', label: 'City pins', description: "A pin on each city you've visited", dot: 'accent' },
+  { key: 'showFlights', label: 'Flights', description: "A line for each flight you've taken", dot: 'blue' },
   { key: 'showMarkers', label: 'Small islands', description: 'Rings around small islands and territories', dot: 'blue' },
 ]
 

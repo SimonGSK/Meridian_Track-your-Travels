@@ -12,12 +12,14 @@ function setup(visited: string[] = []) {
 }
 
 const search = () => screen.getByRole('searchbox', { name: 'Add a country' })
+/** A figure in the stats box */
+const stat = (label: string) => screen.getByText(label, { selector: 'dt' }).nextElementSibling
 const results = () => screen.queryByRole('list', { name: 'Search results' })
 
 describe('VisitedPanel', () => {
   it("shows how many of the world's countries have been visited", () => {
     setup(['Denmark', 'Japan'])
-    expect(screen.getByText('of 197 countries')).toBeInTheDocument()
+    expect(stat('Countries')).toHaveTextContent('2 / 197')
     expect(screen.getByRole('progressbar', { name: "Share of the world's countries visited" })).toHaveAttribute(
       'aria-valuenow',
       '2',
@@ -26,7 +28,7 @@ describe('VisitedPanel', () => {
 
   it('counts the cities visited', () => {
     render(<VisitedPanel visited={new Set(['Denmark'])} onAdd={() => {}} onRemove={() => {}} onShow={() => {}} cityCount={3} />)
-    expect(screen.getByText(/3 cities/)).toBeInTheDocument()
+    expect(stat('Cities')).toHaveTextContent('3')
   })
 
   it('counts territories separately', () => {
@@ -35,7 +37,7 @@ describe('VisitedPanel', () => {
       'aria-valuenow',
       '1',
     )
-    expect(screen.getByText(/plus 2 of \d+ territories/)).toBeInTheDocument()
+    expect(stat('Territories')).toHaveTextContent(/^2 \/ \d+$/)
   })
 
   it('invites you to add countries when none are visited', () => {

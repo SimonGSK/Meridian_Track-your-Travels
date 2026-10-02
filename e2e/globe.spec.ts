@@ -153,7 +153,7 @@ test.describe('visited', () => {
     await page.reload()
     await page.getByRole('button', { name: 'Visited', exact: true }).click()
     await expect(list).toContainText('Denmark')
-    await expect(page.getByText('1 of 197 countries')).toBeVisible()
+    await expect(page.getByLabel('Your atlas')).toContainText('1 / 197')
   })
 
   test('marking the clicked country as visited', async ({ page }) => {
@@ -220,6 +220,29 @@ test.describe('visited cities', () => {
     await page.getByRole('button', { name: /^Japan/ }).click()
     await expect(visitedCities).toContainText('Kyoto')
     // The pins' shader compiled and drew without complaints
+    expect(errors).toEqual([])
+  })
+})
+
+test.describe('flights', () => {
+  test('adding a flight draws it, and it stays after reloading', async ({ page }) => {
+    const { errors } = await openGlobe(page)
+    await page.getByRole('button', { name: 'Visited', exact: true }).click()
+    await page.getByRole('tab', { name: 'Flights' }).click()
+    for (const [label, query, city] of [['From', 'copenh', 'Copenhagen'], ['To', 'bangk', 'Bangkok']]) {
+      await page.getByRole('searchbox', { name: label, exact: true }).fill(query)
+      await page.getByRole('list', { name: `${label} cities` }).getByRole('button', { name: new RegExp(`^${city}`) }).click()
+    }
+    await page.getByRole('button', { name: 'Add flight' }).click()
+    const flights = page.getByRole('list', { name: 'Flights' })
+    await expect(flights).toContainText('Copenhagen → Bangkok')
+
+    await page.reload()
+    await page.getByRole('button', { name: 'Visited', exact: true }).click()
+    await page.getByRole('tab', { name: 'Flights' }).click()
+    await expect(flights).toContainText('8,620 km')
+    await flights.getByRole('button', { name: /^Copenhagen → Bangkok/ }).click()
+    // The arcs drew without complaints
     expect(errors).toEqual([])
   })
 })

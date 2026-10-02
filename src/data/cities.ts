@@ -1,5 +1,6 @@
 import { countries, type CountryFeature } from '../countries'
 import { placeKey } from './facts'
+import { normalizeName } from './names'
 
 /**
  * The big and well-known cities of each place, from GeoNames (CC BY 4.0),
@@ -38,3 +39,19 @@ export function countryOfCity(city: City): CountryFeature | null {
 
 /** "1 city", "4 cities" */
 export const citiesLabel = (count: number) => `${count} ${count === 1 ? 'city' : 'cities'}`
+
+/** The cities whose name, or a word of it, starts with what's typed: those starting with it first, then the biggest */
+export function findCities(cities: readonly City[], query: string, limit = 6) {
+  const wanted = normalizeName(query)
+  if (!wanted) return []
+  return cities
+    .map((city) => {
+      const name = normalizeName(city.name)
+      const rank = name.startsWith(wanted) ? 0 : name.split(/[\s(-]+/).some((word) => word.startsWith(wanted)) ? 1 : -1
+      return { city, rank }
+    })
+    .filter(({ rank }) => rank >= 0)
+    .sort((a, b) => a.rank - b.rank || b.city.population - a.city.population)
+    .slice(0, limit)
+    .map(({ city }) => city)
+}

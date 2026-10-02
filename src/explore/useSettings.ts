@@ -10,6 +10,8 @@ export type Settings = {
   showRegions: boolean
   /** Pins on the cities you've visited */
   showCities: boolean
+  /** Lines for the flights you've taken */
+  showFlights: boolean
   /** The Explore tab's games card */
   showGamesCard: boolean
   /** The Explore tab's design and layers card */
@@ -22,6 +24,7 @@ export const DEFAULT_SETTINGS: Settings = {
   showMarkers: true,
   showRegions: true,
   showCities: true,
+  showFlights: true,
   showGamesCard: true,
   showDesignCard: true,
 }

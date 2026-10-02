@@ -833,6 +833,117 @@ code {
   font-size: 12px;
 }
 
+/* The Visited tab: countries or flights, each with its figures */
+.segmented {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  margin-bottom: 14px;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(3, 10, 18, 0.45);
+}
+
+.segmented button {
+  padding: 7px 10px;
+  border: none;
+  border-radius: 999px;
+  background: none;
+  color: var(--text-muted);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.segmented button:hover {
+  color: var(--text);
+}
+
+.segmented button[aria-selected='true'] {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.facts.stats {
+  grid-template-columns: repeat(3, 1fr);
+  margin: 0 0 10px;
+}
+
+.facts.stats dt {
+  font-size: 9.5px;
+}
+
+/* Adding a flight */
+.flight-form {
+  display: grid;
+  gap: 8px;
+}
+
+.city-choice {
+  display: grid;
+  gap: 4px;
+}
+
+.city-choice-label {
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.city-chip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 6px 6px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: var(--accent-soft);
+  font-size: 14px;
+}
+
+.city-chip .muted {
+  font-size: 12px;
+}
+
+.city-chip .remove-button {
+  opacity: 1;
+}
+
+.swap-button {
+  justify-self: center;
+  width: 30px;
+  height: 26px;
+  margin: -4px 0;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: none;
+  color: var(--text-muted);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.swap-button:hover:not(:disabled) {
+  border-color: var(--line-strong);
+  color: var(--text);
+}
+
+.swap-button:disabled,
+.primary-button:disabled {
+  opacity: 0.45;
+  cursor: default;
+  filter: none;
+}
+
+.flight-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
 /* Hints and labels over the globe */
 
 .hint {

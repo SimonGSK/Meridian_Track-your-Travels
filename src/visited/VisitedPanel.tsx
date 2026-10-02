@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import { countries, searchCountries, type CountryFeature } from '../countries'
-import { citiesLabel } from '../data/cities'
 import { CONTINENTS, type Continent } from '../data/continents'
 import { flagUrl } from '../flags'
 import { percentLabel } from './percentLabel'
+import StatsBox from '../ui/StatsBox'
 
 type Props = {
   visited: ReadonlySet<string>
@@ -54,27 +54,26 @@ export default function VisitedPanel({ visited, onAdd, onRemove, onShow, note, c
 
   return (
     <div className="visited">
-      <div className="visited-stats">
-        <p>
-          <strong>{visitedCountries}</strong> of {COUNTRY_COUNT} countries
-        </p>
-        <div
-          className="progress"
-          role="progressbar"
-          aria-label="Share of the world's countries visited"
-          aria-valuemin={0}
-          aria-valuemax={COUNTRY_COUNT}
-          aria-valuenow={visitedCountries}
-          aria-valuetext={percentLabel(visitedCountries, COUNTRY_COUNT)}
-        >
-          <div style={{ width: `${(visitedCountries / COUNTRY_COUNT) * 100}%` }} />
-        </div>
-        <span className="visited-percent">
-          {percentLabel(visitedCountries, COUNTRY_COUNT)}
-          {visitedTerritories > 0 && ` · plus ${visitedTerritories} of ${TERRITORY_COUNT} territories`}
-          {cityCount > 0 && ` · ${citiesLabel(cityCount)}`}
-        </span>
+      <StatsBox
+        label="Your atlas"
+        stats={[
+          { label: 'Countries', value: `${visitedCountries} / ${COUNTRY_COUNT}` },
+          { label: 'Territories', value: `${visitedTerritories} / ${TERRITORY_COUNT}` },
+          { label: 'Cities', value: cityCount },
+        ]}
+      />
+      <div
+        className="progress"
+        role="progressbar"
+        aria-label="Share of the world's countries visited"
+        aria-valuemin={0}
+        aria-valuemax={COUNTRY_COUNT}
+        aria-valuenow={visitedCountries}
+        aria-valuetext={percentLabel(visitedCountries, COUNTRY_COUNT)}
+      >
+        <div style={{ width: `${(visitedCountries / COUNTRY_COUNT) * 100}%` }} />
       </div>
+      <span className="visited-percent">{percentLabel(visitedCountries, COUNTRY_COUNT)} of the world's countries</span>
 
       <h3>By continent</h3>
       <ul className="continent-stats" aria-label="Countries visited by continent">
