@@ -1,20 +1,26 @@
 import { geoDistance } from 'd3-geo'
+import { nearestAirport, type Airport } from './airports'
 import type { City } from './cities'
 
-/** A flight you've taken, between two cities (GeoNames ids) */
-export type Flight = { id: string; from: number; to: number }
+/** A flight you've taken, between two airports (IATA codes) */
+export type Flight = { id: string; from: string; to: string }
+
+/** As saved: the first flights went between cities (GeoNames ids), before there were airports */
+export type StoredFlight = { id: string; from: string | number; to: string | number }
 
 const EARTH_KM = 6371
 /** Once around the Earth at the equator */
 export const EARTH_CIRCUMFERENCE_KM = 40_075
 
-/** Great-circle distance, as the plane flies */
-export const distanceKm = (from: City, to: City) => geoDistance([from.lng, from.lat], [to.lng, to.lat]) * EARTH_KM
+type Place = { lat: number; lng: number }
 
-/** A flight with its cities looked up, or null if one isn't in the city list any more */
-export function routeOf(flight: Flight, cityById: ReadonlyMap<number, City>) {
-  const from = cityById.get(flight.from)
-  const to = cityById.get(flight.to)
+/** Great-circle distance, as the plane flies */
+export const distanceKm = (from: Place, to: Place) => geoDistance([from.lng, from.lat], [to.lng, to.lat]) * EARTH_KM
+
+/** A flight with its airports looked up, or null if one isn't in the list any more */
+export function routeOf(flight: Flight, airportByCode: ReadonlyMap<string, Airport>) {
+  const from = airportByCode.get(flight.from)
+  const to = airportByCode.get(flight.to)
   return from && to ? { flight, from, to, km: distanceKm(from, to) } : null
 }
 
@@ -26,14 +32,37 @@ export function flightStats(routes: readonly Route[]) {
   return { flights: routes.length, km, aroundEarth: km / EARTH_CIRCUMFERENCE_KM }
 }
 
-/** One arc per pair of cities, whichever way and however often it was flown */
+/** One arc per pair of airports, whichever way and however often it was flown */
 export function uniqueRoutes(routes: readonly Route[]) {
   const seen = new Map<string, Route>()
   for (const route of routes) {
-    const key = [route.from.id, route.to.id].sort((a, b) => a - b).join('-')
+    const key = [route.from.code, route.to.code].sort().join('-')
     if (!seen.has(key)) seen.set(key, route)
   }
   return [...seen.values()]
+}
+
+export const isAirportFlight = (flight: StoredFlight): flight is Flight =>
+  typeof flight.from === 'string' && typeof flight.to === 'string'
+
+/**
+ * Flights saved between cities, moved to the airports serving them (the
+ * nearest big one); a flight whose city has no airport is dropped.
+ */
+export function migrateFlights(
+  stored: readonly StoredFlight[],
+  cityById: ReadonlyMap<number, City>,
+  airports: readonly Airport[],
+): Flight[] {
+  const airportOf = (end: string | number) => {
+    if (typeof end === 'string') return end
+    const city = cityById.get(end)
+    return city ? (nearestAirport(airports, city)?.code ?? null) : null
+  }
+  return stored.flatMap((flight) => {
+    const [from, to] = [airportOf(flight.from), airportOf(flight.to)]
+    return from && to && from !== to ? [{ id: flight.id, from, to }] : []
+  })
 }
 
 const whole = new Intl.NumberFormat('en-US')

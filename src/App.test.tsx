@@ -6,6 +6,7 @@ import type { GlobeProps } from 'react-globe.gl'
 import App from './App'
 import { countries, findCountryAt } from './countries'
 import { loadCities } from './data/cities'
+import { loadAirports } from './data/airports'
 import { loadRegions } from './data/regions'
 import { DEFAULT_THEME, NIGHT, POLITICAL, hoveredRegionColor, visitedRegionColor } from './globe/themes'
 import { INITIAL_VIEW, SCREENSAVER_VIEW } from './globe/interaction'
@@ -13,7 +14,7 @@ import { SCREENSAVER_PIN_FADE } from './globe/pinLayer'
 
 // WebGL doesn't exist in jsdom, so the globe is replaced by a stand-in that
 // exposes what the app passes to it. Screen positions map to places by x.
-const { PLACES, PIN_AT, globe, globeProps, layer, regionLayer, pinLayer, sceneObjects } = vi.hoisted(() => {
+const { PLACES, PIN_AT, globe, layer, regionLayer, pinLayer, flightLayer, sceneObjects } = vi.hoisted(() => {
   const listeners = new Map<string, Set<() => void>>()
   const sceneObjects = new Set<object>()
   const controls = {
@@ -51,18 +52,16 @@ const { PLACES, PIN_AT, globe, globeProps, layer, regionLayer, pinLayer, sceneOb
       getGlobeRadius: () => 100,
     },
     sceneObjects,
-    /** The props the globe was last rendered with */
-    globeProps: { current: {} as Record<string, unknown> },
     layer: { object: {}, paint: vi.fn(), setBorders: vi.fn(), setMarkersVisible: vi.fn(), emphasize: vi.fn(), dispose: vi.fn() },
     regionLayer: { object: {}, show: vi.fn(), setOutlineColor: vi.fn(), dispose: vi.fn() },
     pinLayer: { object: {}, show: vi.fn(), setColor: vi.fn(), setFade: vi.fn(), dispose: vi.fn() },
+    flightLayer: { object: {}, show: vi.fn(), setColors: vi.fn(), tick: vi.fn(), dispose: vi.fn() },
   }
 })
 
 vi.mock('react-globe.gl', () => ({
-  default: function FakeGlobe({ ref, onGlobeReady, ...props }: GlobeProps & { ref: Ref<unknown> }) {
+  default: function FakeGlobe({ ref, onGlobeReady }: GlobeProps & { ref: Ref<unknown> }) {
     useImperativeHandle(ref, () => globe)
-    globeProps.current = props
     // Like the real globe, fires once after mounting
     const onReady = useRef(onGlobeReady)
     useEffect(() => onReady.current?.(), [])
@@ -75,6 +74,10 @@ vi.mock('./globe/picking', () => ({
     PLACES[x] ?? (x >= 2000 && x < 2400 ? { lat: 12.3, lng: -64 + (x - 2000) * 0.02 } : null),
 }))
 vi.mock('./globe/regionLayer', () => ({ createRegionLayer: () => regionLayer }))
+vi.mock('./globe/flightLayer', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('./globe/flightLayer')>()),
+  createFlightLayer: () => flightLayer,
+}))
 vi.mock('./globe/pinLayer', async (importOriginal) => ({
   ...(await importOriginal<typeof import('./globe/pinLayer')>()),
   createPinLayer: () => pinLayer,
@@ -678,70 +681,78 @@ describe('App', () => {
   })
 
   describe('flights', () => {
-    let cities: Awaited<ReturnType<typeof loadCities>> = []
-    beforeAll(async () => {
-      cities = await loadCities()
-    })
-    type Arc = { startLat: number; endLat: number; dash: boolean; color: string }
-    /** The arcs on the globe: a line and a running dash per route */
-    const arcs = () => (globeProps.current.arcsData ?? []) as Arc[]
-    const cityId = (name: string) => cities.find((c) => c.name === name && c.place !== 'CA')!.id
-    const fly = (from: string, to: string, id = `${from}-${to}`) => ({ id, from: cityId(from), to: cityId(to) })
+    type Line = { key: string; from: { code: string }; to: { code: string }; highlighted: boolean }
+    /** The routes the globe last drew, "CPH-BKK", with "!" for the picked one */
+    const drawn = () =>
+      ((flightLayer.show.mock.calls.at(-1)?.[0] ?? []) as Line[]).map(
+        (line) => `${line.from.code}-${line.to.code}${line.highlighted ? '!' : ''}`,
+      )
+    const fly = (from: string, to: string, id = `${from}-${to}`) => ({ id, from, to })
     const withFlights = (...flights: ReturnType<typeof fly>[]) =>
       localStorage.setItem('countries-app.flights', JSON.stringify(flights))
     const openFlights = async () => {
       await userEvent.click(screen.getByRole('button', { name: 'Visited' }))
       await userEvent.click(screen.getByRole('tab', { name: 'Flights' }))
     }
+    beforeAll(() => loadAirports(), 20_000)
+    beforeEach(() => flightLayer.show.mockClear())
 
-    it('draws each route once on the globe, however often it was flown', async () => {
-      withFlights(fly('Copenhagen', 'Bangkok'), fly('Bangkok', 'Copenhagen', 'back'), fly('London', 'Paris'))
+    it('draws each route once on the globe, however often it was flown, in the flight color', async () => {
+      withFlights(fly('CPH', 'BKK'), fly('BKK', 'CPH', 'back'), fly('LHR', 'CDG'))
       render(<App />)
-      await waitFor(() => expect(arcs()).toHaveLength(4))
-      expect(arcs().filter((a) => a.dash)).toHaveLength(2)
-      expect(arcs()[0]).toMatchObject({ startLat: expect.closeTo(55.68, 1), endLat: expect.closeTo(13.75, 1) })
+      await waitFor(() => expect(drawn()).toEqual(['CPH-BKK', 'LHR-CDG']))
+      expect(flightLayer.setColors).toHaveBeenLastCalledWith(DEFAULT_THEME.flight, DEFAULT_THEME.selected)
     })
 
     it('adds a flight from the Visited tab', async () => {
       render(<App />)
       await openFlights()
-      for (const [label, query] of [['From', 'copenhagen'], ['To', 'bangkok']]) {
+      for (const [label, query] of [['From', 'cph'], ['To', 'bkk']]) {
         await userEvent.type(await screen.findByRole('searchbox', { name: label }), query)
-        await userEvent.click(within(screen.getByRole('list', { name: `${label} cities` })).getAllByRole('button')[0])
+        await userEvent.click(within(screen.getByRole('list', { name: `${label} airports` })).getAllByRole('button')[0])
       }
       await userEvent.click(screen.getByRole('button', { name: 'Add flight' }))
       expect(screen.getByRole('list', { name: 'Flights' })).toHaveTextContent('Copenhagen → Bangkok')
-      expect(arcs()).toHaveLength(2)
+      expect(drawn()).toEqual(['CPH-BKK'])
       expect(screen.getByText('1 flight')).toBeInTheDocument()
     })
 
+    it('moves flights saved between cities to their airports', async () => {
+      const cities = await loadCities()
+      const id = (name: string, place: string) => cities.find((c) => c.name === name && c.place === place)!.id
+      withFlights({ id: 'old', from: id('Copenhagen', 'DK'), to: id('Dubai', 'AE') } as never)
+      render(<App />)
+      await waitFor(() => expect(drawn()).toEqual(['CPH-DXB']))
+      expect(JSON.parse(localStorage.getItem('countries-app.flights')!)).toEqual([{ id: 'old', from: 'CPH', to: 'DXB' }])
+    })
+
     it('shows a flight picked in the list, highlighted, until Escape', async () => {
-      withFlights(fly('Copenhagen', 'Bangkok'), fly('London', 'Paris'))
+      withFlights(fly('CPH', 'BKK'), fly('LHR', 'CDG'))
       render(<App />)
       await openFlights()
       await userEvent.click(await screen.findByRole('button', { name: /^Copenhagen → Bangkok/ }))
       const [view] = globe.pointOfView.mock.calls.at(-1) as [{ lat: number; lng: number }]
-      expect(view.lat).toBeGreaterThan(13.75)
-      expect(view.lat).toBeLessThan(55.68)
-      expect(arcs().filter((a) => a.color === DEFAULT_THEME.selected)).toHaveLength(1)
+      expect(view.lat).toBeGreaterThan(13.7)
+      expect(view.lat).toBeLessThan(55.6)
+      expect(drawn()).toEqual(['CPH-BKK!', 'LHR-CDG'])
       fireEvent.keyDown(window, { key: 'Escape' })
-      expect(arcs().filter((a) => a.color === DEFAULT_THEME.selected)).toHaveLength(0)
+      expect(drawn()).toEqual(['CPH-BKK', 'LHR-CDG'])
       expect(sidePanel()).toBeInTheDocument() // Escape put the route away first
     })
 
     it('hides the flights when switched off, and during games', async () => {
-      withFlights(fly('Copenhagen', 'Bangkok'))
+      withFlights(fly('CPH', 'BKK'))
       render(<App />)
-      await waitFor(() => expect(arcs()).toHaveLength(2))
+      await waitFor(() => expect(drawn()).toEqual(['CPH-BKK']))
       await userEvent.click(screen.getByRole('switch', { name: /Flights/ }))
-      expect(arcs()).toHaveLength(0)
+      expect(drawn()).toEqual([])
       await userEvent.click(screen.getByRole('switch', { name: /Flights/ }))
-      expect(arcs()).toHaveLength(2)
+      expect(drawn()).toEqual(['CPH-BKK'])
 
       await userEvent.click(screen.getByRole('button', { name: 'Games' }))
       await userEvent.click(screen.getByRole('button', { name: /Flag quiz/ }))
       await userEvent.click(screen.getByRole('button', { name: /^Easy/ }))
-      expect(arcs()).toHaveLength(0)
+      expect(drawn()).toEqual([])
     })
   })
 

@@ -8,6 +8,8 @@ import { loadCities, type City } from '../data/cities'
 import { loadRegions, type RegionFeature } from '../data/regions'
 import { createCountryLayer, createRaisedCountry, type CountryLayer } from './countryLayer'
 import { PIN_FADE, createPinLayer, type Pin, type PinLayer } from './pinLayer'
+import { createFlightLayer, type FlightLayer, type FlightLine } from './flightLayer'
+import { loadAirports, type Airport } from '../data/airports'
 import { createRegionLayer, type RegionLayer } from './regionLayer'
 import { approach, isClick, type LatLng, type Point } from './interaction'
 import { screenToLatLng } from './picking'
@@ -340,6 +342,50 @@ export const useRegions = () => useLoaded(loadRegions)
 
 /** The well-known cities, once loaded */
 export const useCities = (): City[] | null => useLoaded(loadCities)
+
+/** The airports, once loaded */
+export const useAirports = (): Airport[] | null => useLoaded(loadAirports)
+
+/** Flights as arcs with planes flying along them, in `color`, the one picked in `highlight` */
+export function useFlightLayer(
+  globe: GlobeMethods | null,
+  lines: readonly FlightLine[],
+  { color, highlight }: { color: string; highlight: string },
+) {
+  const layer = useRef<FlightLayer | null>(null)
+
+  useEffect(() => {
+    if (!globe) return
+    const scene = globe.scene()
+    const created = createFlightLayer(globe.getGlobeRadius())
+    scene.add(created.object)
+    layer.current = created
+    return () => {
+      scene.remove(created.object)
+      created.dispose()
+      layer.current = null
+    }
+  }, [globe])
+
+  useEffect(() => {
+    layer.current?.setColors(color, highlight)
+  }, [globe, color, highlight])
+
+  useEffect(() => {
+    layer.current?.show(lines)
+    if (!globe || lines.length === 0) return
+    // The planes fly while there are flights to show
+    const camera = globe.camera() as PerspectiveCamera
+    const canvas = globe.renderer().domElement
+    let frame = 0
+    const fly = () => {
+      layer.current?.tick(performance.now() / 1000, camera, canvas.clientWidth, canvas.clientHeight)
+      frame = requestAnimationFrame(fly)
+    }
+    fly()
+    return () => cancelAnimationFrame(frame)
+  }, [globe, lines])
+}
 
 /** Pins in `color`, at `pins`, fading out near the edge of the globe as `fade` says */
 export function usePinLayer(globe: GlobeMethods | null, pins: readonly Pin[], color: string, fade = PIN_FADE) {

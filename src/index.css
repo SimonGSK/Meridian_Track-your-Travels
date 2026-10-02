@@ -938,6 +938,19 @@ code {
   filter: none;
 }
 
+.suggestions .airport-option {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.city-chip strong,
+.airport-option strong {
+  color: var(--accent);
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+
 .flight-list {
   margin: 0;
   padding: 0;

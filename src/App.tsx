@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import Globe, { type GlobeMethods } from 'react-globe.gl'
-import { Color, MeshPhongMaterial } from 'three'
+import { MeshPhongMaterial } from 'three'
 import type { CountryFeature } from './countries'
 import { citiesLabel, citiesOf, countryOfCity, type City } from './data/cities'
 import { findRegionAt, hasRegions, regionsLabel, regionsOf, type RegionFeature } from './data/regions'
@@ -37,8 +37,10 @@ import { regionFills, regionOutlines, regionProgress } from './visited/regionsVi
 import Tooltip from './Tooltip'
 import {
   stopGlide,
+  useAirports,
   useCities,
   useCountryLayer,
+  useFlightLayer,
   useCountryPointer,
   useDepthPrecision,
   usePinLayer,
@@ -51,25 +53,12 @@ import { PIN_FADE, SCREENSAVER_PIN_FADE, pinAt } from './globe/pinLayer'
 import { hoveredRegionColor, visitedRegionColor } from './globe/themes'
 import type { LatLng, Point } from './globe/interaction'
 import { INITIAL_VIEW, SCREENSAVER_VIEW, fitAltitude, flightAltitude, flightDuration } from './globe/interaction'
-import { LAND_ALTITUDE } from './globe/style'
 import { countryColor } from './globe/colors'
 
 const RENDERER_CONFIG = { antialias: true, alpha: true, powerPreference: 'high-performance' } as const
 
 const NO_VISITS: ReadonlySet<string> = new Set()
 
-/** Flight arcs leave from just above the land, so their ends aren't hidden in it */
-const FLIGHT_BASE = LAND_ALTITUDE * 1.5
-type FlightArc = { dash: boolean }
-const arcStroke = (arc: object) => ((arc as FlightArc).dash ? 0.8 : 0.45)
-const arcDashLength = (arc: object) => ((arc as FlightArc).dash ? 0.08 : 1)
-const arcDashGap = (arc: object) => ((arc as FlightArc).dash ? 1.2 : 0)
-const arcDashAnimateTime = (arc: object) => ((arc as FlightArc).dash ? 3500 : 0)
-/** "#9fd3ff" at 45% → "rgba(159, 211, 255, 0.45)" */
-const withAlpha = (hex: string, alpha: number) => {
-  const { r, g, b } = new Color(hex)
-  return `rgba(${Math.round(r * 255)}, ${Math.round(g * 255)}, ${Math.round(b * 255)}, ${alpha})`
-}
 
 /** Phones show one panel at a time, as a sheet over the globe */
 const PHONE = '(max-width: 640px)'
@@ -120,7 +109,8 @@ export default function App() {
   const cities = useCities()
   const { visitedCities, toggle: toggleCityId } = useVisitedCities()
   const [hoveredCity, setHoveredCity] = useState<City | null>(null)
-  const { flights, add: addFlight, remove: removeFlight } = useFlights()
+  const airports = useAirports()
+  const { flights, add: addFlight, remove: removeFlight } = useFlights(cities, airports)
   const [visitedView, setVisitedView] = useState<VisitedView>('countries')
   /** A flight picked in the list, shown on the globe (and highlighted) until the view moves on */
   const [shownRoute, setShownRoute] = useState<Route | null>(null)
@@ -153,10 +143,10 @@ export default function App() {
     [flyTo],
   )
 
-  const cityById = useMemo(() => new Map((cities ?? []).map((c) => [c.id, c])), [cities])
+  const airportByCode = useMemo(() => new Map((airports ?? []).map((a) => [a.code, a])), [airports])
   const routes = useMemo(
-    () => flights.flatMap((flight) => routeOf(flight, cityById) ?? []),
-    [flights, cityById],
+    () => flights.flatMap((flight) => routeOf(flight, airportByCode) ?? []),
+    [flights, airportByCode],
   )
 
   /** Flies to show a flight's whole route, from above its middle */
@@ -259,19 +249,18 @@ export default function App() {
   )
   usePinLayer(globe, pinned, theme.pin, screensaver ? SCREENSAVER_PIN_FADE : PIN_FADE)
 
-  // Each route as a faint line with a bright dash running along it, from where the flight left
-  const flightArcs = useMemo(() => {
+  // Each route once, with a plane flying it; the one picked in the list stands out
+  const flightLines = useMemo(() => {
     if (!settings.showFlights || showsGame(game)) return []
-    return uniqueRoutes(routes).flatMap((route) => {
-      const shown = !!shownRoute && uniqueRoutes([route, shownRoute]).length === 1
-      const ends = { startLat: route.from.lat, startLng: route.from.lng, endLat: route.to.lat, endLng: route.to.lng }
-      const color = shown ? theme.selected : theme.flight
-      return [
-        { ...ends, key: `${route.flight.id}-line`, dash: false, color: withAlpha(color, shown ? 0.9 : 0.45) },
-        { ...ends, key: `${route.flight.id}-dash`, dash: true, color },
-      ]
-    })
-  }, [routes, settings.showFlights, game, shownRoute, theme])
+    const picked = shownRoute && uniqueRoutes([shownRoute])[0]
+    return uniqueRoutes(routes).map((route) => ({
+      key: route.flight.id,
+      from: route.from,
+      to: route.to,
+      highlighted: !!picked && uniqueRoutes([route, picked]).length === 1,
+    }))
+  }, [routes, settings.showFlights, game, shownRoute])
+  useFlightLayer(globe, flightLines, { color: theme.flight, highlight: theme.selected })
   const cityAt = useCallback(
     (point: Point | null) => (globe && point && pinned.length > 0 ? (pinAt(globe, pinned, point)?.city ?? null) : null),
     [globe, pinned],
@@ -388,15 +377,6 @@ export default function App() {
       globeMaterial={globeMaterial}
       atmosphereColor={theme.atmosphere}
       atmosphereAltitude={0.18}
-      arcsData={flightArcs}
-      arcStartAltitude={FLIGHT_BASE}
-      arcEndAltitude={FLIGHT_BASE}
-      arcAltitudeAutoScale={0.3}
-      arcColor="color"
-      arcStroke={arcStroke}
-      arcDashLength={arcDashLength}
-      arcDashGap={arcDashGap}
-      arcDashAnimateTime={arcDashAnimateTime}
       // Picking happens in useCountryPointer, far cheaper than raycasting every mesh
       enablePointerInteraction={false}
       onGlobeReady={() => {
@@ -491,7 +471,7 @@ export default function App() {
               flightsPanel={
                 <FlightsPanel
                   routes={routes}
-                  cities={cities}
+                  airports={airports}
                   onAdd={addFlight}
                   onRemove={(id) => {
                     if (shownRoute?.flight.id === id) setShownRoute(null)

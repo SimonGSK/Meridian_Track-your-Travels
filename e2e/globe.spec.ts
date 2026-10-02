@@ -225,13 +225,13 @@ test.describe('visited cities', () => {
 })
 
 test.describe('flights', () => {
-  test('adding a flight draws it, and it stays after reloading', async ({ page }) => {
+  test('adding a flight between airports draws it, and it stays after reloading', async ({ page }) => {
     const { errors } = await openGlobe(page)
     await page.getByRole('button', { name: 'Visited', exact: true }).click()
     await page.getByRole('tab', { name: 'Flights' }).click()
-    for (const [label, query, city] of [['From', 'copenh', 'Copenhagen'], ['To', 'bangk', 'Bangkok']]) {
+    for (const [label, query] of [['From', 'copenhagen'], ['To', 'bkk']]) {
       await page.getByRole('searchbox', { name: label, exact: true }).fill(query)
-      await page.getByRole('list', { name: `${label} cities` }).getByRole('button', { name: new RegExp(`^${city}`) }).click()
+      await page.getByRole('list', { name: `${label} airports` }).getByRole('button').first().click()
     }
     await page.getByRole('button', { name: 'Add flight' }).click()
     const flights = page.getByRole('list', { name: 'Flights' })
@@ -240,9 +240,10 @@ test.describe('flights', () => {
     await page.reload()
     await page.getByRole('button', { name: 'Visited', exact: true }).click()
     await page.getByRole('tab', { name: 'Flights' }).click()
-    await expect(flights).toContainText('8,620 km')
+    await expect(flights).toContainText('CPH → BKK')
     await flights.getByRole('button', { name: /^Copenhagen → Bangkok/ }).click()
-    // The arcs drew without complaints
+    // The routes and their planes drew without complaints
+    await page.waitForTimeout(1000)
     expect(errors).toEqual([])
   })
 })

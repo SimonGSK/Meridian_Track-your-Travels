@@ -1,19 +1,17 @@
 import { useId, useState } from 'react'
-import { countryOfCity, findCities, type City } from '../data/cities'
+import { cityOf, countryOf, findAirports, type Airport } from '../data/airports'
 import { CloseIcon } from '../icons'
 
 type Props = {
   /** "From" or "To" */
   label: string
-  cities: readonly City[]
-  value: City | null
-  onChange: (city: City | null) => void
+  airports: readonly Airport[]
+  value: Airport | null
+  onChange: (airport: Airport | null) => void
 }
 
-const countryName = (city: City) => countryOfCity(city)?.properties.name ?? ''
-
-/** Picks one city from all of them, showing each one's country: there's more than one London */
-export default function CitySearch({ label, cities, value, onChange }: Props) {
+/** Picks one airport, by its city, its name or its code ("CPH") */
+export default function AirportSearch({ label, airports, value, onChange }: Props) {
   const [query, setQuery] = useState('')
   const listId = useId()
 
@@ -21,9 +19,9 @@ export default function CitySearch({ label, cities, value, onChange }: Props) {
     return (
       <div className="city-choice">
         <span className="city-choice-label">{label}</span>
-        <span className="city-chip">
+        <span className="city-chip" title={value.name}>
           <span>
-            {value.name} <span className="muted">{countryName(value)}</span>
+            <strong>{value.code}</strong> {cityOf(value)} <span className="muted">{countryOf(value)}</span>
           </span>
           <button type="button" className="remove-button" onClick={() => onChange(null)} aria-label={`Change ${label}`}>
             <CloseIcon size={14} />
@@ -33,9 +31,9 @@ export default function CitySearch({ label, cities, value, onChange }: Props) {
     )
   }
 
-  const results = findCities(cities, query)
-  const choose = (city: City) => {
-    onChange(city)
+  const results = findAirports(airports, query)
+  const choose = (airport: Airport) => {
+    onChange(airport)
     setQuery('')
   }
 
@@ -49,7 +47,7 @@ export default function CitySearch({ label, cities, value, onChange }: Props) {
           id={`${listId}-input`}
           type="search"
           autoComplete="off"
-          placeholder="Search cities…"
+          placeholder="City, airport or code…"
           aria-controls={listId}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
@@ -61,16 +59,20 @@ export default function CitySearch({ label, cities, value, onChange }: Props) {
           }}
         />
         {query.trim() && (
-          <ul id={listId} className="suggestions" aria-label={`${label} cities`}>
-            {results.map((city) => (
-              <li key={city.id}>
-                <button type="button" onClick={() => choose(city)}>
-                  <span>{city.name}</span>
-                  <span className="row-meta">{countryName(city)}</span>
+          <ul id={listId} className="suggestions" aria-label={`${label} airports`}>
+            {results.map((airport) => (
+              <li key={airport.code}>
+                <button type="button" className="airport-option" onClick={() => choose(airport)}>
+                  <span>
+                    <strong>{airport.code}</strong> {cityOf(airport)}
+                  </span>
+                  <span className="row-meta">
+                    {airport.name} · {countryOf(airport)}
+                  </span>
                 </button>
               </li>
             ))}
-            {results.length === 0 && <li className="muted">No city called “{query.trim()}” in the list.</li>}
+            {results.length === 0 && <li className="muted">No airport for “{query.trim()}” in the list.</li>}
           </ul>
         )}
       </div>
