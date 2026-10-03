@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import Globe, { type GlobeMethods } from 'react-globe.gl'
 import { MeshPhongMaterial } from 'three'
-import type { CountryFeature } from './countries'
+import { tinyPlaces, type CountryFeature } from './countries'
 import { citiesLabel, citiesOf, countryOfCity, type City } from './data/cities'
 import { findRegionAt, hasRegions, regionsLabel, regionsOf, type RegionFeature } from './data/regions'
 import CountryPanel from './CountryPanel'
@@ -12,7 +12,7 @@ import { useSettings } from './explore/useSettings'
 import GamesPanel from './games/GamesPanel'
 import { GAMES, type Difficulty, type GameId, type RoundGameId } from './games/games'
 import type { Scope } from './games/allGame'
-import { flightTarget, gameHighlights, globeAnswers, isPlaying, overviewKey, showsGame } from './games/globeView'
+import { flightTarget, gameHighlights, gameRings, globeAnswers, isPlaying, overviewKey, showsGame } from './games/globeView'
 import { useGame } from './games/useGame'
 import { useTheme } from './design/useTheme'
 import FlagCorner from './FlagCorner'
@@ -63,6 +63,7 @@ const NO_VISITS: ReadonlySet<string> = new Set()
 /** Phones show one panel at a time, as a sheet over the globe */
 const PHONE = '(max-width: 640px)'
 const isPhone = () => !!window.matchMedia?.(PHONE).matches
+const NO_RINGS: readonly CountryFeature[] = []
 
 function useWindowSize() {
   const [size, setSize] = useState({ width: window.innerWidth, height: window.innerHeight })
@@ -191,7 +192,11 @@ export default function App() {
   )
   // Game answers on tiny islands get a dot, or they'd be invisible
   const gameColors = useMemo(() => gameHighlights(game, theme), [game, theme])
-  useCountryLayer(globe, theme, colorOf, { showMarkers: settings.showMarkers, emphasized: gameColors })
+  // Rings around tiny places, if switched on; the letter hunt rings the small islands too, always, in a color
+  // that shows over the sea
+  const huntRings = gameRings(game)
+  const rings = huntRings ?? (settings.showMarkers ? tinyPlaces : NO_RINGS)
+  useCountryLayer(globe, theme, colorOf, { rings, ringColor: huntRings && theme.flight, emphasized: gameColors })
   useSelectedCountry(globe, editing ? null : selected, theme.selected)
 
   // A hovered country's visited states turn the hover color with it (only countries with states matter here)
@@ -304,7 +309,7 @@ export default function App() {
   const pointerHandlers = useCountryPointer(globe, {
     onHover: onGlobeHover,
     onClick: onGlobeClick,
-    markers: settings.showMarkers,
+    rings,
   })
 
   const gameFlight = flightTarget(game)

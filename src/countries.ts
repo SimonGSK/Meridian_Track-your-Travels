@@ -1,5 +1,5 @@
 import { feature, mesh, neighbors } from 'topojson-client'
-import type { Topology, GeometryCollection } from 'topojson-specification'
+import type { GeometryCollection, Topology } from 'topojson-specification'
 import type { Feature, MultiLineString, MultiPolygon, Polygon } from 'geojson'
 import { geoArea, geoBounds, geoCentroid, geoContains, geoDistance } from 'd3-geo'
 import { numericToAlpha2 } from 'i18n-iso-countries'
@@ -40,6 +40,8 @@ export type CountryFeature = Feature<
     areaKm2: number
     /** Too small to see or click on the globe, so it gets a marker */
     tiny: boolean
+    /** No land border with another place: an island country (or territory) */
+    island: boolean
   }
 >
 
@@ -60,20 +62,25 @@ const EARTH_KM2 = 510_072_000
 
 const nameOf = (geometry: { properties?: object }) => (geometry.properties as { name: string }).name
 
+const mapPlaces = topology.objects.countries
+
+// Which places share a border: for colors, and to tell the islands
+const adjacent = neighbors(mapPlaces.geometries)
+
 export const MAP_COLOR_COUNT = 5
-const mapColors = assignMapColors(topology.objects.countries.geometries)
+const mapColors = assignMapColors(adjacent)
 
 type Shape = Feature<Polygon | MultiPolygon, { name: string }>
 
 // The 1:50m map, plus the few places it's too coarse to include (see scripts/extract-extra-countries.mjs)
-const mapShapes = feature(topology, topology.objects.countries).features as Shape[]
+const mapShapes = feature(topology, mapPlaces).features as Shape[]
 const extraShapes = extraCountries.features as Shape[]
 const shapes = fixWesternSahara([...mapShapes, ...extraShapes])
 
 export const countries: CountryFeature[] = shapes
-  .map((f, i) => ({ f, mapColor: mapColors[i] ?? extraMapColor(f, mapShapes, mapColors) }))
-  .map(({ f, mapColor }) => ({ f, mapColor, isoAlpha2: alpha2Of(f) }))
-  .map(({ f, mapColor, isoAlpha2 }) => ({
+  .map((f, i) => ({ f, i, mapColor: mapColors[i] ?? extraMapColor(f, mapShapes, mapColors) }))
+  .map(({ f, i, mapColor }) => ({ f, i, mapColor, isoAlpha2: alpha2Of(f) }))
+  .map(({ f, i, mapColor, isoAlpha2 }) => ({
     ...f,
     properties: {
       name: displayName(f.properties.name),
@@ -83,6 +90,7 @@ export const countries: CountryFeature[] = shapes
       continent: continentOf(f.properties.name, isoAlpha2),
       areaKm2: (geoArea(f) / (4 * Math.PI)) * EARTH_KM2,
       tiny: (geoArea(f) / (4 * Math.PI)) * EARTH_KM2 < TINY_KM2,
+      island: i < mapShapes.length ? adjacent[i].length === 0 : standsAlone(f, mapShapes),
       extent: extentOf(largestPart(f.geometry as Polygon | MultiPolygon)),
       isoCode: f.id === undefined ? null : String(f.id),
       isoAlpha2,
@@ -90,6 +98,18 @@ export const countries: CountryFeature[] = shapes
       mapColor,
     },
   })) as CountryFeature[]
+
+/** A place added to the map is an island unless other land comes within 20 km or so, like Spain's of Gibraltar */
+function standsAlone(shape: Shape, others: Shape[]) {
+  const [lng, lat] = geoCentroid(shape)
+  const reach = 0.2 // degrees
+  const near = ([x, y]: number[]) => Math.abs(y - lat) < reach && Math.abs(x - lng) * Math.cos(lat * DEG) < reach
+  return !others.some(({ geometry }) =>
+    (geometry.type === 'Polygon' ? [geometry.coordinates] : geometry.coordinates).some((polygon) =>
+      polygon.some((ring) => ring.some(near)),
+    ),
+  )
+}
 
 function alpha2Of(f: Shape): string | null {
   return (f.id === undefined ? UNOFFICIAL_ALPHA2[f.properties.name] : numericToAlpha2(f.id)) ?? null
@@ -112,11 +132,10 @@ function extraMapColor(shape: Shape, others: Shape[], colors: number[]) {
  * Greedy, most-connected countries first, picking the least used allowed
  * color to keep the colors balanced. Five colors are enough for this data.
  */
-function assignMapColors(geometries: GeometryCollection['geometries']) {
-  const adjacent = neighbors(geometries)
-  const colors = new Array<number>(geometries.length).fill(-1)
+function assignMapColors(adjacent: number[][]) {
+  const colors = new Array<number>(adjacent.length).fill(-1)
   const used = new Array<number>(MAP_COLOR_COUNT).fill(0)
-  const order = geometries.map((_, i) => i).sort((a, b) => adjacent[b].length - adjacent[a].length)
+  const order = adjacent.map((_, i) => i).sort((a, b) => adjacent[b].length - adjacent[a].length)
   for (const i of order) {
     const taken = new Set(adjacent[i].map((j) => colors[j]))
     const allowed = used.map((_, c) => c).filter((c) => !taken.has(c))
@@ -151,7 +170,7 @@ const isMoroccoSaharaBorder = (a: string, b: string) =>
 /** Every border and coastline exactly once, so shared borders aren't drawn twice. */
 export const borders: MultiLineString = (() => {
   // The data's Morocco–Western Sahara border is replaced, see data/westernSahara.ts
-  const lines = mesh(topology, topology.objects.countries, (a, b) => !isMoroccoSaharaBorder(nameOf(a), nameOf(b)))
+  const lines = mesh(topology, mapPlaces, (a, b) => !isMoroccoSaharaBorder(nameOf(a), nameOf(b)))
   const saharaBorder = westernSaharaBorder(shapes)
   const extraCoasts = extraShapes.flatMap(({ geometry }) =>
     geometry.type === 'Polygon' ? geometry.coordinates : geometry.coordinates.flat(),
@@ -190,23 +209,28 @@ export function findCountryAt(lat: number, lng: number): CountryFeature | null {
   return found
 }
 
-const tinyCountries = countries.filter((c) => c.properties.tiny)
+/** Places too small to see, with a ring on the globe (unless switched off) */
+export const tinyPlaces: readonly CountryFeature[] = countries.filter((c) => c.properties.tiny)
 
 /**
  * Like findCountryAt, but forgiving, so small islands can be hit with a
- * mouse. Tiny places are found within `markerRadius` of their marker (even
- * on top of a bigger country), and any country within `tolerance` of its
- * outline. Both in radians.
+ * mouse. Tiny places, and the `ringed` ones, are found within
+ * `markerRadius` of their middle (even on top of a bigger country), and any
+ * country within `tolerance` of its outline. Both in radians.
  */
 export function findCountryNear(
   lat: number,
   lng: number,
-  { markerRadius, tolerance }: { markerRadius: number; tolerance: number },
+  {
+    markerRadius,
+    tolerance,
+    ringed = [],
+  }: { markerRadius: number; tolerance: number; ringed?: readonly CountryFeature[] },
 ): CountryFeature | null {
   const point: [number, number] = [lng, lat]
   let nearest: CountryFeature | null = null
   let distance = markerRadius
-  for (const country of tinyCountries) {
+  for (const country of [...tinyPlaces, ...ringed]) {
     const d = geoDistance(point, country.properties.centroid)
     if (d <= distance) [nearest, distance] = [country, d]
   }
