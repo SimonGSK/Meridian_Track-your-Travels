@@ -663,7 +663,8 @@
   "population": 10002200,
   "populationYear": 2024,
   "areaKm2": 22070,
-  "source": "World Bank"
+  "source": "World Bank",
+  "note": "The Golan Heights, held since 1967, are shown as part of Syria, as the UN counts them"
  },
  "IT": {
   "capital": "Rome",
@@ -957,7 +958,8 @@
   "population": 1245779,
   "populationYear": 2024,
   "areaKm2": 2010,
-  "source": "World Bank"
+  "source": "World Bank",
+  "note": "Includes the Chagos Archipelago, held by the UK, which the UN counts as part of Mauritius"
  },
  "MW": {
   "capital": "Lilongwe",
@@ -1160,7 +1162,8 @@
   "population": 143669648,
   "populationYear": 2024,
   "areaKm2": 17125190,
-  "source": "World Bank"
+  "source": "World Bank",
+  "note": "Crimea, annexed in 2014, is shown as part of Ukraine, as the UN counts it"
  },
  "RW": {
   "capital": "Kigali",
@@ -1308,7 +1311,8 @@
   "population": 24672760,
   "populationYear": 2024,
   "areaKm2": 185180,
-  "source": "World Bank"
+  "source": "World Bank",
+  "note": "Includes the Golan Heights, held by Israel since 1967, which the UN counts as part of Syria"
  },
  "TC": {
   "capital": "Grand Turk",
@@ -1413,7 +1417,8 @@
   "population": 37860221,
   "populationYear": 2024,
   "areaKm2": 603550,
-  "source": "World Bank"
+  "source": "World Bank",
+  "note": "Includes Crimea, annexed by Russia in 2014, which the UN counts as part of Ukraine"
  },
  "UY": {
   "capital": "Montevideo",
@@ -1552,13 +1557,6 @@
   "capital": "King Edward Point",
   "population": 0,
   "areaKm2": 3903,
-  "note": "No permanent population",
-  "source": "Estimate"
- },
- "IO": {
-  "capital": "Diego Garcia",
-  "population": 0,
-  "areaKm2": 60,
   "note": "No permanent population",
   "source": "Estimate"
  },

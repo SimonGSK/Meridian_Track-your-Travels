@@ -38,18 +38,14 @@ function offset(paths, delta) {
 }
 
 /**
- * A Polygon or MultiPolygon with the lakes cut out, or the same geometry
- * when no lake touches it.
- *
- * Clipping happens on an integer grid (`grid`: { scale, translate } as in
+ * Clipper works on an integer grid (`grid`: { scale, translate } as in
  * TopoJSON), so points come back exactly as they were, and points along
  * borders that follow a parallel are kept: on the globe edges are great
- * circles, and without them those borders would bulge. Only the parts near
- * a lake are clipped; the rest is untouched.
+ * circles, and without them those borders would bulge.
  */
-export function cutLakes(geometry, { scale: [kx, ky], translate: [dx, dy] }) {
+export function gridOf({ scale: [kx, ky], translate: [dx, dy] }) {
   const toGrid = ([x, y]) => ({ X: Math.round((x - dx) / kx), Y: Math.round((y - dy) / ky) })
-  // Points moved east of 180° (see below) go back where they were
+  // Points moved east of 180° (see cutLakes) go back where they were
   const east = Math.round((180 - dx) / kx)
   const aroundTheWorld = Math.round(360 / kx)
   // The same sum as topojson-client's, so the numbers match its decoding exactly
@@ -61,6 +57,24 @@ export function cutLakes(geometry, { scale: [kx, ky], translate: [dx, dy] }) {
     const ring = (ClipperLib.Clipper.Area(path) < 0 === clockwise ? path : [...path].reverse()).map(fromGrid)
     return [...ring, ring[0]]
   }
+  return { toPath, toRing }
+}
+
+/** Clipper's result as polygons ([outer, ...holes]) the way d3-geo wants them: outer rings clockwise, holes counterclockwise */
+export function polygonsOf(tree, toRing) {
+  const solid = (path) => Math.abs(ClipperLib.Clipper.Area(path)) >= 1
+  return ClipperLib.JS.PolyTreeToExPolygons(tree)
+    .filter(({ outer }) => solid(outer))
+    .map(({ outer, holes }) => [toRing(outer, true), ...holes.filter(solid).map((hole) => toRing(hole, false))])
+}
+
+/**
+ * A Polygon or MultiPolygon with the lakes cut out, or the same geometry
+ * when no lake touches it. Only the parts near a lake are clipped; the rest
+ * is untouched.
+ */
+export function cutLakes(geometry, grid) {
+  const { toPath, toRing } = gridOf(grid)
 
   const parts = geometry.type === 'Polygon' ? [geometry.coordinates] : geometry.coordinates
   let changed = false
@@ -91,11 +105,7 @@ export function cutLakes(geometry, { scale: [kx, ky], translate: [dx, dy] }) {
     clipper.AddPaths(water, ptClip, true)
     const tree = new ClipperLib.PolyTree()
     clipper.Execute(ClipperLib.ClipType.ctDifference, tree, pftEvenOdd, pftNonZero)
-    const solid = (path) => Math.abs(ClipperLib.Clipper.Area(path)) >= 1
-    // As d3-geo (and the map) wants them: outer rings clockwise, holes counterclockwise
-    return ClipperLib.JS.PolyTreeToExPolygons(tree)
-      .filter(({ outer }) => solid(outer))
-      .map(({ outer, holes }) => [toRing(outer, true), ...holes.filter(solid).map((hole) => toRing(hole, false))])
+    return polygonsOf(tree, toRing)
   })
   if (!changed) return geometry
   return result.length === 1 ? { type: 'Polygon', coordinates: result[0] } : { type: 'MultiPolygon', coordinates: result }

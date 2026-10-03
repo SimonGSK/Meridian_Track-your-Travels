@@ -14,7 +14,6 @@ export const DISPLAY_NAMES: Record<string, string> = {
   'Antigua and Barb.': 'Antigua and Barbuda',
   'Ashmore and Cartier Is.': 'Ashmore and Cartier Islands',
   'Bosnia and Herz.': 'Bosnia and Herzegovina',
-  'Br. Indian Ocean Ter.': 'British Indian Ocean Territory',
   'British Virgin Is.': 'British Virgin Islands',
   'Cayman Is.': 'Cayman Islands',
   'Central African Rep.': 'Central African Republic',
