@@ -157,17 +157,19 @@ Each place has:
 - `isoCode` and `isoAlpha2`: ISO 3166-1 codes (`"208"`, `"DK"`). A few disputed areas have none (`null`); Kosovo uses the widely adopted `"XK"`.
 - `centroid`, `extent` and `areaKm2`: center and size of the main landmass, and the area.
 - `tiny`: under 2,500 km², so it gets a marker.
+- `island`: shares no land border, so (under 30,000 km²) it gets a ring in the letter hunt.
 - `mapColor`: 0–4, never shared with a neighbor.
 
 Some corrections to the map data:
 
 - **Lakes.** Natural Earth's country shapes cover their lakes (lakes are a separate layer), so the Great Lakes, Lake Victoria and Baikal would be land. `scripts/extract-map.mjs` cuts its 275 lakes at 1:50m out of the countries, and `extract-regions.mjs` out of the states, so they show as water and pointing at them finds no country. The cutting is done with Clipper on the map's own grid: every other point stays exactly where it was (so neighbors still share their borders), and points along borders that follow a parallel, like the 49th between the USA and Canada, are kept, as without them those borders would bulge into great circles on the globe. Borders that ran through lakes are now lake shores.
+- **Borders as the UN counts them.** Natural Earth draws borders as they are on the ground. Where the UN counts land as another country's, `scripts/un-borders.mjs` follows the UN: Crimea is Ukraine's (General Assembly resolution 68/262), the Golan Heights are Syria's (Security Council resolution 497, cut along the 1967 line), the Chagos Archipelago is Mauritius's (resolution 73/295), and Somaliland and Northern Cyprus, which run themselves but are recognized by few countries, are part of Somalia and Cyprus. The countries involved say so in their panels. Disputes the UN takes no side in, like Kashmir, stay as drawn. Kosovo and Taiwan, which aren't UN members, are kept as countries, as in most lists of the world's 197.
 - **Western Sahara.** Natural Earth draws only the inland strip east of the Moroccan sand wall as Western Sahara and counts the coast as Morocco. We show the whole territory, bordering Morocco along 27°40′N, as the UN and most maps do.
 - **Tuvalu and Gibraltar** are too small for the 1:50m map and are copied from the 1:10m map.
 - **The Maldives** are in the map but are a few tiny atolls, so like other small places they get a marker.
 - **Monaco's area.** The World Bank gives 75 km²; it's about 2 km², set in `country-facts-extra.json`.
 
-Capitals, population (2024) and total area come from the [World Bank's open data](https://data.worldbank.org/) (CC BY 4.0). Places it doesn't cover (Taiwan, Vatican City, Western Sahara, Somaliland, Northern Cyprus and several territories) use recent censuses and estimates from `src/data/country-facts-extra.json`, marked as estimates in the app. Somalia's and Cyprus's figures include Somaliland and Northern Cyprus.
+Capitals, population (2024) and total area come from the [World Bank's open data](https://data.worldbank.org/) (CC BY 4.0). Places it doesn't cover (Taiwan, Vatican City, Western Sahara and several territories) use recent censuses and estimates from `src/data/country-facts-extra.json`, marked as estimates in the app. Somalia's and Cyprus's figures include Somaliland and Northern Cyprus.
 
 Cities come from [GeoNames](https://www.geonames.org/) (CC BY 4.0), via [all-the-cities](https://github.com/zeke/all-the-cities). For each place, `scripts/extract-cities.mjs` keeps the capital, every city of a million or more, the next biggest (more for more populous countries, from 50,000 people), and a hand-picked list of famous smaller ones (Venice, Key West, Chefchaouen…), leaving out suburbs within 25 km of a city already picked. GeoNames often uses local spellings, so the script has English names for well-known cities ("Cologne", not "Köln") and leaves out transliteration marks; it also has a short list of GeoNames entries that are districts, camps or campuses rather than cities. Overseas regions like Réunion are listed under the country the map draws them in. A few places the all-the-cities extract leaves out (Vilanculos) are added by hand, with their GeoNames ids.
 
