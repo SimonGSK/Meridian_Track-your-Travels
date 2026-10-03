@@ -106,6 +106,9 @@ export type RoundGameState = {
   finished: boolean
   /** Ended before the last round, scoring the rounds played */
   stoppedEarly: boolean
+  startedAt: number
+  /** When the last round was answered, or the game stopped: the run's time ends there, not at the results */
+  endedAt: number | null
 }
 
 /** Rounds in a game: ten, or every country in the pool for "all" */
@@ -121,6 +124,7 @@ export function newRoundGame(
   difficulty: Difficulty,
   random: Random = Math.random,
   pool = gamePool(id, difficulty),
+  now = Date.now(),
 ): RoundGameState {
   const targets = shuffle(pool, random).slice(0, roundCount(difficulty, pool))
   const withChoices = answerMode(id, difficulty) === 'choices'
@@ -142,6 +146,8 @@ export function newRoundGame(
     notACountry: null,
     finished: false,
     stoppedEarly: false,
+    startedAt: now,
+    endedAt: null,
   }
 }
 
@@ -149,8 +155,8 @@ export function newRoundGame(
 export const roundsPlayed = (game: RoundGameState) => game.index + (game.answer ? 1 : 0)
 
 /** End the game now, scoring the rounds played (an unanswered round doesn't count) */
-export function stopEarly(game: RoundGameState): RoundGameState {
-  return game.finished ? game : { ...game, finished: true, stoppedEarly: true }
+export function stopEarly(game: RoundGameState, now = Date.now()): RoundGameState {
+  return game.finished ? game : { ...game, finished: true, stoppedEarly: true, endedAt: game.endedAt ?? now }
 }
 
 /** "Find the country" scores 3, 2 or 1 points by try; the other games 1 point per round. */
@@ -160,13 +166,21 @@ export const maxScorePlayed = (game: RoundGameState) => roundsPlayed(game) * (ga
 
 export const currentRound = (game: RoundGameState) => game.rounds[game.index]
 
+/** Answering the last round ends the run */
+const endedAt = (game: RoundGameState, now: number) => (game.index === game.rounds.length - 1 ? now : null)
+
 /**
  * Answer the current round. In "find the country" a wrong country is a
  * miss and you try again, up to MAX_TRIES, for fewer points each time.
  * Territories aren't countries, so picking one doesn't count either way.
  * Answers after the round is over are ignored.
  */
-export function answer(game: RoundGameState, picked: CountryFeature, alias: string | null = null): RoundGameState {
+export function answer(
+  game: RoundGameState,
+  picked: CountryFeature,
+  alias: string | null = null,
+  now = Date.now(),
+): RoundGameState {
   if (game.answer || game.finished || game.misses.includes(picked)) return game
   if (picked.properties.kind !== 'country') return { ...game, notACountry: picked }
   const correct = picked === currentRound(game).target
@@ -174,13 +188,25 @@ export function answer(game: RoundGameState, picked: CountryFeature, alias: stri
   if (!correct && game.misses.length + 1 < tries) return { ...game, misses: [...game.misses, picked], notACountry: null }
   const points = correct ? tries - game.misses.length : 0
   const misses = correct ? game.misses : [...game.misses, picked]
-  return { ...game, answer: { picked, correct, alias, points }, misses, notACountry: null, score: game.score + points }
+  return {
+    ...game,
+    answer: { picked, correct, alias, points },
+    misses,
+    notACountry: null,
+    score: game.score + points,
+    endedAt: endedAt(game, now),
+  }
 }
 
 /** "I don't know": the round is over and lost, showing the answer. Misses so far stay. */
-export function dontKnow(game: RoundGameState): RoundGameState {
+export function dontKnow(game: RoundGameState, now = Date.now()): RoundGameState {
   if (game.answer || game.finished) return game
-  return { ...game, answer: { picked: null, correct: false, alias: null, points: 0 }, notACountry: null }
+  return {
+    ...game,
+    answer: { picked: null, correct: false, alias: null, points: 0 },
+    notACountry: null,
+    endedAt: endedAt(game, now),
+  }
 }
 
 /** Move on to the next round once the current one is answered. */

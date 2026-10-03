@@ -1,6 +1,7 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { act, renderHook } from '@testing-library/react'
 import { BEST_SCORES_KEY, useGame } from './useGame'
+import { BEST_TIMES_KEY } from './records'
 import { currentRound, type RoundGameState } from './games'
 import { countries } from '../countries'
 import type { LetterGameState } from './letterGame'
@@ -8,11 +9,12 @@ import type { LetterGameState } from './letterGame'
 type Hook = { current: ReturnType<typeof useGame> }
 const rounds = (result: Hook) => result.current.game as RoundGameState
 
-function playAll(result: Hook, correct: (i: number) => boolean) {
+function playAll(result: Hook, correct: (i: number) => boolean, secondsPerRound = 0) {
   const count = rounds(result).rounds.length
   for (let i = 0; i < count; i++) {
     const round = currentRound(rounds(result))
     const wrong = countries.find((c) => c.properties.kind === 'country' && c !== round.target)!
+    if (secondsPerRound) vi.setSystemTime(Date.now() + secondsPerRound * 1000)
     act(() => result.current.pick(correct(i) ? round.target : wrong))
     act(() => result.current.advance())
   }
@@ -110,6 +112,53 @@ describe('useGame', () => {
     act(() => result.current.stop())
     expect(rounds(result)).toMatchObject({ finished: true, stoppedEarly: true, score: 1 })
     expect(result.current.best['flags:all']).toBe(1)
+  })
+
+  describe('time records', () => {
+    afterEach(() => vi.useRealTimers())
+    const playFlags = (result: Hook, correct: (i: number) => boolean, secondsPerRound: number) => {
+      act(() => result.current.start('flags', 'easy'))
+      playAll(result, correct, secondsPerRound)
+    }
+
+    it('saves the time of a perfect run, from the start to the last answer', () => {
+      vi.useFakeTimers({ toFake: ['Date'], now: 0 })
+      const { result } = renderHook(() => useGame())
+      playFlags(result, () => true, 4.2)
+      // Looking at the results doesn't add to it
+      vi.setSystemTime(Date.now() + 60_000)
+      expect(result.current.bestTimes).toEqual({ 'flags:easy': 42_000 })
+      expect(JSON.parse(localStorage.getItem(BEST_TIMES_KEY)!)).toEqual({ 'flags:easy': 42_000 })
+    })
+
+    it('counts no run with a mistake, however fast', () => {
+      vi.useFakeTimers({ toFake: ['Date'], now: 0 })
+      const { result } = renderHook(() => useGame())
+      playFlags(result, (i) => i !== 3, 1)
+      expect(result.current.bestTimes).toEqual({})
+    })
+
+    it('keeps the faster time, and remembers the record to beat', () => {
+      vi.useFakeTimers({ toFake: ['Date'], now: 0 })
+      const { result } = renderHook(() => useGame())
+      playFlags(result, () => true, 3)
+      playFlags(result, () => true, 5)
+      expect(result.current.previousTime).toBe(30_000)
+      expect(result.current.bestTimes['flags:easy']).toBe(30_000)
+      playFlags(result, () => true, 2)
+      expect(result.current.bestTimes['flags:easy']).toBe(20_000)
+    })
+
+    it('times the letter hunt when every country is found without a wrong letter', () => {
+      vi.useFakeTimers({ toFake: ['Date'], now: 0 })
+      const { result } = renderHook(() => useGame())
+      act(() => result.current.startLetter('Z'))
+      for (const country of (result.current.game as LetterGameState).targets) {
+        vi.setSystemTime(Date.now() + 5_000)
+        act(() => result.current.pick(country))
+      }
+      expect(result.current.bestTimes).toEqual({ 'letter:Z': 10_000 })
+    })
   })
 
   it('quits', () => {

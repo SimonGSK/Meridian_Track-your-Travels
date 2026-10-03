@@ -25,6 +25,8 @@ export type LetterGameState = {
   last: { country: CountryFeature; result: 'found' | 'again' | 'wrong-letter' | 'territory' } | null
   finished: boolean
   gaveUp: boolean
+  startedAt: number
+  endedAt: number | null
 }
 
 type Random = () => number
@@ -48,7 +50,7 @@ export const lettersOf = (difficulty: Difficulty) =>
 export const randomLetter = (difficulty: Difficulty, random: Random = Math.random) =>
   shuffle(lettersOf(difficulty), random)[0]
 
-export function newLetterGame(letter: string): LetterGameState {
+export function newLetterGame(letter: string, now = Date.now()): LetterGameState {
   const difficulty = LETTER_DIFFICULTY[letter]
   if (!difficulty) throw new Error(`No letter hunt for ${letter}`)
   return {
@@ -62,6 +64,8 @@ export function newLetterGame(letter: string): LetterGameState {
     last: null,
     finished: false,
     gaveUp: false,
+    startedAt: now,
+    endedAt: null,
   }
 }
 
@@ -69,7 +73,7 @@ export function newLetterGame(letter: string): LetterGameState {
  * A click on a country: found if it starts with the letter, a mistake if
  * not. Territories aren't countries, so they're no mistake either way.
  */
-export function pickCountry(game: LetterGameState, country: CountryFeature): LetterGameState {
+export function pickCountry(game: LetterGameState, country: CountryFeature, now = Date.now()): LetterGameState {
   if (game.finished) return game
   if (country.properties.kind !== 'country') return { ...game, last: { country, result: 'territory' } }
   if (game.found.includes(country)) return { ...game, last: { country, result: 'again' } }
@@ -77,11 +81,12 @@ export function pickCountry(game: LetterGameState, country: CountryFeature): Let
     return { ...game, mistakes: game.mistakes + 1, last: { country, result: 'wrong-letter' } }
   }
   const found = [...game.found, country]
-  return { ...game, found, last: { country, result: 'found' }, finished: found.length === game.targets.length }
+  const finished = found.length === game.targets.length
+  return { ...game, found, last: { country, result: 'found' }, finished, endedAt: finished ? now : null }
 }
 
-export function giveUp(game: LetterGameState): LetterGameState {
-  return game.finished ? game : { ...game, finished: true, gaveUp: true }
+export function giveUp(game: LetterGameState, now = Date.now()): LetterGameState {
+  return game.finished ? game : { ...game, finished: true, gaveUp: true, endedAt: now }
 }
 
 export const missing = (game: LetterGameState) => game.targets.filter((c) => !game.found.includes(c))

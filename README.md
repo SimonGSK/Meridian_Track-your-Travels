@@ -21,6 +21,8 @@ The design (navy and amber, after a mock-up made in Lovable) has a top bar with 
   - *Shape quiz*: name the country from its outline.
 
   Games played in rounds are Easy (big countries, four answers to pick from), Medium (all but the smallest), Hard (all 197) or All countries (every one of the 197, one after another; stop whenever you like). Beyond Easy you type answers with no suggestions; any known spelling counts ("East Timor", "Burma", "Ceylon"), punctuation and spacing don't matter, and the answer shows the name used today. Tiny countries that are answers get a dot so you can see them. Rounds have an "I don't know" button that shows the answer; the round counts as wrong. Every game is about the 197 countries only: clicking or typing a territory (Greenland, Puerto Rico…) counts neither way, and territories don't light up under the pointer.
+
+  A clock runs while you play. Perfect runs set a time record to beat, next to the best score: every point (in *Find the country*, every country on the first try), no wrong letters in the letter hunt, and played to the end. Being fast with a mistake doesn't count. The clock stops at the last answer, not when you look at the results.
 - **Design**: switch the globe between Midnight (the default), Classic, Vintage, Political (neighbors always in different colors), Night and Minimal. The layers are here too, and how to make the globe your Mac's screensaver (below).
 
 The globe spins on its own until you touch it, and again once it's been left alone for 30 seconds. Tiny countries and islands get a ring marker, and clicks just beside a small island still count, also with the rings hidden. Zoomed in, tiny places reach 3.5 km around them, so pointing near Vatican City finds it (at this map's scale it's drawn 1.6 km from where it is). Only a pin's head answers to the pointer, so what's under its stem stays clickable. City pins fade out as they near the edge of the globe.
@@ -37,7 +39,7 @@ The globe can be your Mac's screensaver, spinning with your places on it. With `
 
 The screensaver doesn't update by itself. After changing your places or design, copy the address again and paste it in Options; after changing the app, run `npm run build:screensaver` again.
 
-Visited places, states, cities and flights, best scores, the design and the settings are saved in your browser (`localStorage`). Nothing is sent anywhere.
+Visited places, states, cities and flights, best scores and times, the design and the settings are saved in your browser (`localStorage`). Nothing is sent anywhere.
 
 Built with React, TypeScript and Vite, using [react-globe.gl](https://github.com/vasturiano/react-globe.gl) (three.js) for the globe, [world-atlas](https://github.com/topojson/world-atlas) (Natural Earth 1:50m) for country shapes and [flag-icons](https://github.com/lipis/flag-icons) for flags. The fonts are Fraunces, Inter and JetBrains Mono (SIL Open Font License), from Fontsource. Flags and fonts are bundled, so no requests go to third parties.
 
@@ -114,7 +116,8 @@ src/
   visited/             visited countries, states and cities; flights, and the airport search
   design/              design picker, and how to set up the screensaver
   games/               game rules (games.ts, letterGame.ts), what the globe shows (globeView.ts),
-                       state and best scores (useGame.ts), the panel, answer box and outlines
+                       state and best scores (useGame.ts), perfect runs and their times (records.ts),
+                       the panel, answer box and outlines
   globe/
     sphereMesh.ts      triangulating countries on the sphere
     countryLayer.ts    all countries merged into one mesh, plus borders and markers; the raised country

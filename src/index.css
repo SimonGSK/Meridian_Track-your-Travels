@@ -1401,12 +1401,36 @@ code {
 }
 
 .game-title {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
   margin: 0;
   color: var(--accent);
   font-family: var(--font-mono);
   font-size: 11px;
   letter-spacing: 0.16em;
   text-transform: uppercase;
+}
+
+/* The time since the game started, at the end of its title */
+.game-clock .elapsed {
+  color: var(--text);
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  font-variant-numeric: tabular-nums;
+}
+
+.record-time {
+  color: var(--text-muted);
+}
+
+.run-time {
+  margin: 0;
+}
+
+.run-time strong {
+  font-family: var(--font-mono);
+  font-size: 18px;
 }
 
 .game-status {
@@ -1638,6 +1662,12 @@ code {
 
 .letter-tile.complete .letter-tile-best {
   color: var(--good);
+}
+
+.letter-tile-time {
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 9px;
 }
 
 .game-heading {

@@ -371,9 +371,68 @@ describe('GamesPanel: name them all', () => {
     const game = giveUpAll(nameCountry(newAllGame('South America', 0), byName('Peru'), null, 0), 65_000)
     const { onStartAll } = setup({ game })
     expect(screen.getByText('1 / 12')).toBeInTheDocument()
-    expect(screen.getByText('countries named in 1:05')).toBeInTheDocument()
+    expect(screen.getByText('countries named')).toBeInTheDocument()
+    expect(screen.getByText(/^Time 1:05\.0\. Only perfect runs/)).toBeInTheDocument()
     expect(screen.getByText(/^Argentina, Bolivia/)).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: 'Play again' }))
     expect(onStartAll).toHaveBeenCalledWith('South America')
+  })
+})
+
+describe('GamesPanel: time records', () => {
+  /** Every round right, the last answered `seconds` after the start */
+  function perfectRun(seconds: number, wrongRound = -1) {
+    let game = newRoundGame('flags', 'easy', () => 0.5, pool, 0)
+    for (let i = 0; i < game.rounds.length; i++) {
+      const { target } = game.rounds[game.index]
+      game = answer(game, i === wrongRound ? pool.find((c) => c !== target)! : target, null, seconds * 1000)
+      game = next(game)
+    }
+    return game
+  }
+
+  it('runs a clock while playing', () => {
+    setup({ game: newRoundGame('flags', 'easy', () => 0.5, pool, Date.now() - 65_000) })
+    expect(screen.getByLabelText('Time')).toHaveTextContent('1:05')
+  })
+
+  it('shows the time of a perfect run, the first being a record', () => {
+    setup({ game: perfectRun(42.3) })
+    expect(screen.getByText('Perfect run in')).toHaveTextContent('Perfect run in 0:42.3')
+    expect(screen.getByText('Your first time record!')).toBeInTheDocument()
+    expect(screen.queryByLabelText('Time')).not.toBeInTheDocument()
+  })
+
+  it('celebrates beating the record', () => {
+    setup({ game: perfectRun(42.3), previousTime: 50_000 })
+    expect(screen.getByText('New time record!')).toBeInTheDocument()
+  })
+
+  it('shows the record to beat after a slower perfect run', () => {
+    setup({ game: perfectRun(42.3), previousTime: 30_000 })
+    expect(screen.getByText('Your record is 0:30.0')).toBeInTheDocument()
+    expect(screen.queryByText(/time record!/)).not.toBeInTheDocument()
+  })
+
+  it('says why a run with a mistake sets no record', () => {
+    setup({ game: perfectRun(10, 2), previousTime: 30_000 })
+    expect(screen.getByText(/^Time 0:10\.0\. Only perfect runs/)).toBeInTheDocument()
+    expect(screen.queryByText(/Perfect run in/)).not.toBeInTheDocument()
+  })
+
+  it('shows the record times next to the best scores', async () => {
+    setup({
+      best: { 'flags:easy': 10, 'letter:Z': 2, 'all:Oceania': 14 },
+      bestTimes: { 'flags:easy': 42_300, 'letter:Z': 8_100, 'all:Oceania': 95_000 },
+    })
+    await userEvent.click(screen.getByRole('button', { name: /Flag quiz/ }))
+    expect(screen.getByRole('button', { name: /^Easy/ })).toHaveTextContent('Best: 10 / 10 · record 0:42.3')
+    expect(screen.getByRole('button', { name: /^Medium/ })).not.toHaveTextContent('record')
+    await userEvent.click(screen.getByRole('button', { name: '← All games' }))
+    await userEvent.click(screen.getByRole('button', { name: /Letter hunt/ }))
+    expect(screen.getByRole('button', { name: /^Z:/ })).toHaveAccessibleName('Z: 2 countries, best 2 of 2, record 0:08.1')
+    await userEvent.click(screen.getByRole('button', { name: '← All games' }))
+    await userEvent.click(screen.getByRole('button', { name: /Name them all/ }))
+    expect(screen.getByRole('button', { name: /^Oceania/ })).toHaveTextContent('record 1:35.0')
   })
 })
