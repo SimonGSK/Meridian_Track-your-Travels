@@ -22,7 +22,6 @@ describe('continents', () => {
     ['Brazil', 'South America'],
     ['Fiji', 'Oceania'],
     ['Antarctica', 'Antarctica'],
-    ['Somaliland', 'Africa'],
     ['Kosovo', 'Europe'],
   ])('puts %s in %s', (name, expected) => {
     expect(continent(name)).toBe(expected)

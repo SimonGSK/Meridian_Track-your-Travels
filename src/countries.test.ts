@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { neighbors } from 'topojson-client'
 import type { GeometryCollection, Topology } from 'topojson-specification'
 import worldData from './data/countries-50m.json'
-import { MAP_COLOR_COUNT, TINY_KM2, borders, countries, findCountryAt, findCountryNear } from './countries'
+import { MAP_COLOR_COUNT, PART_OF_COUNTRY, TINY_KM2, borders, countries, findCountryAt, findCountryNear } from './countries'
 import { TINY_REACH_KM } from './globe/hooks'
 
 const nameAt = (lat: number, lng: number) => findCountryAt(lat, lng)?.properties.name ?? null
@@ -28,10 +28,21 @@ describe('countries', () => {
     const byName = (name: string) => countries.find((c) => c.properties.name === name)!
     expect(byName('Denmark').properties.isoAlpha2).toBe('DK')
     expect(byName('Kosovo').properties.isoAlpha2).toBe('XK')
-    expect(byName('Somaliland').properties.isoAlpha2).toBeNull()
+    expect(byName('Siachen Glacier').properties.isoAlpha2).toBeNull()
     for (const { properties } of countries) {
       if (properties.isoCode !== null) expect(properties.isoAlpha2).toMatch(/^[A-Z]{2}$/)
     }
+  })
+
+  it('shows Somaliland and Northern Cyprus as part of Somalia and Cyprus', () => {
+    const names = countries.map((c) => c.properties.name)
+    expect(names).not.toContain('Somaliland')
+    expect(names).not.toContain('Northern Cyprus')
+    expect(findCountryAt(9.56, 44.065)?.properties.name).toBe('Somalia') // Hargeisa
+    expect(findCountryAt(35.32, 33.32)?.properties.name).toBe('Cyprus') // Kyrenia
+    // One shape, without the line between
+    const cyprus = countries.find((c) => c.properties.name === 'Cyprus')!
+    expect(cyprus.geometry.type === 'Polygon' || cyprus.geometry.coordinates.length === 1).toBe(true)
   })
 
   it('includes Antarctica, and small places missing from the 1:50m map', () => {
@@ -64,9 +75,13 @@ describe('countries', () => {
     const clashes: string[] = []
     neighbors(geometries).forEach((adjacent, i) => {
       for (const j of adjacent) {
-        const nameOf = (k: number) => (geometries[k].properties as { name: string }).name
+        // Somaliland's neighbors are Somalia's now
+        const nameOf = (k: number) => {
+          const name = (geometries[k].properties as { name: string }).name
+          return PART_OF_COUNTRY[name] ?? name
+        }
         const [a, b] = [nameOf(i), nameOf(j)]
-        if (colorOf.has(a) && colorOf.get(a) === colorOf.get(b)) clashes.push(`${a}/${b}`)
+        if (a !== b && colorOf.has(a) && colorOf.get(a) === colorOf.get(b)) clashes.push(`${a}/${b}`)
       }
     })
     expect(clashes).toEqual([])

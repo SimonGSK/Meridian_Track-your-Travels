@@ -13,7 +13,7 @@ export type CountryFacts = {
   populationYear?: number | null
   areaKm2?: number | null
   source: 'World Bank' | 'Estimate'
-  /** e.g. "Figures include Somaliland" or "No permanent population" */
+  /** e.g. "Includes Somaliland, …" or "No permanent population" */
   note?: string
 }
 

@@ -1,5 +1,5 @@
-import { feature, mesh, neighbors } from 'topojson-client'
-import type { Topology, GeometryCollection } from 'topojson-specification'
+import { feature, mergeArcs, mesh, neighbors } from 'topojson-client'
+import type { GeometryCollection, MultiPolygon as TopoMultiPolygon, Polygon as TopoPolygon, Topology } from 'topojson-specification'
 import type { Feature, MultiLineString, MultiPolygon, Polygon } from 'geojson'
 import { geoArea, geoBounds, geoCentroid, geoContains, geoDistance } from 'd3-geo'
 import { numericToAlpha2 } from 'i18n-iso-countries'
@@ -24,7 +24,7 @@ export type CountryFeature = Feature<
     continent: Continent
     /**
      * ISO 3166-1 numeric code, e.g. "208" for Denmark. Null for disputed
-     * areas without one (Kosovo, Somaliland, ...), and shared by some
+     * areas without one (Kosovo, Siachen Glacier, ...), and shared by some
      * territories with their country (Ashmore and Cartier Is. with Australia).
      */
     isoCode: string | null
@@ -60,13 +60,36 @@ const EARTH_KM2 = 510_072_000
 
 const nameOf = (geometry: { properties?: object }) => (geometry.properties as { name: string }).name
 
+/**
+ * Places the map draws apart that the world counts as part of a country.
+ * They have run themselves for decades, but few countries recognize them,
+ * so like the 197 countries they're shown as part of theirs, without the
+ * line between. Their country's facts say so.
+ */
+export const PART_OF_COUNTRY: Readonly<Record<string, string>> = { Somaliland: 'Somalia', 'N. Cyprus': 'Cyprus' }
+
+type MapGeometry = GeometryCollection<{ name: string }>['geometries'][number]
+
+/** The map's places, each merged with its parts in PART_OF_COUNTRY */
+const mapPlaces: GeometryCollection<{ name: string }> = {
+  ...topology.objects.countries,
+  geometries: topology.objects.countries.geometries
+    .filter((g) => !(nameOf(g) in PART_OF_COUNTRY))
+    .map((g): MapGeometry => {
+      const parts = topology.objects.countries.geometries.filter((p) => PART_OF_COUNTRY[nameOf(p)] === nameOf(g))
+      if (!parts.length) return g
+      const merged = mergeArcs(topology, [g, ...parts] as (TopoPolygon | TopoMultiPolygon)[])
+      return { ...merged, id: g.id, properties: { name: nameOf(g) } }
+    }),
+}
+
 export const MAP_COLOR_COUNT = 5
-const mapColors = assignMapColors(topology.objects.countries.geometries)
+const mapColors = assignMapColors(mapPlaces.geometries)
 
 type Shape = Feature<Polygon | MultiPolygon, { name: string }>
 
 // The 1:50m map, plus the few places it's too coarse to include (see scripts/extract-extra-countries.mjs)
-const mapShapes = feature(topology, topology.objects.countries).features as Shape[]
+const mapShapes = feature(topology, mapPlaces).features as Shape[]
 const extraShapes = extraCountries.features as Shape[]
 const shapes = fixWesternSahara([...mapShapes, ...extraShapes])
 
@@ -151,7 +174,7 @@ const isMoroccoSaharaBorder = (a: string, b: string) =>
 /** Every border and coastline exactly once, so shared borders aren't drawn twice. */
 export const borders: MultiLineString = (() => {
   // The data's Morocco–Western Sahara border is replaced, see data/westernSahara.ts
-  const lines = mesh(topology, topology.objects.countries, (a, b) => !isMoroccoSaharaBorder(nameOf(a), nameOf(b)))
+  const lines = mesh(topology, mapPlaces, (a, b) => !isMoroccoSaharaBorder(nameOf(a), nameOf(b)))
   const saharaBorder = westernSaharaBorder(shapes)
   const extraCoasts = extraShapes.flatMap(({ geometry }) =>
     geometry.type === 'Polygon' ? geometry.coordinates : geometry.coordinates.flat(),

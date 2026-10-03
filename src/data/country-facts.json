@@ -341,7 +341,7 @@
   "populationYear": 2024,
   "areaKm2": 9250,
   "source": "World Bank",
-  "note": "Figures include Northern Cyprus"
+  "note": "Includes Northern Cyprus, run separately since 1974 and recognized only by Turkey"
  },
  "CZ": {
   "capital": "Prague",
@@ -1231,7 +1231,7 @@
   "populationYear": 2024,
   "areaKm2": 637660,
   "source": "World Bank",
-  "note": "Figures include Somaliland"
+  "note": "Includes Somaliland, in the north, which has governed itself since 1991 but is recognized by few countries"
  },
  "RS": {
   "capital": "Belgrade",
@@ -1672,20 +1672,6 @@
   "population": 0,
   "areaKm2": 14200000,
   "note": "No permanent population; a few thousand researchers",
-  "source": "Estimate"
- },
- "Somaliland": {
-  "capital": "Hargeisa",
-  "population": 5700000,
-  "populationYear": 2024,
-  "areaKm2": 176120,
-  "source": "Estimate"
- },
- "N. Cyprus": {
-  "capital": "North Nicosia",
-  "population": 382836,
-  "populationYear": 2021,
-  "areaKm2": 3355,
   "source": "Estimate"
  },
  "Indian Ocean Ter.": {

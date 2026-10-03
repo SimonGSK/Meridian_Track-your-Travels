@@ -63,11 +63,10 @@ describe('cities', () => {
     expect(citiesOf(cities, byName('France')).filter((c) => c.capital).map((c) => c.name)).toEqual(['Paris'])
   })
 
-  it('splits places that share a code by where they are', () => {
-    expect(names('Somaliland')).toContain('Hargeisa')
-    expect(names('Somalia')).not.toContain('Hargeisa')
-    expect(names('Cyprus')).toContain('Nicosia')
-    expect(names('Northern Cyprus')).toContain('Kyrenia')
+  it("files Somaliland's and Northern Cyprus's cities under Somalia and Cyprus, with one capital each", () => {
+    expect(names('Somalia')).toContain('Hargeisa')
+    expect(citiesOf(cities, byName('Somalia')).filter((c) => c.capital).map((c) => c.name)).toEqual(['Mogadishu'])
+    expect(names('Cyprus')).toEqual(expect.arrayContaining(['Nicosia', 'Kyrenia']))
   })
 
   it('counts cities in words', () => {

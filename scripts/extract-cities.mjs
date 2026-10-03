@@ -10,13 +10,10 @@
 // are in English where it has its own ("Cologne", not "Köln").
 import { readFile, writeFile } from 'node:fs/promises'
 import cities from 'all-the-cities'
-import { feature } from 'topojson-client'
-import { geoContains, geoDistance } from 'd3-geo'
+import { geoDistance } from 'd3-geo'
 
 const OUTPUT = new URL('../src/data/cities.json', import.meta.url)
 const facts = JSON.parse(await readFile(new URL('../src/data/country-facts.json', import.meta.url), 'utf8'))
-const world = JSON.parse(await readFile(new URL('../node_modules/world-atlas/countries-50m.json', import.meta.url), 'utf8'))
-const shapes = feature(world, world.objects.countries).features
 
 /** Smaller cities people know, by country code */
 const FAMOUS = {
@@ -31,6 +28,7 @@ const FAMOUS = {
   CL: ['Valparaíso', 'Punta Arenas', 'Puerto Natales', 'San Pedro de Atacama'],
   CN: ['Guilin', 'Lhasa', 'Sanya', 'Lijiang', 'Zhangjiajie', 'Hohhot', 'Luoyang'],
   CU: ['Trinidad', 'Varadero'],
+  CY: ['Famagusta', 'Kyrenia'],
   CZ: ['Český Krumlov'],
   DE: ['Heidelberg', 'Dresden', 'Potsdam', 'Freiburg', 'Rothenburg ob der Tauber', 'Garmisch-Partenkirchen'],
   DK: ['Roskilde', 'Helsingør', 'Skagen'],
@@ -65,7 +63,6 @@ const FAMOUS = {
   ME: ['Kotor', 'Budva'],
   MX: ['Cancún', 'Oaxaca', 'Tulum', 'Playa del Carmen'],
   MY: ['George Town', 'Malacca'],
-  'N. Cyprus': ['Famagusta', 'Kyrenia'],
   NL: ['The Hague', 'Haarlem', 'Delft'],
   NO: ['Tromsø', 'Bergen'],
   NP: ['Pokhara'],
@@ -135,8 +132,7 @@ const ENGLISH = {
   RU: { 'Nizhniy Novgorod': 'Nizhny Novgorod', 'Rostov-na-Donu': 'Rostov-on-Don', 'Tol’yatti': 'Tolyatti' },
   SA: { 'Ta’if': 'Taif' },
   SE: { Göteborg: 'Gothenburg' },
-  SO: { Gaalkacyo: 'Galkayo', Garoowe: 'Garowe', Marka: 'Merca' },
-  Somaliland: { Hargeysa: 'Hargeisa' },
+  SO: { Gaalkacyo: 'Galkayo', Garoowe: 'Garowe', Marka: 'Merca', Hargeysa: 'Hargeisa' },
   SY: { Ḩamah: 'Hama', 'Ar Raqqah': 'Raqqa', 'Dar‘a': 'Daraa', Tartouss: 'Tartus', 'Al Ḩasakah': 'Hasakah' },
   TH: { 'Chon Buri': 'Chonburi' },
   TJ: { Qŭrghonteppa: 'Bokhtar', Kŭlob: 'Kulob' },
@@ -216,11 +212,8 @@ function englishName(place, name) {
   return ENGLISH[place]?.[name] ?? ENGLISH[place]?.[clean] ?? clean
 }
 
-/** Capitals spelled differently in GeoNames than in the facts */
-const CAPITAL_NAMES = { Somaliland: 'Hargeysa' }
-
 const isCapitalName = (place) => {
-  const wanted = CAPITAL_NAMES[place] ?? facts[place]?.capital
+  const wanted = facts[place]?.capital
   return (city) => {
     const name = key(city.name)
     return !!wanted && name !== '' && (name === key(wanted) || key(wanted).startsWith(name))
@@ -246,22 +239,6 @@ const PART_OF = {
   SJ: 'NO',
 }
 
-// Map places that share a code with the country around them, found by location
-const SPLIT = {
-  SO: ['Somaliland'],
-  CY: ['N. Cyprus'],
-}
-const shapeByName = (name) => shapes.find((s) => s.properties.name === name)
-
-function placeOf(city) {
-  // Nicosia is divided; its point falls in the north, but it's Cyprus's capital
-  if (city.country === 'CY' && city.name === 'Nicosia') return 'CY'
-  for (const name of SPLIT[city.country] ?? []) {
-    if (geoContains(shapeByName(name), city.loc.coordinates)) return name
-  }
-  return city.country
-}
-
 /** Cities the all-the-cities extract of GeoNames is missing, as GeoNames has them */
 const MISSING = [
   { cityId: 1024683, name: 'Vilanculos', country: 'MZ', featureCode: 'PPL', population: 43183, loc: { coordinates: [35.3167, -22.0] } },
@@ -273,7 +250,7 @@ for (const city of [...cities, ...MISSING]) {
   // Names in another script are places GeoNames has no English name for
   if (!/[a-z]/i.test(city.name)) continue
   if (NOT_CITIES[city.country]?.includes(city.name)) continue
-  const place = placeOf(city)
+  const place = city.country
   if (!byPlace.has(place)) byPlace.set(place, [])
   byPlace.get(place).push(city)
 }

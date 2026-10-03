@@ -34,7 +34,7 @@ describe('FlagCorner', () => {
   })
 
   it('stays hidden for places without a flag', () => {
-    const { container } = render(<FlagCorner country={byName('Somaliland')} />)
+    const { container } = render(<FlagCorner country={byName('Siachen Glacier')} />)
     expect(container.querySelector('.flag-visible')).not.toBeInTheDocument()
   })
 })

@@ -19,7 +19,7 @@ describe('flagUrl', () => {
   })
 
   it('returns null for places without a flag', () => {
-    expect(flagUrl(byName('Somaliland'))).toBeNull()
-    expect(flagUrl(byName('Northern Cyprus'))).toBeNull()
+    expect(flagUrl(byName('Siachen Glacier'))).toBeNull()
+    expect(flagUrl(byName('Australian Indian Ocean Territories'))).toBeNull()
   })
 })

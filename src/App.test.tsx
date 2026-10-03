@@ -32,7 +32,7 @@ const { PLACES, PIN_AT, globe, layer, regionLayer, pinLayer, flightLayer, sceneO
       100: { lat: 56.17, lng: 9.55 }, // Denmark
       200: { lat: 46.6, lng: 2.4 }, // France
       300: { lat: 30, lng: -40 }, // Atlantic Ocean
-      400: { lat: 9.56, lng: 44.06 }, // Somaliland, which has no flag
+      400: { lat: -10.49, lng: 105.62 }, // Christmas Island, an Australian territory without a flag
       500: { lat: -10, lng: -52 }, // Brazil
       600: { lat: 36.2, lng: 138.25 }, // Japan
       700: { lat: 0, lng: 37.9 }, // Kenya
@@ -181,7 +181,7 @@ describe('App', () => {
     it('shows no flag for places without one', async () => {
       render(<App />)
       hover(400)
-      await waitFor(() => expect(tooltip()).toHaveTextContent('Somaliland'))
+      await waitFor(() => expect(tooltip()).toHaveTextContent('Australian Indian Ocean Territories'))
       expect(flag()).not.toBeInTheDocument()
     })
 
@@ -869,11 +869,11 @@ describe('App', () => {
         // A country lights up; moving on to a territory turns it off, and lights nothing
         hover(100)
         await waitFor(() => expect(painted()).toEqual({ Denmark: DEFAULT_THEME.hover }))
-        hover(400) // Somaliland
+        hover(400) // Christmas Island
         await waitFor(() => expect(painted().Denmark).toBeUndefined())
         expect(painted()).toEqual({})
         click(400)
-        expect(feedback()).toHaveTextContent('Somaliland is a territory, not a country. Try again.')
+        expect(feedback()).toHaveTextContent('Australian Indian Ocean Territories is a territory, not a country. Try again.')
         expect(screen.getByLabelText(`Try 1 of 3`)).toBeInTheDocument()
         expect(painted()).toEqual({})
       })

@@ -20,8 +20,6 @@ const CODE_OVERRIDES: Record<string, Continent> = {
 
 /** Places without an ISO code, by their name in the map data */
 const NAME_OVERRIDES: Record<string, Continent> = {
-  Somaliland: 'Africa',
-  'N. Cyprus': 'Europe', // like Cyprus
   'Siachen Glacier': 'Asia',
   'Indian Ocean Ter.': 'Oceania', // Australian territories
 }
