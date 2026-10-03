@@ -407,7 +407,8 @@ test.describe('games', () => {
     }
     await expect(page.getByText('3 / 14')).toBeVisible()
     await page.getByRole('button', { name: 'Give up and show the rest' }).click()
-    await expect(page.getByText(/countries named in \d+:\d\d/)).toBeVisible()
+    // Giving up is no perfect run, so its time sets no record
+    await expect(page.getByText(/^Time \d+:\d\d\.\d\. Only perfect runs/)).toBeVisible()
     await expect(page.getByText(/^Kiribati, /)).toBeVisible()
   })
 
