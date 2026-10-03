@@ -21,6 +21,7 @@ import {
 } from './games'
 import { countriesStartingWith, lettersOf, missing, randomLetter, type LetterGameState } from './letterGame'
 import { bestKey, gameScore, letterKey, scopeKey, type BestScores, type GameState } from './useGame'
+import { formatRunTime, isPerfect, runTime } from './records'
 import {
   SCOPES,
   countriesIn,
@@ -36,6 +37,10 @@ type Props = {
   game: GameState | null
   best: BestScores
   previousBest: number | undefined
+  /** The fastest perfect run of each game, in milliseconds */
+  bestTimes?: BestScores
+  /** The record to beat when the current game started */
+  previousTime?: number
   onStart: (id: RoundGameId, difficulty: Difficulty) => void
   onStartLetter: (letter: string) => void
   onStartAll: (scope: Scope) => void
@@ -46,7 +51,7 @@ type Props = {
   /** End a game played in rounds early */
   onStop: () => void
   onQuit: () => void
-  /** Whose setup is open, when the caller keeps track (the Explore tab opens games) */
+  /** Whose setup is open, when the caller keeps track (so it stays open across tabs) */
   chosen?: GameId | null
   onChoose?: (id: GameId | null) => void
 }
@@ -74,11 +79,12 @@ export default function GamesPanel(props: Props) {
 }
 
 /** All games; picking one asks for the difficulty, or for the letter hunt the letter. */
-function GameList({ best, onStart, onStartLetter, onStartAll, chosen, setChosen }: Props & Chosen) {
+function GameList({ best, bestTimes = {}, onStart, onStartLetter, onStartAll, chosen, setChosen }: Props & Chosen) {
   const back = () => setChosen(null)
-  if (chosen === 'letter') return <LetterChoice best={best} onStartLetter={onStartLetter} onBack={back} />
-  if (chosen === 'all') return <ScopeChoice best={best} onStartAll={onStartAll} onBack={back} />
-  if (chosen) return <DifficultyChoice id={chosen} best={best} onStart={onStart} onBack={back} />
+  const bests = { best, bestTimes }
+  if (chosen === 'letter') return <LetterChoice {...bests} onStartLetter={onStartLetter} onBack={back} />
+  if (chosen === 'all') return <ScopeChoice {...bests} onStartAll={onStartAll} onBack={back} />
+  if (chosen) return <DifficultyChoice id={chosen} {...bests} onStart={onStart} onBack={back} />
   return (
     <>
       <p className="muted">Test your geography. Pick a game, then how hard you want it.</p>
@@ -96,9 +102,10 @@ function GameList({ best, onStart, onStartLetter, onStartAll, chosen, setChosen 
   )
 }
 
-function DifficultyChoice({ id, best, onStart, onBack }: {
+function DifficultyChoice({ id, best, bestTimes, onStart, onBack }: {
   id: RoundGameId
   best: BestScores
+  bestTimes: BestScores
   onStart: Props['onStart']
   onBack: () => void
 }) {
@@ -122,7 +129,12 @@ function DifficultyChoice({ id, best, onStart, onBack }: {
               <button type="button" className="game-card" onClick={() => onStart(id, d.id)}>
                 <strong>{d.label}</strong>
                 <span className="muted">{difficultyDescription(id, d.id)}</span>
-                {score !== undefined && <span className="best-score">Best: {formatScore(id, d.id, score)}</span>}
+                {score !== undefined && (
+                  <span className="best-score">
+                    Best: {formatScore(id, d.id, score)}
+                    <RecordTime time={bestTimes[bestKey(id, d.id)]} />
+                  </span>
+                )}
               </button>
             </li>
           )
@@ -139,11 +151,50 @@ const PROMPTS: Record<RoundGameState['id'], string> = {
   shape: 'Which country has this shape?',
 }
 
+/** The game and its difficulty, with a clock running since it started ("name them all" shows its own) */
 function GameHeader({ game }: { game: GameState }) {
   return (
     <p className="game-title">
-      {titleOf(game.id)} · {game.kind === 'all' ? scopeLabel(game.scope) : difficultyLabel(game.difficulty)}
+      <span>
+        {titleOf(game.id)} · {game.kind === 'all' ? scopeLabel(game.scope) : difficultyLabel(game.difficulty)}
+      </span>
+      {game.kind !== 'all' && !game.finished && (
+        <span className="game-clock" aria-label="Time">
+          <Elapsed since={game.startedAt} until={game.endedAt} />
+        </span>
+      )}
     </p>
+  )
+}
+
+/** " · record 0:42.3", after a best score */
+function RecordTime({ time }: { time: number | undefined }) {
+  if (time === undefined) return null
+  return <span className="record-time"> · record {formatRunTime(time)}</span>
+}
+
+/** A perfect run's time, and whether it's a record; otherwise why the time doesn't count */
+function RunTime({ game, previousTime }: { game: GameState; previousTime: number | undefined }) {
+  const time = formatRunTime(runTime(game))
+  if (!isPerfect(game)) {
+    return (
+      <p className="muted run-time">
+        Time {time}. Only perfect runs, with every point and no mistakes, set a time record.
+      </p>
+    )
+  }
+  const record = previousTime === undefined || runTime(game) < previousTime
+  return (
+    <>
+      <p className="run-time">
+        Perfect run in <strong>{time}</strong>
+      </p>
+      {record ? (
+        <p className="new-best">{previousTime === undefined ? 'Your first time record!' : 'New time record!'}</p>
+      ) : (
+        <p className="muted">Your record is {formatRunTime(previousTime)}</p>
+      )}
+    </>
   )
 }
 
@@ -324,7 +375,7 @@ function verdict(share: number) {
 }
 
 function Results(props: Props & Chosen & { game: GameState }) {
-  const { game, previousBest, onStart, onStartLetter, onStartAll, onQuit, setChosen } = props
+  const { game, previousBest, previousTime, onStart, onStartLetter, onStartAll, onQuit, setChosen } = props
   const score = gameScore(game)
   const newBest = previousBest !== undefined && score > previousBest
   const share = game.kind === 'rounds' ? score / Math.max(1, maxScorePlayed(game)) : score / game.targets.length
@@ -371,6 +422,7 @@ function Results(props: Props & Chosen & { game: GameState }) {
       )}
       <p>{verdict(share)}</p>
       {newBest && <p className="new-best">New best score!</p>}
+      <RunTime game={game} previousTime={previousTime} />
       <button
         type="button"
         className="primary-button"
@@ -391,8 +443,9 @@ function Results(props: Props & Chosen & { game: GameState }) {
 }
 
 /** Every letter, grouped by difficulty, with the best score for each. */
-function LetterChoice({ best, onStartLetter, onBack }: {
+function LetterChoice({ best, bestTimes, onStartLetter, onBack }: {
   best: BestScores
+  bestTimes: BestScores
   onStartLetter: (letter: string) => void
   onBack: () => void
 }) {
@@ -418,17 +471,21 @@ function LetterChoice({ best, onStartLetter, onBack }: {
             {lettersOf(d.id).map((letter) => {
               const total = countriesStartingWith(letter).length
               const score = best[letterKey(letter)]
+              const time = bestTimes[letterKey(letter)]
               const complete = score === total
+              const record = time === undefined ? '' : `, record ${formatRunTime(time)}`
               return (
                 <li key={letter}>
                   <button
                     type="button"
                     className={`letter-tile${complete ? ' complete' : ''}`}
                     onClick={() => onStartLetter(letter)}
-                    aria-label={`${letter}: ${total} countries${score === undefined ? '' : `, best ${score} of ${total}`}`}
+                    aria-label={`${letter}: ${total} countries${score === undefined ? '' : `, best ${score} of ${total}`}${record}`}
+                    title={time === undefined ? undefined : `Record: ${formatRunTime(time)}`}
                   >
                     <span className="letter-tile-letter">{letter}</span>
                     <span className="letter-tile-best">{score === undefined ? `–/${total}` : `${score}/${total}`}</span>
+                    {time !== undefined && <span className="letter-tile-time">{formatRunTime(time)}</span>}
                   </button>
                 </li>
               )
@@ -441,8 +498,9 @@ function LetterChoice({ best, onStartLetter, onBack }: {
 }
 
 /** Choose the whole world or a continent for "name them all", with the best for each. */
-function ScopeChoice({ best, onStartAll, onBack }: {
+function ScopeChoice({ best, bestTimes, onStartAll, onBack }: {
   best: BestScores
+  bestTimes: BestScores
   onStartAll: (scope: Scope) => void
   onBack: () => void
 }) {
@@ -469,6 +527,7 @@ function ScopeChoice({ best, onStartAll, onBack }: {
                 {score !== undefined && (
                   <span className="best-score">
                     Best: {score} / {total}
+                    <RecordTime time={bestTimes[scopeKey(scope)]} />
                   </span>
                 )}
               </button>
@@ -582,7 +641,7 @@ function AllResults({ game }: { game: AllGameState }) {
       <p className="big-score">
         {game.found.length} / {game.targets.length}
       </p>
-      <p>countries named in {formatDuration((game.endedAt ?? game.startedAt) - game.startedAt)}</p>
+      <p>countries named</p>
       {missed.length > 0 && (
         <div className="missed">
           <p className="muted">Missed, highlighted on the globe:</p>

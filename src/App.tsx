@@ -89,6 +89,8 @@ export default function App() {
     game,
     best,
     previousBest,
+    bestTimes,
+    previousTime,
     start: startGame,
     startLetter,
     startAll,
@@ -494,6 +496,8 @@ export default function App() {
                 game={game}
                 best={best}
                 previousBest={previousBest}
+                bestTimes={bestTimes}
+                previousTime={previousTime}
                 onStart={playGame}
                 onStartLetter={playLetter}
                 onStartAll={playAll}

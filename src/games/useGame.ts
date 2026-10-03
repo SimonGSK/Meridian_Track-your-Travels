@@ -14,12 +14,13 @@ import {
 } from './games'
 import { giveUp, newLetterGame, pickCountry, type LetterGameState } from './letterGame'
 import { giveUpAll, nameCountry, newAllGame, type AllGameState, type Scope } from './allGame'
+import { BEST_TIMES_KEY, isPerfect, runTime } from './records'
 
 export type GameState = RoundGameState | LetterGameState | AllGameState
 
 export const BEST_SCORES_KEY = 'countries-app.best-scores'
 
-/** Best score per game and difficulty, keyed like "flags:hard" */
+/** Best score per game and difficulty, keyed like "flags:hard"; also the best times, in milliseconds */
 export type BestScores = Record<string, number>
 // "Find the country" used to score 1 per round; its points-based scores are kept apart
 export const bestKey = (id: GameId, difficulty: Difficulty) =>
@@ -43,12 +44,17 @@ const isBestScores = (value: unknown): value is BestScores =>
 /** Points, or for the letter hunt and "name them all" the number of countries found */
 export const gameScore = (game: GameState) => (game.kind === 'rounds' ? game.score : game.found.length)
 
-/** The game being played, if any, plus best scores saved in this browser. */
+/**
+ * The game being played, if any, plus the best scores and the fastest
+ * perfect runs saved in this browser.
+ */
 export function useGame() {
   const [game, setGame] = useState<GameState | null>(null)
   const [best, setBest] = usePersistentState<BestScores>(BEST_SCORES_KEY, {}, isBestScores)
-  // Best score before the current game started, to celebrate beating it
+  const [bestTimes, setBestTimes] = usePersistentState<BestScores>(BEST_TIMES_KEY, {}, isBestScores)
+  // The bests before the current game started, to celebrate beating them
   const [previousBest, setPreviousBest] = useState<number | undefined>(undefined)
+  const [previousTime, setPreviousTime] = useState<number | undefined>(undefined)
 
   const update = useCallback(
     (after: GameState) => {
@@ -56,33 +62,29 @@ export function useGame() {
       if (!after.finished || game?.finished) return
       const key = keyOf(after)
       if (gameScore(after) > (best[key] ?? -1)) setBest({ ...best, [key]: gameScore(after) })
+      if (isPerfect(after) && runTime(after) < (bestTimes[key] ?? Infinity)) {
+        setBestTimes({ ...bestTimes, [key]: runTime(after) })
+      }
     },
-    [game, best, setBest],
+    [game, best, setBest, bestTimes, setBestTimes],
+  )
+
+  const begin = useCallback(
+    (started: GameState) => {
+      const key = keyOf(started)
+      setPreviousBest(best[key])
+      setPreviousTime(bestTimes[key])
+      setGame(started)
+    },
+    [best, bestTimes],
   )
 
   const start = useCallback(
-    (id: RoundGameId, difficulty: Difficulty) => {
-      setPreviousBest(best[bestKey(id, difficulty)])
-      setGame(newRoundGame(id, difficulty))
-    },
-    [best],
+    (id: RoundGameId, difficulty: Difficulty) => begin(newRoundGame(id, difficulty)),
+    [begin],
   )
-
-  const startAll = useCallback(
-    (scope: Scope) => {
-      setPreviousBest(best[scopeKey(scope)])
-      setGame(newAllGame(scope))
-    },
-    [best],
-  )
-
-  const startLetter = useCallback(
-    (letter: string) => {
-      setPreviousBest(best[letterKey(letter)])
-      setGame(newLetterGame(letter))
-    },
-    [best],
-  )
+  const startAll = useCallback((scope: Scope) => begin(newAllGame(scope)), [begin])
+  const startLetter = useCallback((letter: string) => begin(newLetterGame(letter)), [begin])
 
   /** Answer a round, or click a country in the letter hunt. `alias` is the name typed, if not the usual one. */
   const pick = useCallback(
@@ -115,5 +117,19 @@ export function useGame() {
 
   const quit = useCallback(() => setGame(null), [])
 
-  return { game, best, previousBest, start, startLetter, startAll, pick, giveUpRound, advance, stop, quit }
+  return {
+    game,
+    best,
+    previousBest,
+    bestTimes,
+    previousTime,
+    start,
+    startLetter,
+    startAll,
+    pick,
+    giveUpRound,
+    advance,
+    stop,
+    quit,
+  }
 }
