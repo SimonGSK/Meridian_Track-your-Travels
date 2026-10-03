@@ -29,15 +29,15 @@ describe('factsOf', () => {
   it('fills in places the World Bank leaves out, marked as estimates', () => {
     expect(factsOf(byName('Taiwan'))).toMatchObject({ capital: 'Taipei', source: 'Estimate' })
     expect(factsOf(byName('Vatican City'))!.areaKm2).toBeLessThan(1)
-    expect(factsOf(byName('Somaliland'))).toMatchObject({ capital: 'Hargeisa' })
   })
 
   it("does not give a territory its country's figures when they share a code", () => {
     expect(factsOf(byName('Ashmore and Cartier Islands'))).toMatchObject({ population: 0, note: 'Uninhabited' })
   })
 
-  it('notes where the figures cover a place shown separately', () => {
-    expect(factsOf(byName('Somalia'))!.note).toBe('Figures include Somaliland')
+  it('notes the places shown as part of a country', () => {
+    expect(factsOf(byName('Somalia'))!.note).toMatch(/^Includes Somaliland, .* since 1991/)
+    expect(factsOf(byName('Cyprus'))!.note).toMatch(/^Includes Northern Cyprus/)
   })
 })
 

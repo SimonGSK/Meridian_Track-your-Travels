@@ -43,7 +43,7 @@ describe('countries and territories', () => {
   })
 
   it('calls everything else a territory', () => {
-    for (const name of ['Greenland', 'Puerto Rico', 'Western Sahara', 'Antarctica', 'Somaliland', 'Ashmore and Cartier Islands']) {
+    for (const name of ['Greenland', 'Puerto Rico', 'Western Sahara', 'Antarctica', 'Siachen Glacier', 'Ashmore and Cartier Islands']) {
       expect(byKind('territory')).toContain(name)
     }
   })
