@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { countries } from '../countries'
 import { CLASSIC } from '../globe/themes'
 import { answer, dontKnow, newRoundGame, next, type RoundGameId } from './games'
-import { flightTarget, gameHighlights, globeAnswers, isPlaying, overviewKey, showsGame } from './globeView'
+import { LETTER_HUNT_RINGS, flightTarget, gameHighlights, gameRings, globeAnswers, isPlaying, overviewKey, showsGame } from './globeView'
 import { giveUp, newLetterGame, pickCountry } from './letterGame'
 import { giveUpAll, nameCountry, newAllGame } from './allGame'
 
@@ -20,6 +20,7 @@ describe('without a game', () => {
     expect(gameHighlights(null, CLASSIC).size).toBe(0)
     expect(flightTarget(null)).toBeNull()
     expect(overviewKey(null)).toBeNull()
+    expect(gameRings(null)).toBeNull()
   })
 })
 
@@ -107,6 +108,19 @@ describe('letter hunt', () => {
   it('does not mark a territory clicked as wrong', () => {
     const game = pickCountry(pickCountry(kGame(), byName('Kenya')), byName('Greenland'))
     expect(names(gameHighlights(game, CLASSIC))).toEqual({ Kenya: CLASSIC.correct })
+  })
+
+  it('rings every small island country and tiny country, while playing and on the results', () => {
+    const ringed = LETTER_HUNT_RINGS.map((c) => c.properties.name)
+    expect(ringed).toEqual(expect.arrayContaining(['Nauru', 'Kiribati', 'Fiji', 'Vanuatu', 'Bahamas', 'Jamaica', 'Cabo Verde']))
+    expect(ringed).toEqual(expect.arrayContaining(['Vatican City', 'Monaco', 'San Marino'])) // tiny, though not islands
+    // Not territories, which don't count, nor islands big enough to see, nor countries with a land border
+    for (const name of ['Gibraltar', 'Bermuda', 'Taiwan', 'Sri Lanka', 'Cuba', 'Haiti', 'Timor-Leste', 'Brazil']) {
+      expect(ringed).not.toContain(name)
+    }
+    expect(gameRings(kGame())).toBe(LETTER_HUNT_RINGS)
+    expect(gameRings(giveUp(kGame()))).toBe(LETTER_HUNT_RINGS)
+    expect(gameRings(round('find'))).toBeNull()
   })
 
   it('shows the missed countries on the results', () => {

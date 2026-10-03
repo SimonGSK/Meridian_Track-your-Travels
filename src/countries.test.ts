@@ -35,6 +35,12 @@ describe('countries', () => {
     }
   })
 
+  it('tells island countries and territories from those with a land border', () => {
+    const island = (name: string) => countries.find((c) => c.properties.name === name)!.properties.island
+    for (const name of ['Fiji', 'Jamaica', 'Malta', 'Cyprus', 'Tuvalu', 'Iceland']) expect(island(name)).toBe(true)
+    for (const name of ['Haiti', 'Timor-Leste', 'Ireland', 'Gibraltar', 'Monaco', 'Denmark']) expect(island(name)).toBe(false)
+  })
+
   it('draws borders as the UN counts them', () => {
     const names = countries.map((c) => c.properties.name)
     for (const gone of ['Somaliland', 'Northern Cyprus', 'British Indian Ocean Territory']) expect(names).not.toContain(gone)
@@ -232,6 +238,14 @@ describe('findCountryNear', () => {
     expect(findCountryAt(41.9029, 12.4534)).toBe(countries.find((c) => c.properties.name === 'Italy'))
     expect(findCountryNear(41.9029, 12.4534, closeUp)?.properties.name).toBe('Vatican City')
     expect(findCountryNear(41.8902, 12.4922, closeUp)?.properties.name).toBe('Italy') // the Colosseum
+  })
+
+  it('finds a ringed island from anywhere in its ring, like the tiny ones', () => {
+    const fiji = countries.find((c) => c.properties.name === 'Fiji')!
+    const [lng, lat] = fiji.properties.centroid
+    const ring = { markerRadius: 1 * DEG, tolerance: 0 }
+    expect(findCountryNear(lat + 0.8, lng, ring)).toBeNull()
+    expect(findCountryNear(lat + 0.8, lng, { ...ring, ringed: [fiji] })).toBe(fiji)
   })
 
   it('returns null in the open ocean', () => {

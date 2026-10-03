@@ -4,7 +4,9 @@ import userEvent from '@testing-library/user-event'
 import { useEffect, useImperativeHandle, useRef, type Ref } from 'react'
 import type { GlobeProps } from 'react-globe.gl'
 import App from './App'
-import { countries, findCountryAt } from './countries'
+import { countries, findCountryAt, tinyPlaces } from './countries'
+import { LETTER_HUNT_RINGS } from './games/globeView'
+import { SETTINGS_KEY } from './explore/useSettings'
 import { loadCities } from './data/cities'
 import { loadAirports } from './data/airports'
 import { loadRegions } from './data/regions'
@@ -52,7 +54,7 @@ const { PLACES, PIN_AT, globe, layer, regionLayer, pinLayer, flightLayer, sceneO
       getGlobeRadius: () => 100,
     },
     sceneObjects,
-    layer: { object: {}, paint: vi.fn(), setBorders: vi.fn(), setMarkersVisible: vi.fn(), emphasize: vi.fn(), dispose: vi.fn() },
+    layer: { object: {}, paint: vi.fn(), setBorders: vi.fn(), setRings: vi.fn(), emphasize: vi.fn(), dispose: vi.fn() },
     regionLayer: { object: {}, show: vi.fn(), setOutlineColor: vi.fn(), dispose: vi.fn() },
     pinLayer: { object: {}, show: vi.fn(), setColor: vi.fn(), setFade: vi.fn(), dispose: vi.fn() },
     flightLayer: { object: {}, show: vi.fn(), setColors: vi.fn(), tick: vi.fn(), dispose: vi.fn() },
@@ -764,14 +766,14 @@ describe('App', () => {
 
     it('hides the island markers, and remembers it', async () => {
       const first = render(<App />)
-      expect(layer.setMarkersVisible).toHaveBeenLastCalledWith(true)
+      expect(layer.setRings).toHaveBeenLastCalledWith(tinyPlaces, null)
       await openExplore()
       await userEvent.click(screen.getByRole('switch', { name: /Small islands/ }))
-      expect(layer.setMarkersVisible).toHaveBeenLastCalledWith(false)
+      expect(layer.setRings).toHaveBeenLastCalledWith([], null)
       first.unmount()
 
       render(<App />)
-      expect(layer.setMarkersVisible).toHaveBeenLastCalledWith(false)
+      expect(layer.setRings).toHaveBeenLastCalledWith([], null)
     })
   })
 
@@ -1003,6 +1005,17 @@ describe('App', () => {
         const colors = painted()
         expect(colors.Denmark).toBe(DEFAULT_THEME.correct)
         expect(colors.Djibouti).toBe(DEFAULT_THEME.selected)
+      })
+
+      it('rings the small islands, even with the rings switched off, until the hunt is over', async () => {
+        localStorage.setItem(SETTINGS_KEY, JSON.stringify({ showMarkers: false }))
+        await startLetter('D')
+        // In a color that shows over the sea
+        expect(layer.setRings).toHaveBeenLastCalledWith(LETTER_HUNT_RINGS, DEFAULT_THEME.flight)
+        await userEvent.click(screen.getByRole('button', { name: 'Give up and show the rest' }))
+        expect(layer.setRings).toHaveBeenLastCalledWith(LETTER_HUNT_RINGS, DEFAULT_THEME.flight) // the missed ones
+        await userEvent.click(screen.getByRole('button', { name: 'All games' }))
+        expect(layer.setRings).toHaveBeenLastCalledWith([], null)
       })
 
       it('saves the best for the letter and shows it on its tile', async () => {

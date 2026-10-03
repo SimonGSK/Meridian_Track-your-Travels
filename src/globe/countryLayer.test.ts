@@ -68,19 +68,47 @@ describe('createCountryLayer', () => {
     const color = dots.geometry.getAttribute('color')
     expect(new Color(color.getX(0), color.getY(0), color.getZ(0)).getHexString()).toBe('ff0000')
     expect(dots.material).not.toBe(ring.material)
-    layer.setMarkersVisible(false)
-    expect(dots.visible).toBe(true) // shown even when the rings are switched off
-    layer.setMarkersVisible(true)
+    layer.setRings([], null)
+    expect(dots.geometry.getAttribute('position').count).toBe(2) // shown even when the rings are switched off
+    layer.setRings(countries.filter((c) => c.properties.tiny), null)
     layer.emphasize(new Map())
     expect(dots.geometry.getAttribute('position').count).toBe(0)
   })
 
-  it('shows and hides the markers', () => {
-    const markers = layer.object.children.find((c) => c instanceof Points)!
-    layer.setMarkersVisible(false)
-    expect(markers.visible).toBe(false)
-    layer.setMarkersVisible(true)
-    expect(markers.visible).toBe(true)
+  it('rings the places asked for, in their colors', () => {
+    const rings = layer.object.children.find((c): c is Points<BufferGeometry> => c instanceof Points)!
+    const count = () => rings.geometry.getAttribute('position').count
+    const named = (name: string) => countries.find((c) => c.properties.name === name)!
+    expect(count()).toBe(countries.filter((c) => c.properties.tiny).length)
+    layer.paint(named('Fiji'), '#ff0000')
+    layer.setRings([named('Grenada'), named('Fiji')], null)
+    expect(count()).toBe(2)
+    const color = (i: number) => {
+      const colors = rings.geometry.getAttribute('color')
+      return new Color(colors.getX(i), colors.getY(i), colors.getZ(i)).getHexString()
+    }
+    expect(color(1)).toBe('ff0000') // painted before it had a ring
+    layer.paint(named('Grenada'), '#00ff00')
+    expect(color(0)).toBe('00ff00')
+    layer.setRings([], null)
+    expect(count()).toBe(0)
+  })
+
+  it('can draw the rings in one color, but for the countries a game colors', () => {
+    const rings = layer.object.children.find((c): c is Points<BufferGeometry> => c instanceof Points)!
+    const named = (name: string) => countries.find((c) => c.properties.name === name)!
+    const color = (i: number) => {
+      const colors = rings.geometry.getAttribute('color')
+      return new Color(colors.getX(i), colors.getY(i), colors.getZ(i)).getHexString()
+    }
+    layer.paint(named('Fiji'), '#123456')
+    layer.setRings([named('Grenada'), named('Fiji')], '#9fd3ff')
+    expect([color(0), color(1)]).toEqual(['9fd3ff', '9fd3ff'])
+    layer.emphasize(new Map([[named('Fiji'), '#00ff00']])) // found
+    expect([color(0), color(1)]).toEqual(['9fd3ff', '00ff00'])
+    layer.emphasize(new Map())
+    layer.setRings([named('Fiji')], null)
+    expect(color(0)).toBe('123456')
   })
 
   it('recolors the borders', () => {

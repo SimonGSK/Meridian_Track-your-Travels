@@ -1,4 +1,4 @@
-import type { CountryFeature } from '../countries'
+import { countries, type CountryFeature } from '../countries'
 import type { Theme } from '../globe/themes'
 import { currentRound } from './games'
 import { missing } from './letterGame'
@@ -12,6 +12,21 @@ export const isPlaying = (game: GameState | null): game is GameState & { finishe
 
 /** The globe shows the game: while playing, and for the letter hunt and "name them all" also on the results (what was missed) */
 export const showsGame = (game: GameState | null) => isPlaying(game) || game?.kind === 'letter' || game?.kind === 'all'
+
+/** Island countries up to this size (km²) are hard to spot out in the ocean */
+export const SMALL_ISLAND_KM2 = 30_000
+
+/**
+ * The letter hunt rings every tiny country and small island country, so
+ * the ones out in the ocean can be found. All of them, not just the
+ * answers, so the rings give nothing away.
+ */
+export const LETTER_HUNT_RINGS: readonly CountryFeature[] = countries.filter(
+  ({ properties: p }) => p.kind === 'country' && (p.tiny || (p.island && p.areaKm2 < SMALL_ISLAND_KM2)),
+)
+
+/** The rings a game wants on the globe, or null for the usual ones */
+export const gameRings = (game: GameState | null) => (showsGame(game) && game?.kind === 'letter' ? LETTER_HUNT_RINGS : null)
 
 /** You answer by clicking the globe: finding a country, or hunting for a letter */
 export function globeAnswers(game: GameState | null) {

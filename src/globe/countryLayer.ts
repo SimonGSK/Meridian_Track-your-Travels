@@ -34,7 +34,11 @@ export type CountryLayer = {
   /** Recolor one country */
   paint(country: CountryFeature, color: ColorRepresentation): void
   setBorders(color: ColorRepresentation, opacity: number): void
-  setMarkersVisible(visible: boolean): void
+  /**
+   * Rings around these places: the tiny ones, none, or in the letter hunt the small islands too. In
+   * their countries' colors, or all in `color` but for the ones a game colors.
+   */
+  setRings(places: readonly CountryFeature[], color: ColorRepresentation | null): void
   /** Big filled dots on tiny places in these colors (game answers), so they can be seen at any zoom */
   emphasize(colors: ReadonlyMap<CountryFeature, ColorRepresentation>): void
   dispose(): void
@@ -91,17 +95,34 @@ export function createCountryLayer(
     new LineBasicMaterial({ transparent: true }),
   )
 
-  // A ring around each tiny place, the same size on screen at any zoom
-  const tiny = countries.filter((c) => c.properties.tiny)
-  const markerIndex = new Map(tiny.map((c, i) => [c, i]))
+  // Rings around places too small to see, the same size on screen at any zoom, each in its country's color
+  const tiny = new Set(countries.filter((c) => c.properties.tiny))
+  const painted = new Map<CountryFeature, Color>()
+  let ringColor: Color | null = null
+  let gameColors = new Map<CountryFeature, Color>()
+  const colorOfRing = (country: CountryFeature) => gameColors.get(country) ?? ringColor ?? painted.get(country)
   const markerRadius = top * (1 + BORDER_LIFT * 2)
   const markerGeometry = new BufferGeometry()
-  markerGeometry.setAttribute(
-    'position',
-    new Float32BufferAttribute(tiny.flatMap((c) => toUnitVector(c.properties.centroid).map((v) => v * markerRadius)), 3),
-  )
-  const markerColors = new BufferAttribute(new Float32Array(tiny.length * 3).fill(1), 3)
-  markerGeometry.setAttribute('color', markerColors)
+  let markerIndex = new Map<CountryFeature, number>()
+  let markerColors = new BufferAttribute(new Float32Array(), 3)
+  const recolorRings = () => {
+    for (const [country, i] of markerIndex) {
+      const color = colorOfRing(country)
+      if (color) markerColors.setXYZ(i, color.r, color.g, color.b)
+    }
+    markerColors.needsUpdate = true
+  }
+  const setRings = (places: readonly CountryFeature[], color: ColorRepresentation | null) => {
+    markerIndex = new Map(places.map((c, i) => [c, i]))
+    ringColor = color === null ? null : new Color(color)
+    const position = places.flatMap((c) => toUnitVector(c.properties.centroid).map((v) => v * markerRadius))
+    markerGeometry.setAttribute('position', new Float32BufferAttribute(position, 3))
+    markerColors = new BufferAttribute(new Float32Array(places.length * 3).fill(1), 3)
+    markerGeometry.setAttribute('color', markerColors)
+    markerGeometry.computeBoundingSphere()
+    recolorRings()
+  }
+  setRings([...tiny], null)
   const markers = new Points(
     markerGeometry,
     new PointsMaterial({
@@ -147,9 +168,11 @@ export function createCountryLayer(
       colors.addUpdateRange(range.start * 3, range.count * 3)
       colors.needsUpdate = true
 
+      painted.set(country, paintColor.clone())
       const marker = markerIndex.get(country)
       if (marker !== undefined) {
-        markerColors.setXYZ(marker, paintColor.r, paintColor.g, paintColor.b)
+        const ring = colorOfRing(country)!
+        markerColors.setXYZ(marker, ring.r, ring.g, ring.b)
         markerColors.needsUpdate = true
       }
     },
@@ -157,11 +180,11 @@ export function createCountryLayer(
       lines.material.color.set(color)
       lines.material.opacity = opacity
     },
-    setMarkersVisible(visible) {
-      markers.visible = visible
-    },
+    setRings,
     emphasize(emphasized) {
-      const shown = [...emphasized].filter(([country]) => markerIndex.has(country))
+      gameColors = new Map([...emphasized].map(([country, color]) => [country, new Color(color)]))
+      recolorRings()
+      const shown = [...emphasized].filter(([country]) => tiny.has(country))
       const position: number[] = []
       const color: number[] = []
       for (const [country, value] of shown) {

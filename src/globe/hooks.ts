@@ -3,7 +3,7 @@ import type { PointerEvent } from 'react'
 import type { GlobeMethods } from 'react-globe.gl'
 import type { PerspectiveCamera } from 'three'
 import { geoDistance } from 'd3-geo'
-import { borders, countries, findCountryNear, type CountryFeature } from '../countries'
+import { borders, countries, findCountryNear, tinyPlaces, type CountryFeature } from '../countries'
 import { loadCities, type City } from '../data/cities'
 import { loadRegions, type RegionFeature } from '../data/regions'
 import { createCountryLayer, createRaisedCountry, type CountryLayer } from './countryLayer'
@@ -52,9 +52,16 @@ export function useCountryLayer(
   theme: Theme,
   colorOf: (country: CountryFeature) => string,
   {
-    showMarkers = true,
+    rings = tinyPlaces,
+    ringColor = null,
     emphasized = NOTHING_EMPHASIZED,
-  }: { showMarkers?: boolean; emphasized?: ReadonlyMap<CountryFeature, string> } = {},
+  }: {
+    /** Places with a ring around them */
+    rings?: readonly CountryFeature[]
+    /** One color for the rings, but for the countries a game colors; else each its country's */
+    ringColor?: string | null
+    emphasized?: ReadonlyMap<CountryFeature, string>
+  } = {},
 ) {
   const layer = useRef<CountryLayer | null>(null)
   const painted = useRef(new Map<CountryFeature, string>())
@@ -78,8 +85,8 @@ export function useCountryLayer(
   }, [globe, theme])
 
   useEffect(() => {
-    layer.current?.setMarkersVisible(showMarkers)
-  }, [globe, showMarkers])
+    layer.current?.setRings(rings, ringColor)
+  }, [globe, rings, ringColor])
 
   useEffect(() => {
     layer.current?.emphasize(emphasized)
@@ -248,8 +255,8 @@ type PointerOptions = {
   /** `position` is the point on the globe under the pointer, if any, and `point` the pointer on the screen */
   onHover: (country: CountryFeature | null, position: LatLng | null, point: Point | null) => void
   onClick: (country: CountryFeature | null, position: LatLng | null, point: Point) => void
-  /** Whether tiny places' markers are shown, and so can be pointed at */
-  markers?: boolean
+  /** Places with a ring around them, which answer to a pointer anywhere in it (tiny places answer to a smaller circle without) */
+  rings?: readonly CountryFeature[]
 }
 
 /**
@@ -257,7 +264,7 @@ type PointerOptions = {
  * the element wrapping the globe. Hover is re-checked at most once per frame,
  * including while the globe moves under a still pointer.
  */
-export function useCountryPointer(globe: GlobeMethods | null, { onHover, onClick, markers = true }: PointerOptions) {
+export function useCountryPointer(globe: GlobeMethods | null, { onHover, onClick, rings = tinyPlaces }: PointerOptions) {
   const pointer = useRef<Point | null>(null)
   const pressedAt = useRef<Point | null>(null)
   const frame = useRef(0)
@@ -269,10 +276,10 @@ export function useCountryPointer(globe: GlobeMethods | null, { onHover, onClick
       // How far one pixel is on the globe here, to turn pixel tolerances into distances
       const beside = screenToLatLng(globe, x + 1, y) ?? screenToLatLng(globe, x - 1, y)
       const perPixel = beside ? geoDistance([pos.lng, pos.lat], [beside.lng, beside.lat]) : 0
-      const country = findCountryNear(pos.lat, pos.lng, hitDistances(perPixel, markers))
+      const country = findCountryNear(pos.lat, pos.lng, { ...hitDistances(perPixel, rings.length > 0), ringed: rings })
       return [country, pos]
     },
-    [globe, markers],
+    [globe, rings],
   )
 
   // The latest callbacks, so a pending hover isn't dropped when the caller re-renders with new ones
