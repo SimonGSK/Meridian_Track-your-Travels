@@ -57,8 +57,8 @@ export default function VisitedPanel({ visited, onAdd, onRemove, onShow, note, c
       <StatsBox
         label="Your atlas"
         stats={[
-          { label: 'Countries', value: `${visitedCountries} / ${COUNTRY_COUNT}` },
-          { label: 'Territories', value: `${visitedTerritories} / ${TERRITORY_COUNT}` },
+          { label: 'Countries', value: visitedCountries, of: COUNTRY_COUNT },
+          { label: 'Territories', value: visitedTerritories, of: TERRITORY_COUNT },
           { label: 'Cities', value: cityCount },
         ]}
       />

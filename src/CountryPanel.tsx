@@ -58,7 +58,7 @@ function Facts({ facts, mapArea }: { facts: NonNullable<ReturnType<typeof factsO
   return (
     <>
       <dl className="facts">
-        <div className="fact">
+        <div className="fact fact-wide">
           <dt>Capital</dt>
           <dd className="fact-capital">{capital ?? 'None'}</dd>
         </div>
