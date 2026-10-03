@@ -233,6 +233,7 @@ const PART_OF = {
   CX: 'Indian Ocean Ter.',
   GF: 'FR',
   GP: 'FR',
+  IO: 'MU',
   MQ: 'FR',
   RE: 'FR',
   YT: 'FR',

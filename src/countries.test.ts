@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest'
+import { geoContains } from 'd3-geo'
 import { neighbors } from 'topojson-client'
 import type { GeometryCollection, Topology } from 'topojson-specification'
 import worldData from './data/countries-50m.json'
-import { MAP_COLOR_COUNT, PART_OF_COUNTRY, TINY_KM2, borders, countries, findCountryAt, findCountryNear } from './countries'
+import { MAP_COLOR_COUNT, TINY_KM2, borders, countries, findCountryAt, findCountryNear } from './countries'
 import { TINY_REACH_KM } from './globe/hooks'
 
 const nameAt = (lat: number, lng: number) => findCountryAt(lat, lng)?.properties.name ?? null
@@ -34,15 +35,30 @@ describe('countries', () => {
     }
   })
 
-  it('shows Somaliland and Northern Cyprus as part of Somalia and Cyprus', () => {
+  it('draws borders as the UN counts them', () => {
     const names = countries.map((c) => c.properties.name)
-    expect(names).not.toContain('Somaliland')
-    expect(names).not.toContain('Northern Cyprus')
-    expect(findCountryAt(9.56, 44.065)?.properties.name).toBe('Somalia') // Hargeisa
-    expect(findCountryAt(35.32, 33.32)?.properties.name).toBe('Cyprus') // Kyrenia
-    // One shape, without the line between
-    const cyprus = countries.find((c) => c.properties.name === 'Cyprus')!
-    expect(cyprus.geometry.type === 'Polygon' || cyprus.geometry.coordinates.length === 1).toBe(true)
+    for (const gone of ['Somaliland', 'Northern Cyprus', 'British Indian Ocean Territory']) expect(names).not.toContain(gone)
+    expect(nameAt(9.56, 44.065)).toBe('Somalia') // Hargeisa, in Somaliland
+    expect(nameAt(35.32, 33.32)).toBe('Cyprus') // Kyrenia, in Northern Cyprus
+    expect(nameAt(-7.3, 72.4)).toBe('Mauritius') // Diego Garcia, in the Chagos Archipelago
+    expect(nameAt(44.95, 34.1)).toBe('Ukraine') // Simferopol, in Crimea
+    expect(nameAt(44.6, 33.55)).toBe('Ukraine') // Sevastopol
+    expect(nameAt(45.04, 38.98)).toBe('Russia') // Krasnodar, across the Kerch Strait
+    expect(nameAt(33.0, 35.78)).toBe('Syria') // the Golan Heights
+    expect(nameAt(32.83, 35.45)).toBe('Israel') // Galilee, west of the Sea of Galilee
+    expect(nameAt(31.25, 34.79)).toBe('Israel') // Beersheba
+  })
+
+  it('joins the land into one piece, without a line between', () => {
+    const onePiece = (name: string, ...places: [lat: number, lng: number][]) => {
+      const { geometry } = countries.find((c) => c.properties.name === name)!
+      const pieces = geometry.type === 'Polygon' ? [geometry.coordinates] : geometry.coordinates
+      return pieces.some((coordinates) => places.every(([lat, lng]) => geoContains({ type: 'Polygon', coordinates }, [lng, lat])))
+    }
+    expect(onePiece('Ukraine', [50.45, 30.52], [44.95, 34.1])).toBe(true) // Kyiv and Simferopol
+    expect(onePiece('Somalia', [2.05, 45.32], [9.56, 44.065])).toBe(true) // Mogadishu and Hargeisa
+    expect(onePiece('Cyprus', [34.7, 33.02], [35.32, 33.32])).toBe(true) // Limassol and Kyrenia
+    expect(onePiece('Syria', [33.51, 36.29], [33.0, 35.78])).toBe(true) // Damascus and the Golan
   })
 
   it('includes Antarctica, and small places missing from the 1:50m map', () => {
@@ -75,13 +91,9 @@ describe('countries', () => {
     const clashes: string[] = []
     neighbors(geometries).forEach((adjacent, i) => {
       for (const j of adjacent) {
-        // Somaliland's neighbors are Somalia's now
-        const nameOf = (k: number) => {
-          const name = (geometries[k].properties as { name: string }).name
-          return PART_OF_COUNTRY[name] ?? name
-        }
+        const nameOf = (k: number) => (geometries[k].properties as { name: string }).name
         const [a, b] = [nameOf(i), nameOf(j)]
-        if (a !== b && colorOf.has(a) && colorOf.get(a) === colorOf.get(b)) clashes.push(`${a}/${b}`)
+        if (colorOf.has(a) && colorOf.get(a) === colorOf.get(b)) clashes.push(`${a}/${b}`)
       }
     })
     expect(clashes).toEqual([])
