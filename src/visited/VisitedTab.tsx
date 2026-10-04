@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useEffect, useRef, type ReactNode } from 'react'
 import Card from '../ui/Card'
 
 export type VisitedView = 'countries' | 'flights' | 'achievements'
@@ -34,9 +34,19 @@ export default function VisitedTab(props: Props) {
     achievements: `${earned} / ${achievementCount}`,
   }[view]
   const panel = { countries: props.countries, flights: props.flightsPanel, achievements: props.achievements }[view]
+
+  // Switching, from here or from an achievement's note, brings the switch back into view if it was scrolled away
+  const tabs = useRef<HTMLDivElement>(null)
+  const shown = useRef(view)
+  useEffect(() => {
+    if (shown.current === view) return
+    shown.current = view
+    tabs.current?.scrollIntoView?.({ block: 'nearest' })
+  }, [view])
+
   return (
     <Card letter="B" label="Visited atlas" meta={meta}>
-      <div className="segmented" role="tablist" aria-label="Show">
+      <div ref={tabs} className="segmented" role="tablist" aria-label="Show">
         {VIEWS.map(({ id, label }) => (
           <button
             key={id}
