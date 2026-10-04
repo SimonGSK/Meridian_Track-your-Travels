@@ -824,6 +824,86 @@ describe('App', () => {
     })
   })
 
+  describe('year in review', () => {
+    const drawn = () =>
+      ((flightLayer.show.mock.calls.at(-1)?.[0] ?? []) as { from: { code: string }; to: { code: string } }[]).map(
+        (line) => `${line.from.code}-${line.to.code}`,
+      )
+    const pinned = () => ((pinLayer.show.mock.calls.at(-1)?.[0] ?? []) as { city: { name: string } }[]).map((p) => p.city.name)
+    beforeAll(() => loadAirports(), 20_000)
+    beforeEach(async () => {
+      flightLayer.show.mockClear()
+      const copenhagen = (await loadCities()).find((c) => c.name === 'Copenhagen' && c.place === 'DK')!
+      localStorage.setItem('countries-app.visited', JSON.stringify(['Japan', 'France', 'Denmark']))
+      localStorage.setItem('countries-app.visited-cities', JSON.stringify([copenhagen.id]))
+      localStorage.setItem('countries-app.visit-dates', JSON.stringify({ Japan: ['2024-04'], France: ['2019-07'] }))
+      localStorage.setItem(
+        'countries-app.flights',
+        JSON.stringify([
+          { id: 'a', from: 'CPH', to: 'NRT', date: '2024-04' },
+          { id: 'b', from: 'CPH', to: 'CDG', date: '2019-07' },
+          { id: 'c', from: 'CPH', to: 'BKK' },
+        ]),
+      )
+    })
+    const openYears = async () => {
+      await userEvent.click(screen.getByRole('button', { name: 'Visited' }))
+      await userEvent.click(screen.getByRole('tab', { name: 'Years' }))
+    }
+    const all = { Japan: DEFAULT_THEME.visited, France: DEFAULT_THEME.visited, Denmark: DEFAULT_THEME.visited }
+
+    it('shows just the year on the globe while it is open: its places and flights, no city pins', async () => {
+      render(<App />)
+      await waitFor(() => expect(drawn()).toEqual(['CPH-NRT', 'CPH-CDG', 'CPH-BKK']))
+      await waitFor(() => expect(pinned()).toEqual(['Copenhagen']))
+      await openYears()
+      expect(screen.getByText('2 years')).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: '2024' })).toBeInTheDocument()
+      expect(painted()).toEqual({ Japan: DEFAULT_THEME.visited })
+      expect(drawn()).toEqual(['CPH-NRT'])
+      expect(pinned()).toEqual([])
+
+      await userEvent.click(screen.getByRole('button', { name: 'Earlier year' }))
+      expect(screen.getByRole('heading', { name: '2019' })).toBeInTheDocument()
+      expect(painted()).toEqual({ France: DEFAULT_THEME.visited })
+      expect(drawn()).toEqual(['CPH-CDG'])
+
+      // Everything again once the years are left
+      await userEvent.click(screen.getByRole('tab', { name: 'Countries' }))
+      expect(painted()).toEqual(all)
+      expect(drawn()).toEqual(['CPH-NRT', 'CPH-CDG', 'CPH-BKK'])
+      expect(pinned()).toEqual(['Copenhagen'])
+    })
+
+    it('keeps the year picked when the tab is opened again, and shows everything with the panel closed', async () => {
+      render(<App />)
+      await openYears()
+      await userEvent.click(screen.getByRole('button', { name: 'Earlier year' }))
+      await userEvent.click(screen.getByRole('button', { name: 'Explore' }))
+      expect(painted()).toEqual(all)
+      await userEvent.click(screen.getByRole('button', { name: 'Visited' }))
+      expect(screen.getByRole('heading', { name: '2019' })).toBeInTheDocument()
+      expect(painted()).toEqual({ France: DEFAULT_THEME.visited })
+    })
+
+    it("shows the year even with visited places and flights hidden in the layers", async () => {
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify({ showVisited: false, showFlights: false }))
+      render(<App />)
+      await waitFor(() => expect(painted()).toEqual({}))
+      expect(drawn()).toEqual([])
+      await openYears()
+      expect(painted()).toEqual({ Japan: DEFAULT_THEME.visited })
+      expect(drawn()).toEqual(['CPH-NRT'])
+    })
+
+    it('shows a country of the year in its panel', async () => {
+      render(<App />)
+      await openYears()
+      await userEvent.click(screen.getByRole('button', { name: /^Japan/ }))
+      expect(countryPanel()).toHaveAccessibleName(/Japan/)
+    })
+  })
+
   describe('explore settings', () => {
     const openExplore = async () => {
       await userEvent.click(screen.getByRole('button', { name: 'Explore' }))

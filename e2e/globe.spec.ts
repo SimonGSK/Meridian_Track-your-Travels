@@ -326,6 +326,33 @@ test.describe('achievements', () => {
   })
 })
 
+test.describe('year in review', () => {
+  test('a dated visit gets its year, with the country under its month', async ({ page }) => {
+    await openGlobe(page)
+    await page.getByRole('button', { name: 'Visited', exact: true }).click()
+    const add = page.getByRole('searchbox', { name: 'Add a country' })
+    await add.fill('Japan')
+    await add.press('Enter')
+    await page.getByRole('tab', { name: 'Years' }).click()
+    await expect(page.getByText(/^No dates yet/)).toBeVisible()
+
+    await page.getByRole('tab', { name: 'Countries' }).click()
+    await page.getByRole('button', { name: /^Japan/ }).click()
+    const visits = panel(page).getByRole('region', { name: 'Visits' })
+    await visits.getByRole('combobox', { name: 'Year' }).selectOption('2023')
+    await visits.getByRole('combobox', { name: 'Month' }).selectOption('April')
+    await visits.getByRole('button', { name: 'Add visit' }).click()
+    await panel(page).getByRole('button', { name: 'Close' }).click()
+
+    await page.getByRole('tab', { name: 'Years' }).click()
+    await expect(page.getByRole('heading', { name: '2023' })).toBeVisible()
+    await expect(page.getByText('1 country on 1 continent, a new one.')).toBeVisible()
+    const april = page.getByRole('list', { name: 'April' })
+    await expect(april).toContainText('Japan')
+    await expect(april).toContainText('First visit')
+  })
+})
+
 test.describe('settings', () => {
   test('a backup downloaded and restored brings the places back', async ({ page }) => {
     await openGlobe(page)

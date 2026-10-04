@@ -49,6 +49,8 @@ import { describeVisits } from './data/visitDates'
 import { useFlights } from './visited/useFlights'
 import FlightsPanel from './visited/FlightsPanel'
 import VisitedTab, { type VisitedView } from './visited/VisitedTab'
+import YearsPanel from './visited/YearsPanel'
+import { reviewOf, yearsOf } from './visited/yearInReview'
 import { routeOf, uniqueRoutes, type Route } from './data/flights'
 import { geoInterpolate } from 'd3-geo'
 import { regionFills, regionOutlines, regionProgress } from './visited/regionsView'
@@ -191,6 +193,15 @@ export default function App() {
   )
   const [newAchievements, clearAchievements] = useNewAchievements(atlas, !!cities && !!airports)
 
+  // The years with dates, and the one picked in the Visited tab (the newest, until another is)
+  const years = useMemo(() => yearsOf({ visited, datesOf, routes }), [visited, datesOf, routes])
+  const [pickedYear, setPickedYear] = useState<number | null>(null)
+  const reviewYear = pickedYear !== null && years.includes(pickedYear) ? pickedYear : (years[0] ?? null)
+  const review = useMemo(
+    () => (reviewYear === null ? null : reviewOf(reviewYear, { visited, datesOf, routes })),
+    [reviewYear, visited, datesOf, routes],
+  )
+
   /** Flies to show a flight's whole route, from above its middle */
   const showRoute = useCallback(
     (route: Route) => {
@@ -219,11 +230,15 @@ export default function App() {
     return editing ? new Map([...colors, [editing, theme.selected]]) : colors
   }, [game, theme, editing])
 
+  // While a year is open in the Visited tab, the globe shows just that year: its places and flights, which have
+  // dates (states and cities don't)
+  const yearShown = view === 'visited' && visitedView === 'years' && !showsGame(game) ? review : null
+
   // Games get a clean globe: no visited colors, and hover only where the globe is the answer
   // In games only countries are answers, so territories don't light up
   const hoverable = !!hovered && (!playing || (globeIsAnswer && hovered.properties.kind === 'country'))
   const colorHovered = hoverable ? hovered : null
-  const colorVisited = showsGame(game) || !settings.showVisited ? NO_VISITS : visited
+  const colorVisited = yearShown ? yearShown.names : showsGame(game) || !settings.showVisited ? NO_VISITS : visited
   const colorOf = useCallback(
     (country: CountryFeature) =>
       countryColor(country, { theme, hovered: colorHovered, visited: colorVisited, highlights }),
@@ -246,7 +261,7 @@ export default function App() {
         ? regionFills({
             regions,
             visitedRegions,
-            isShownCountry: (c) => settings.showRegions && visited.has(c.properties.name),
+            isShownCountry: (c) => !yearShown && settings.showRegions && visited.has(c.properties.name),
             editing,
             hovered: hoveredRegion,
             hoveredCountry: hoveredWithRegions,
@@ -255,7 +270,18 @@ export default function App() {
             hoveredCountryColor: hoveredRegionColor(theme),
           })
         : new Map<RegionFeature, string>(),
-    [regions, game, visitedRegions, settings.showRegions, visited, editing, hoveredRegion, hoveredWithRegions, theme],
+    [
+      regions,
+      game,
+      visitedRegions,
+      yearShown,
+      settings.showRegions,
+      visited,
+      editing,
+      hoveredRegion,
+      hoveredWithRegions,
+      theme,
+    ],
   )
   const outlines = useMemo(() => (regions ? regionOutlines(regions, fills, editing) : []), [regions, fills, editing])
   useRegionLayer(globe, regions, fills, outlines, theme)
@@ -286,12 +312,12 @@ export default function App() {
   // A pin on each visited city, standing on the selected country when it's raised
   const pinned = useMemo(
     () =>
-      cities && settings.showCities && !showsGame(game)
+      cities && settings.showCities && !showsGame(game) && !yearShown
         ? cities
             .filter((c) => visitedCities.has(c.id))
             .map((city) => ({ city, lat: city.lat, lng: city.lng, raised: !editing && countryOfCity(city) === selected }))
         : [],
-    [cities, settings.showCities, game, visitedCities, editing, selected],
+    [cities, settings.showCities, game, yearShown, visitedCities, editing, selected],
   )
   usePinLayer(globe, pinned, theme.pin, screensaver ? SCREENSAVER_PIN_FADE : PIN_FADE)
   // Night as it is now, lit by the cities; not in games, where it would hide what to find
@@ -299,15 +325,15 @@ export default function App() {
 
   // Each route once, with a plane flying it; the one picked in the list stands out
   const flightLines = useMemo(() => {
-    if (!settings.showFlights || showsGame(game)) return []
+    if (showsGame(game) || (!yearShown && !settings.showFlights)) return []
     const picked = shownRoute && uniqueRoutes([shownRoute])[0]
-    return uniqueRoutes(routes).map((route) => ({
+    return uniqueRoutes(yearShown ? yearShown.flights : routes).map((route) => ({
       key: route.flight.id,
       from: route.from,
       to: route.to,
       highlighted: !!picked && uniqueRoutes([route, picked]).length === 1,
     }))
-  }, [routes, settings.showFlights, game, shownRoute])
+  }, [routes, yearShown, settings.showFlights, game, shownRoute])
   useFlightLayer(globe, flightLines, { color: theme.flight, highlight: theme.selected })
   const cityAt = useCallback(
     (point: Point | null) => (globe && point && pinned.length > 0 ? (pinAt(globe, pinned, point)?.city ?? null) : null),
@@ -500,6 +526,7 @@ export default function App() {
               onViewChange={setVisitedView}
               places={visited.size}
               flights={routes.length}
+              years={years.length}
               earned={earnedIds(atlas).size}
               achievementCount={ACHIEVEMENTS.length}
               achievements={<AchievementsPanel atlas={atlas} />}
@@ -520,6 +547,15 @@ export default function App() {
                     return notes.filter(Boolean).join(' · ') || null
                   }}
                   cityCount={cities ? cities.filter((c) => visitedCities.has(c.id)).length : 0}
+                />
+              }
+              yearsPanel={
+                <YearsPanel
+                  years={years}
+                  review={review}
+                  onYearChange={setPickedYear}
+                  onShow={showCountry}
+                  onShowRoute={showRoute}
                 />
               }
               flightsPanel={

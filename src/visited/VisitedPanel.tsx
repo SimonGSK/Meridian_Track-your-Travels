@@ -29,7 +29,8 @@ const MAX_RESULTS = 6
 // No spaces: aria-labelledby reads spaces as separators between ids
 const headingId = (continent: Continent) => `visited-${continent.replace(/\s+/g, '-')}`
 
-function Flag({ country }: { country: CountryFeature }) {
+/** A small flag in front of a place's name in a list */
+export function Flag({ country }: { country: CountryFeature }) {
   const url = flagUrl(country)
   return url ? <img className="mini-flag" src={url} alt="" /> : <span className="mini-flag" />
 }

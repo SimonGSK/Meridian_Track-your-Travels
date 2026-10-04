@@ -1,20 +1,22 @@
 import { describe, expect, it, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import VisitedTab from './VisitedTab'
+import VisitedTab, { type VisitedView } from './VisitedTab'
 
 describe('VisitedTab', () => {
-  const show = (view: 'countries' | 'flights' | 'achievements', onViewChange = vi.fn()) =>
+  const show = (view: VisitedView, onViewChange = vi.fn()) =>
     render(
       <VisitedTab
         view={view}
         onViewChange={onViewChange}
         places={5}
         flights={1}
+        years={4}
         earned={3}
         achievementCount={50}
         countries={<p>the countries</p>}
         flightsPanel={<p>the flights</p>}
+        yearsPanel={<p>the years</p>}
         achievements={<p>the achievements</p>}
       />,
     )
@@ -30,6 +32,12 @@ describe('VisitedTab', () => {
     show('flights')
     expect(screen.getByRole('tabpanel', { name: 'Flights' })).toHaveTextContent('the flights')
     expect(screen.getByText('1 flight')).toBeInTheDocument()
+  })
+
+  it('shows your years, counting those with dates', () => {
+    show('years')
+    expect(screen.getByRole('tabpanel', { name: 'Years' })).toHaveTextContent('the years')
+    expect(screen.getByText('4 years')).toBeInTheDocument()
   })
 
   it('shows your achievements, counting those earned', () => {
@@ -50,7 +58,18 @@ describe('VisitedTab, switched from elsewhere', () => {
   it('brings the switch back into view, but not when first shown', () => {
     const scrolled = vi.fn()
     HTMLElement.prototype.scrollIntoView = scrolled
-    const props = { onViewChange: vi.fn(), places: 5, flights: 1, earned: 3, achievementCount: 50, countries: null, flightsPanel: null, achievements: null }
+    const props = {
+      onViewChange: vi.fn(),
+      places: 5,
+      flights: 1,
+      years: 4,
+      earned: 3,
+      achievementCount: 50,
+      countries: null,
+      flightsPanel: null,
+      yearsPanel: null,
+      achievements: null,
+    }
     const { rerender } = render(<VisitedTab view="countries" {...props} />)
     expect(scrolled).not.toHaveBeenCalled()
     rerender(<VisitedTab view="achievements" {...props} />)
