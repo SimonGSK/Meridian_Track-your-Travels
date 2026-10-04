@@ -6,6 +6,8 @@ import type { GlobeProps } from 'react-globe.gl'
 import App from './App'
 import { countries, findCountryAt, tinyPlaces } from './countries'
 import { LETTER_HUNT_RINGS, TINY_COUNTRIES } from './games/globeView'
+import { subsolarPoint } from './globe/sun'
+import { SUN_UPDATE_MS } from './globe/hooks'
 import { SETTINGS_KEY } from './explore/useSettings'
 import { loadCities } from './data/cities'
 import { loadAirports } from './data/airports'
@@ -16,7 +18,7 @@ import { SCREENSAVER_PIN_FADE } from './globe/pinLayer'
 
 // WebGL doesn't exist in jsdom, so the globe is replaced by a stand-in that
 // exposes what the app passes to it. Screen positions map to places by x.
-const { PLACES, PIN_AT, globe, layer, regionLayer, pinLayer, flightLayer, sceneObjects } = vi.hoisted(() => {
+const { PLACES, PIN_AT, globe, layer, regionLayer, pinLayer, flightLayer, nightLayer, sceneObjects } = vi.hoisted(() => {
   const listeners = new Map<string, Set<() => void>>()
   const sceneObjects = new Set<object>()
   const controls = {
@@ -58,6 +60,7 @@ const { PLACES, PIN_AT, globe, layer, regionLayer, pinLayer, flightLayer, sceneO
     regionLayer: { object: {}, show: vi.fn(), setOutlineColor: vi.fn(), dispose: vi.fn() },
     pinLayer: { object: {}, show: vi.fn(), setColor: vi.fn(), setFade: vi.fn(), dispose: vi.fn() },
     flightLayer: { object: {}, show: vi.fn(), setColors: vi.fn(), tick: vi.fn(), dispose: vi.fn() },
+    nightLayer: { object: { night: true }, setSun: vi.fn(), setLights: vi.fn(), dispose: vi.fn() },
   }
 })
 
@@ -76,6 +79,10 @@ vi.mock('./globe/picking', () => ({
     PLACES[x] ?? (x >= 2000 && x < 2400 ? { lat: 12.3, lng: -64 + (x - 2000) * 0.02 } : null),
 }))
 vi.mock('./globe/regionLayer', () => ({ createRegionLayer: () => regionLayer }))
+vi.mock('./globe/nightLayer', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('./globe/nightLayer')>()),
+  createNightLayer: () => nightLayer,
+}))
 vi.mock('./globe/flightLayer', async (importOriginal) => ({
   ...(await importOriginal<typeof import('./globe/flightLayer')>()),
   createFlightLayer: () => flightLayer,
@@ -801,6 +808,55 @@ describe('App', () => {
 
       render(<App />)
       expect(layer.setRings).toHaveBeenLastCalledWith([], null)
+    })
+  })
+
+  describe('day and night', () => {
+    const night = () => sceneObjects.has(nightLayer.object)
+
+    it('is off until switched on, in Explore or in the Design tab', async () => {
+      render(<App />)
+      expect(night()).toBe(false)
+      await openLayers()
+      await userEvent.click(screen.getByRole('switch', { name: /Day and night/ }))
+      expect(night()).toBe(true)
+      await userEvent.click(screen.getByRole('button', { name: 'Design' }))
+      const inDesign = within(sidePanel()!).getByRole('switch', { name: /Day and night/ })
+      expect(inDesign).toBeChecked()
+      await userEvent.click(inDesign)
+      expect(night()).toBe(false)
+    })
+
+    it('puts night where the sun has set, lights the cities, and moves on every minute', async () => {
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify({ showDayNight: true }))
+      vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval', 'Date'], now: new Date('2026-06-21T12:00:00Z') })
+      try {
+        render(<App />)
+        // The cities load as the app starts; waitFor can't poll while the timers stand still
+        await act(() => loadCities())
+        await act(async () => {})
+        expect(night()).toBe(true)
+        const [sun] = nightLayer.setSun.mock.lastCall!
+        expect(sun).toEqual(subsolarPoint(new Date('2026-06-21T12:00:00Z')))
+        expect(sun.lat).toBeCloseTo(23.4, 0)
+        expect(nightLayer.setLights.mock.lastCall![0].length).toBeGreaterThan(1000)
+        act(() => vi.advanceTimersByTime(SUN_UPDATE_MS))
+        expect(nightLayer.setSun.mock.lastCall![0].lng).toBeCloseTo(sun.lng - 0.25, 1) // a quarter degree west
+      } finally {
+        vi.useRealTimers()
+      }
+    })
+
+    it('is hidden during games, where it would hide what to find', async () => {
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify({ showDayNight: true }))
+      render(<App />)
+      expect(night()).toBe(true)
+      await userEvent.click(screen.getByRole('button', { name: 'Games' }))
+      await userEvent.click(screen.getByRole('button', { name: /Find the country/ }))
+      await userEvent.click(screen.getByRole('button', { name: /^Easy/ }))
+      expect(night()).toBe(false)
+      await userEvent.click(screen.getByRole('button', { name: 'Quit game' }))
+      expect(night()).toBe(true)
     })
   })
 

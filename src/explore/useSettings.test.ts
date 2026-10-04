@@ -3,7 +3,7 @@ import { act, renderHook } from '@testing-library/react'
 import { DEFAULT_SETTINGS, SETTINGS_KEY, useSettings } from './useSettings'
 
 describe('useSettings', () => {
-  it('shows everything by default', () => {
+  it('shows every layer but day and night by default', () => {
     const { result } = renderHook(() => useSettings())
     expect(result.current[0]).toEqual({
       showVisited: true,
@@ -11,6 +11,7 @@ describe('useSettings', () => {
       showRegions: true,
       showCities: true,
       showFlights: true,
+      showDayNight: false,
     })
   })
 

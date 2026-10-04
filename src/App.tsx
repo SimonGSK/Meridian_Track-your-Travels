@@ -55,6 +55,7 @@ import {
   useFlightLayer,
   useCountryPointer,
   useDepthPrecision,
+  useNightLayer,
   usePinLayer,
   useRegionLayer,
   useRegions,
@@ -76,6 +77,7 @@ const NO_VISITS: ReadonlySet<string> = new Set()
 const PHONE = '(max-width: 640px)'
 const isPhone = () => !!window.matchMedia?.(PHONE).matches
 const NO_RINGS: readonly CountryFeature[] = []
+const NO_LIGHTS: readonly City[] = []
 
 function useWindowSize() {
   const [size, setSize] = useState({ width: window.innerWidth, height: window.innerHeight })
@@ -268,6 +270,8 @@ export default function App() {
     [cities, settings.showCities, game, visitedCities, editing, selected],
   )
   usePinLayer(globe, pinned, theme.pin, screensaver ? SCREENSAVER_PIN_FADE : PIN_FADE)
+  // Night as it is now, lit by the cities; not in games, where it would hide what to find
+  useNightLayer(globe, settings.showDayNight && !showsGame(game), cities ?? NO_LIGHTS)
 
   // Each route once, with a plane flying it; the one picked in the list stands out
   const flightLines = useMemo(() => {
