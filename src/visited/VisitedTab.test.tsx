@@ -4,15 +4,18 @@ import userEvent from '@testing-library/user-event'
 import VisitedTab from './VisitedTab'
 
 describe('VisitedTab', () => {
-  const show = (view: 'countries' | 'flights', onViewChange = vi.fn()) =>
+  const show = (view: 'countries' | 'flights' | 'achievements', onViewChange = vi.fn()) =>
     render(
       <VisitedTab
         view={view}
         onViewChange={onViewChange}
         places={5}
         flights={1}
+        earned={3}
+        achievementCount={50}
         countries={<p>the countries</p>}
         flightsPanel={<p>the flights</p>}
+        achievements={<p>the achievements</p>}
       />,
     )
 
@@ -27,6 +30,12 @@ describe('VisitedTab', () => {
     show('flights')
     expect(screen.getByRole('tabpanel', { name: 'Flights' })).toHaveTextContent('the flights')
     expect(screen.getByText('1 flight')).toBeInTheDocument()
+  })
+
+  it('shows your achievements, counting those earned', () => {
+    show('achievements')
+    expect(screen.getByRole('tabpanel', { name: 'Achievements' })).toHaveTextContent('the achievements')
+    expect(screen.getByText('3 / 50')).toBeInTheDocument()
   })
 
   it('switches between them', async () => {
