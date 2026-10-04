@@ -21,7 +21,7 @@
   "source": "World Bank"
  },
  "AL": {
-  "capital": "Tirane",
+  "capital": "Tirana",
   "population": 2377128,
   "populationYear": 2024,
   "areaKm2": 28750,
@@ -182,7 +182,7 @@
   "source": "World Bank"
  },
  "BR": {
-  "capital": "Brasilia",
+  "capital": "Brasília",
   "population": 211998573,
   "populationYear": 2024,
   "areaKm2": 8510420,
@@ -266,7 +266,7 @@
   "source": "World Bank"
  },
  "CM": {
-  "capital": "Yaounde",
+  "capital": "Yaoundé",
   "population": 29123744,
   "populationYear": 2024,
   "areaKm2": 475440,
@@ -287,7 +287,7 @@
   "source": "World Bank"
  },
  "CO": {
-  "capital": "Bogota",
+  "capital": "Bogotá",
   "population": 52886363,
   "populationYear": 2024,
   "areaKm2": 1140619,
@@ -308,7 +308,7 @@
   "source": "World Bank"
  },
  "CR": {
-  "capital": "San Jose",
+  "capital": "San José",
   "population": 5129910,
   "populationYear": 2024,
   "areaKm2": 51100,
@@ -652,7 +652,7 @@
   "source": "World Bank"
  },
  "IS": {
-  "capital": "Reykjavik",
+  "capital": "Reykjavík",
   "population": 386506,
   "populationYear": 2024,
   "areaKm2": 103000,
@@ -856,7 +856,7 @@
   "source": "World Bank"
  },
  "MD": {
-  "capital": "Chisinau",
+  "capital": "Chișinău",
   "population": 2402306,
   "populationYear": 2024,
   "areaKm2": 33850,
@@ -870,7 +870,7 @@
   "source": "World Bank"
  },
  "MV": {
-  "capital": "Male",
+  "capital": "Malé",
   "population": 527799,
   "populationYear": 2024,
   "areaKm2": 300,
@@ -1032,7 +1032,7 @@
   "source": "World Bank"
  },
  "NR": {
-  "capital": "Yaren District",
+  "capital": "Yaren",
   "population": 11947,
   "populationYear": 2024,
   "areaKm2": 20,
@@ -1081,7 +1081,7 @@
   "source": "World Bank"
  },
  "PW": {
-  "capital": "Koror",
+  "capital": "Ngerulmud",
   "population": 17695,
   "populationYear": 2024,
   "areaKm2": 460,
@@ -1123,7 +1123,7 @@
   "source": "World Bank"
  },
  "PY": {
-  "capital": "Asuncion",
+  "capital": "Asunción",
   "population": 6929153,
   "populationYear": 2024,
   "areaKm2": 406752,
@@ -1251,7 +1251,7 @@
   "source": "World Bank"
  },
  "ST": {
-  "capital": "Sao Tome",
+  "capital": "São Tomé",
   "population": 235536,
   "populationYear": 2024,
   "areaKm2": 960,
@@ -1329,7 +1329,7 @@
   "source": "World Bank"
  },
  "TG": {
-  "capital": "Lome",
+  "capital": "Lomé",
   "population": 8406558,
   "populationYear": 2024,
   "areaKm2": 56790,
@@ -1413,7 +1413,7 @@
   "source": "World Bank"
  },
  "UA": {
-  "capital": "Kiev",
+  "capital": "Kyiv",
   "population": 37860221,
   "populationYear": 2024,
   "areaKm2": 603550,
@@ -1428,7 +1428,7 @@
   "source": "World Bank"
  },
  "US": {
-  "capital": "Washington D.C.",
+  "capital": "Washington, D.C.",
   "population": 340003797,
   "populationYear": 2024,
   "areaKm2": 9831510,
