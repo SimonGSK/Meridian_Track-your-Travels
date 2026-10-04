@@ -115,8 +115,9 @@ export function HigherLowerPlay({ game, best, onGuess, onNext, onQuit }: PlayPro
       <Pair game={game} />
       <p className="game-prompt">{words.question(next, game.known.properties.name)}</p>
       {!game.answer && (
+        // Bigger on the right, under the country it's about
         <div className="options two">
-          {(['more', 'fewer'] as const).map((guess) => (
+          {(['fewer', 'more'] as const).map((guess) => (
             <button key={guess} type="button" className="option" onClick={() => onGuess(guess)}>
               {words[guess]}
             </button>

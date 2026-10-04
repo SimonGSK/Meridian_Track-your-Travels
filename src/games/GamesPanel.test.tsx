@@ -509,6 +509,8 @@ describe('GamesPanel: higher or lower', () => {
     expect(next).toHaveTextContent(/^Brazil\?$/)
     expect(screen.getByText('Does Brazil have more or fewer people than Japan?')).toBeInTheDocument()
     expect(screen.getByText('Best 5')).toBeInTheDocument()
+    // More on the right, under the country it's about
+    expect([...document.querySelectorAll('.options .option')].map((b) => b.textContent)).toEqual(['Fewer', 'More'])
     await userEvent.click(screen.getByRole('button', { name: 'Fewer' }))
     expect(onGuess).toHaveBeenCalledWith('fewer')
   })
