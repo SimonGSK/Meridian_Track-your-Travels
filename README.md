@@ -7,7 +7,7 @@ The design (navy and amber, after a mock-up made in Lovable) has a top bar with 
 - **Explore**: two round buttons in the corner, so the globe has the room. The magnifying glass opens a search of the whole atlas, countries by any name and cities. The layers button opens the designs as swatches and the layers to show or hide (visited countries, visited states, city pins, flights, rings around small islands, day and night). On phones both are shown in the sheet.
 
   **Day and night** (off until switched on) darkens the side of the globe where the sun has set, as it is right now, fading through twilight down to 18° below the horizon, and lights the cities there, bigger for more people. **City lights** shows under it while it's on, to have night without the lights. It moves on every minute, and is hidden during games. Where the sun is overhead comes from the Astronomical Almanac's low-precision formulas (`src/globe/sun.ts`), good to about 0.01°.
-- **Visited**: switch between your countries, your flights and your achievements, each with a small box of figures. Keep track of where you've been, out of the world's 197 countries, with the count and percentage for each continent (territories are counted separately). Your places are listed by continent. Search to add places (old names like "Swaziland" work too), or click a country and press "Add to visited atlas". They're colored on the globe.
+- **Visited**: switch between your countries, your flights, your years and your achievements, each with a small box of figures. Keep track of where you've been, out of the world's 197 countries, with the count and percentage for each continent (territories are counted separately). Your places are listed by continent. Search to add places (old names like "Swaziland" work too), or click a country and press "Add to visited atlas". They're colored on the globe.
 
   For the USA, Canada, Australia and Brazil you can also mark the states, provinces and territories you've visited: click "… states explored" in the country's panel and tick them, or click them on the globe. They're drawn over the country in a darker shade.
 
@@ -16,6 +16,15 @@ The design (navy and amber, after a mock-up made in Lovable) has a top bar with 
   Every country's panel also has its visited cities, and a box to add more from its big and well-known cities (focus it to see the biggest). Each city you've visited gets a pin on the globe; point at a pin to see the city's name, or click it to open its country. Adding a city also marks its country, and its state, as visited.
 
   Under Flights, add the flights you've taken, between airports: every international airport, and the regional ones with airline service (3,244 in all). Search by city, airport name or code ("Copenhagen", "Heathrow", "CPH"); each result shows the airport's name and country. "From" then starts where the last flight landed, and ⇅ swaps them for the flight back. A flight can have a month and year too ("When"), kept for the next leg of the trip, or added later with "Add date" in the list, which is ordered by date, newest first. Each route is drawn on the globe as a thin arc, rising with the distance, with a little plane flying along it from where the flight left, turned the way it's going; a route flown both ways or more than once is drawn once. The figures are how many flights, how far as the plane flies, and how many times around the Earth that makes. Click a flight to see its route from above, highlighted, until you press Escape or click the globe. Adding a flight doesn't mark its cities as visited: changing planes isn't visiting. (The first flights were saved between cities; they move to the city's main airport by themselves.)
+
+  Under Years, a review of each year you've dated a visit or a flight, from the newest, with ‹ › for the others. It has:
+
+  - a summary ("6 countries on 4 continents, 5 of them new." and "5 flights, 25.6K km.");
+  - the countries, first visits (places whose earliest visit is that year) and continents;
+  - the flights, how far, and the longest;
+  - "Your most travelled year" on the year with the most places.
+
+  The places follow month by month, and those dated only by the year come last; click one to open it, or the longest flight to see its route. While Years is open, the globe shows just that year: its places and its flights, even with those layers off. States and city pins are hidden, as they have no dates. Places and flights without a date aren't in any year.
 
   Under Achievements, 58 to earn from where you've been, in eight groups: milestones (your first country, then 10 up to all 197), continents (every continent, all of one, Antarctica, all four hemispheres), regions (Scandinavia, the Nordics, the Baltics, Benelux, the Caribbean, the Gulf, the Stans, the G7 and more), islands, states (every US state and D.C., all of Canada, Australia or Brazil), cities and capitals, flights and distance flown (around the world, to the Moon, long haul), and return trips (one country 3 or 5 times). Each shows how far along you are ("3 of 5"), and a note pops up at the bottom when something you add earns one; click it to see them all. They're worked out from what you've saved, so a backup brings them back too.
 - **Games**:
@@ -106,8 +115,8 @@ npx playwright install chromium
 
 ## Tests
 
-- **Unit and component tests** (Vitest and Testing Library, in jsdom): the data, the game rules, the globe's layers against a real three.js camera, every panel, and the whole app with a stand-in for the WebGL globe. About 810 tests, covering over 99% of the lines.
-- **End-to-end tests** (Playwright): the real app with its WebGL globe in headless Chromium, on a desktop and a phone (touch, tab bar, sheets): hovering and clicking countries, visited places, states, cities and flights kept after reloading, the settings, a backup downloaded and restored, the designs, every game, and the screensaver. In CI they run on the production build, with the service worker.
+- **Unit and component tests** (Vitest and Testing Library, in jsdom): the data, the game rules, the globe's layers against a real three.js camera, every panel, and the whole app with a stand-in for the WebGL globe. About 830 tests, covering over 99% of the lines.
+- **End-to-end tests** (Playwright): the real app with its WebGL globe in headless Chromium, on a desktop and a phone (touch, tab bar, sheets): hovering and clicking countries, visited places, states, cities and flights kept after reloading, the settings, a year in review, a backup downloaded and restored, the designs, every game, and the screensaver. In CI they run on the production build, with the service worker.
 
 `.github/workflows/tests.yml` runs all of it on GitHub for every pull request and every push to `main`: lint, the unit tests, the build (which type-checks), and the end-to-end tests.
 
@@ -140,7 +149,8 @@ src/
   nav/                 the top bar, tabs, the column of cards on the right
   explore/             the Explore tools: atlas search, design and layers; settings
   visited/             visited countries, states and cities; flights, and the airport search;
-                       achievements (achievements.ts), their view and the note when one is earned
+                       achievements (achievements.ts), their view and the note when one is earned;
+                       each year's review (yearInReview.ts) and its view
   design/              design picker, and how to set up the screensaver
   settings/            backups: making, checking and restoring them, and their card; installing the app
   pwa/                 the service worker (serviceWorker.ts, written into the build by vite.offline.ts),
