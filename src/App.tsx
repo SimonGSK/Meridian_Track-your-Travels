@@ -111,6 +111,8 @@ export default function App() {
     previousBest,
     bestTimes,
     previousTime,
+    daily,
+    startDaily,
     start: startGame,
     startLetter,
     startAll,
@@ -377,6 +379,10 @@ export default function App() {
     selectCountry(null)
     startHigher(measure)
   }
+  const playDaily = () => {
+    selectCountry(null)
+    startDaily()
+  }
 
   // Leaving the Games panel ends the game
   const changeView = (next: ViewId | null) => {
@@ -558,6 +564,8 @@ export default function App() {
                 onStartLetter={playLetter}
                 onStartAll={playAll}
                 onStartHigher={playHigher}
+                daily={daily}
+                onStartDaily={playDaily}
                 onPick={pick}
                 onGuess={guessHigher}
                 onDontKnow={giveUpRound}

@@ -6,6 +6,8 @@ import CapitalInput from './CapitalInput'
 import CountryShape from './CountryShape'
 import { capitalOf } from '../data/capitals'
 import { HigherLowerPlay, HigherLowerResults, MeasureChoice } from './HigherLowerPanel'
+import { DailyChoice, DailyResultsView } from './DailyPanel'
+import { dayKey, streaksOf, type DailyResults } from './daily'
 import type { Guess, Measure } from './higherLower'
 import {
   DIFFICULTIES,
@@ -17,7 +19,9 @@ import {
   maxScore,
   maxScoreFor,
   maxScorePlayed,
+  kindOf,
   roundsPlayed,
+  type QuizKind,
   type Difficulty,
   type GameId,
   type RoundGameId,
@@ -49,6 +53,9 @@ type Props = {
   onStartLetter: (letter: string) => void
   onStartAll: (scope: Scope) => void
   onStartHigher: (measure: Measure) => void
+  /** How each day's challenge went */
+  daily?: DailyResults
+  onStartDaily?: () => void
   onPick: (country: CountryFeature, alias?: string | null) => void
   /** Higher or lower: more, or fewer */
   onGuess: (guess: Guess) => void
@@ -64,6 +71,7 @@ type Props = {
 }
 
 const titleOf = (id: GameId) => GAMES.find((g) => g.id === id)!.title
+const shortDay = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short' })
 const difficultyLabel = (d: Difficulty) => DIFFICULTIES.find((x) => x.id === d)!.label
 const formatScore = (id: RoundGameId, difficulty: Difficulty, score: number) =>
   `${score} / ${maxScoreFor(id, difficulty)}${id === 'find' ? ' points' : ''}`
@@ -86,10 +94,20 @@ export default function GamesPanel(props: Props) {
   return <RoundPlay {...props} game={game} />
 }
 
+/** "Today: 6 / 7 · 3 days in a row", or the streak to keep going */
+function DailyStatus({ results, today }: { results: DailyResults; today: string }) {
+  const done = results[today]
+  const { current } = streaksOf(results, today)
+  const streak = current > 0 ? ` · ${current} ${current === 1 ? 'day' : 'days'} in a row` : ''
+  return <span className="best-score">{done ? `Today: ${done.score} / ${done.max}${streak}` : `Not played today${streak}`}</span>
+}
+
 /** All games; picking one asks for the difficulty, or for the letter hunt the letter. */
 function GameList(props: Props & Chosen) {
   const { best, bestTimes = {}, onStart, onStartLetter, onStartAll, onStartHigher, chosen, setChosen } = props
+  const [today] = useState(() => dayKey(new Date()))
   const back = () => setChosen(null)
+  if (chosen === 'daily') return <DailyChoice results={props.daily ?? {}} onPlay={() => props.onStartDaily?.()} onBack={back} />
   const bests = { best, bestTimes }
   if (chosen === 'letter') return <LetterChoice {...bests} onStartLetter={onStartLetter} onBack={back} />
   if (chosen === 'all') return <ScopeChoice {...bests} onStartAll={onStartAll} onBack={back} />
@@ -101,9 +119,10 @@ function GameList(props: Props & Chosen) {
       <ul className="game-list">
         {GAMES.map((g) => (
           <li key={g.id}>
-            <button type="button" className="game-card" onClick={() => setChosen(g.id)}>
+            <button type="button" className={`game-card${g.id === 'daily' ? ' daily' : ''}`} onClick={() => setChosen(g.id)}>
               <strong>{g.title}</strong>
               <span className="muted">{g.description}</span>
+              {g.id === 'daily' && <DailyStatus results={props.daily ?? {}} today={today} />}
             </button>
           </li>
         ))}
@@ -154,7 +173,7 @@ function DifficultyChoice({ id, best, bestTimes, onStart, onBack }: {
   )
 }
 
-const PROMPTS: Record<RoundGameState['id'], string> = {
+const PROMPTS: Record<QuizKind, string> = {
   find: 'Find this country on the globe',
   flags: 'Which country has this flag?',
   name: 'Which country is highlighted on the globe?',
@@ -168,7 +187,12 @@ function GameHeader({ game }: { game: RoundGameState | LetterGameState | AllGame
   return (
     <p className="game-title">
       <span>
-        {titleOf(game.id)} · {game.kind === 'all' ? scopeLabel(game.scope) : difficultyLabel(game.difficulty)}
+        {titleOf(game.id)} ·{' '}
+        {game.kind === 'all'
+          ? scopeLabel(game.scope)
+          : game.id === 'daily'
+            ? shortDay.format(game.startedAt)
+            : difficultyLabel(game.difficulty)}
       </span>
       {game.kind !== 'all' && !game.finished && (
         <span className="game-clock" aria-label="Time">
@@ -214,7 +238,9 @@ function RoundPlay({ game, onPick, onDontKnow, onNext, onStop, onQuit }: Props &
   const { target, options } = currentRound(game)
   const { answer } = game
   const isLast = game.index === game.rounds.length - 1
-  const mode = answerMode(game.id, game.difficulty)
+  // In the daily challenge each round is its own quiz
+  const kind = kindOf(game)
+  const mode = answerMode(kind, game.difficulty)
   const done = game.index + (answer ? 1 : 0)
 
   const optionState = (option: CountryFeature) => {
@@ -223,10 +249,10 @@ function RoundPlay({ game, onPick, onDontKnow, onNext, onStop, onQuit }: Props &
     return option === answer.picked ? ' wrong' : ' dimmed'
   }
 
-  const isFind = game.id === 'find'
-  const isCapital = game.id === 'capital'
+  const isFind = kind === 'find'
+  const isCapital = kind === 'capital'
   // The other way round: a capital, answered with its country
-  const isCapitalCountry = game.id === 'capital-country'
+  const isCapitalCountry = kind === 'capital-country'
   const lastMiss = game.misses.at(-1)
   const triesLeft = MAX_TRIES - game.misses.length
 
@@ -277,7 +303,7 @@ function RoundPlay({ game, onPick, onDontKnow, onNext, onStop, onQuit }: Props &
         <div style={{ width: `${(done / game.rounds.length) * 100}%` }} />
       </div>
 
-      <p className="game-prompt">{PROMPTS[game.id]}</p>
+      <p className="game-prompt">{PROMPTS[kind]}</p>
       {(isFind || isCapital) && <p className="game-target">{target.properties.name}</p>}
       {isCapitalCountry && <p className="game-target">{capitalOf(target)}</p>}
       {isFind && !answer && (
@@ -290,8 +316,8 @@ function RoundPlay({ game, onPick, onDontKnow, onNext, onStop, onQuit }: Props &
           </span>
         </p>
       )}
-      {game.id === 'flags' && <img className="game-flag" src={flagUrl(target)!} alt="The flag to identify" />}
-      {game.id === 'shape' && <CountryShape country={target} />}
+      {kind === 'flags' && <img className="game-flag" src={flagUrl(target)!} alt="The flag to identify" />}
+      {kind === 'shape' && <CountryShape country={target} />}
 
       {mode === 'choices' && (
         <div className="options">
@@ -411,6 +437,13 @@ function Results(props: Props & Chosen & { game: GameState }) {
       onQuit()
     }
     return <HigherLowerResults game={game} previousBest={previousBest} onStart={props.onStartHigher} onAllGames={allGames} />
+  }
+  if (game.kind === 'rounds' && game.id === 'daily') {
+    const allGames = () => {
+      setChosen(null)
+      onQuit()
+    }
+    return <DailyResultsView game={game} results={props.daily ?? {}} onAllGames={allGames} />
   }
   return <ScoredResults {...props} game={game} />
 }

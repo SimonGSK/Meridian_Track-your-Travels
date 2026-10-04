@@ -474,6 +474,39 @@ test.describe('games', () => {
     await expect(feedback(page)).toHaveText(/Correct|is the capital of Ukraine/)
   })
 
+  test('whose capital: pick the country from its capital', async ({ page }) => {
+    await openGlobe(page)
+    await page.getByRole('button', { name: 'Games', exact: true }).click()
+    await page.getByRole('button', { name: /Whose capital/ }).click()
+    await page.getByRole('button', { name: /^Easy/ }).click()
+    await expect(page.getByText('Which country has this capital?')).toBeVisible()
+    await page.locator('.options .option').first().click()
+    await expect(feedback(page)).toHaveText(/is the capital of/)
+  })
+
+  test("daily challenge: today's five rounds, once, with the result to share", async ({ page }) => {
+    await openGlobe(page)
+    await page.getByRole('button', { name: 'Games', exact: true }).click()
+    await page.getByRole('button', { name: /^Daily challenge/ }).click()
+    await page.getByRole('button', { name: "Play today's challenge" }).click()
+    await expect(page.getByText('Find this country on the globe')).toBeVisible()
+    for (let round = 0; round < 5; round++) {
+      await page.getByRole('button', { name: "I don't know" }).click()
+      await page.getByRole('button', { name: round === 4 ? 'See results' : 'Next' }).click()
+    }
+    await expect(page.getByText('0 / 7')).toBeVisible()
+    await expect(page.getByLabel('Rounds: 🟥🟥🟥🟥🟥')).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Copy result' })).toBeVisible()
+
+    // One go a day, kept after reloading
+    await page.reload()
+    await page.getByRole('button', { name: 'Games', exact: true }).click()
+    await expect(page.getByRole('button', { name: /^Daily challenge/ })).toContainText('Today: 0 / 7')
+    await page.getByRole('button', { name: /^Daily challenge/ }).click()
+    await expect(page.getByRole('button', { name: "Play today's challenge" })).toHaveCount(0)
+    await expect(page.getByText(/Next challenge in \d+h \d+m/)).toBeVisible()
+  })
+
   test('higher or lower: guess until the run ends', async ({ page }) => {
     await openGlobe(page)
     await page.getByRole('button', { name: 'Games', exact: true }).click()

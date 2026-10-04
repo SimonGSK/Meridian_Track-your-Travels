@@ -6,6 +6,7 @@ import { LETTER_HUNT_RINGS, TINY_COUNTRIES, flightTarget, gameHighlights, gameRi
 import { giveUp, newLetterGame, pickCountry } from './letterGame'
 import { giveUpAll, nameCountry, newAllGame } from './allGame'
 import { guess, newHigherLower } from './higherLower'
+import { newDailyGame } from './daily'
 
 const byName = (name: string) => countries.find((c) => c.properties.name === name)!
 const pool = ['Denmark', 'France', 'Brazil', 'Japan', 'Kenya'].map(byName)
@@ -151,6 +152,19 @@ describe('capital quiz', () => {
     expect(flightTarget(game)).toBe(target)
     expect(globeAnswers(game)).toBe(false)
     expect(names(gameHighlights(answer(game, target), CLASSIC))).toEqual({ [target.properties.name]: CLASSIC.correct })
+  })
+})
+
+describe('daily challenge', () => {
+  it('answers its first round on the globe, and lights up the country of its last', () => {
+    let game = newDailyGame('2026-10-05')
+    expect(globeAnswers(game)).toBe(true)
+    expect(overviewKey(game)).toBe('find-0')
+    for (let i = 0; i < 4; i++) game = next(answer(game, game.rounds[game.index].target))
+    expect(globeAnswers(game)).toBe(false)
+    const { target } = game.rounds[4]
+    expect(names(gameHighlights(game, CLASSIC))).toEqual({ [target.properties.name]: CLASSIC.selected }) // name that country
+    expect(flightTarget(game)).toBe(target)
   })
 })
 

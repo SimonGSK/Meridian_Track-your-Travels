@@ -1154,6 +1154,25 @@ describe('App', () => {
       expect(screen.getByRole('button', { name: /^Area/ })).toHaveTextContent('Best: 1 in a row')
     })
 
+    it("daily challenge: plays today's five rounds once, and keeps the streak", async () => {
+      render(<App />)
+      await userEvent.click(screen.getByRole('button', { name: 'Games' }))
+      await userEvent.click(screen.getByRole('button', { name: /^Daily challenge/ }))
+      await userEvent.click(screen.getByRole('button', { name: "Play today's challenge" }))
+      expect(screen.getByText('Find this country on the globe')).toBeInTheDocument()
+      for (let round = 0; round < 5; round++) {
+        await userEvent.click(screen.getByRole('button', { name: "I don't know" }))
+        await userEvent.click(screen.getByRole('button', { name: round === 4 ? 'See results' : 'Next' }))
+      }
+      expect(screen.getByText('0 / 7')).toBeInTheDocument()
+      expect(screen.getByLabelText('Rounds: 🟥🟥🟥🟥🟥')).toBeInTheDocument()
+
+      await userEvent.click(screen.getByRole('button', { name: 'All games' }))
+      expect(screen.getByRole('button', { name: /^Daily challenge/ })).toHaveTextContent('Today: 0 / 7 · 1 day in a row')
+      await userEvent.click(screen.getByRole('button', { name: /^Daily challenge/ }))
+      expect(screen.queryByRole('button', { name: "Play today's challenge" })).not.toBeInTheDocument()
+    })
+
     it('rings no territories in the other games, as they are no part of them', async () => {
       await startGame(/Find the country/)
       expect(layer.setRings).toHaveBeenLastCalledWith(TINY_COUNTRIES, null)

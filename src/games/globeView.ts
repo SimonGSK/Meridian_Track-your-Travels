@@ -1,6 +1,6 @@
 import { countries, tinyPlaces, type CountryFeature } from '../countries'
 import type { Theme } from '../globe/themes'
-import { currentRound } from './games'
+import { currentRound, kindOf } from './games'
 import { missing } from './letterGame'
 import { missingAll } from './allGame'
 import type { GameState } from './useGame'
@@ -48,7 +48,7 @@ export function gameRings(game: GameState | null, ringsOn: boolean) {
 /** You answer by clicking the globe: finding a country, or hunting for a letter */
 export function globeAnswers(game: GameState | null) {
   if (!isPlaying(game)) return false
-  return game.kind === 'letter' || (game.id === 'find' && !game.answer)
+  return game.kind === 'letter' || (game.kind === 'rounds' && kindOf(game) === 'find' && !game.answer)
 }
 
 /** Countries colored by the game: answers, the country asked about, letter-hunt finds and misses */
@@ -77,7 +77,7 @@ export function gameHighlights(game: GameState | null, theme: Theme): ReadonlyMa
   if (game.answer) {
     if (!game.answer.correct && game.answer.picked) colors.set(game.answer.picked, theme.wrong)
     colors.set(target, theme.correct)
-  } else if (game.id === 'name' || game.id === 'capital') {
+  } else if (kindOf(game) === 'name' || kindOf(game) === 'capital') {
     colors.set(target, theme.selected)
   }
   return colors
@@ -92,7 +92,7 @@ export function flightTarget(game: GameState | null): CountryFeature | null {
   if (!isPlaying(game)) return null
   if (game.kind === 'higher') return game.next
   if (game.kind !== 'rounds') return null
-  return game.answer || game.id === 'name' || game.id === 'capital' ? currentRound(game).target : null
+  return game.answer || kindOf(game) === 'name' || kindOf(game) === 'capital' ? currentRound(game).target : null
 }
 
 /** Changes whenever the view should zoom out to show the whole globe: each "find" round and each letter hunt */
@@ -100,5 +100,5 @@ export function overviewKey(game: GameState | null): string | null {
   if (!isPlaying(game)) return null
   if (game.kind === 'letter') return `letter-${game.letter}`
   if (game.kind === 'all') return `all-${game.scope}`
-  return game.id === 'find' && !game.answer ? `find-${game.index}` : null
+  return game.kind === 'rounds' && kindOf(game) === 'find' && !game.answer ? `find-${game.index}` : null
 }
