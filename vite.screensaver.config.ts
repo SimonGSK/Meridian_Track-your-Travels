@@ -5,10 +5,10 @@
 import { fileURLToPath } from 'node:url'
 import { defineConfig, mergeConfig } from 'vite'
 import { viteSingleFile } from 'vite-plugin-singlefile'
-import base from './vite.config.ts'
+import { shared } from './vite.config.ts'
 
 export default mergeConfig(
-  base,
+  shared,
   defineConfig({
     plugins: [viteSingleFile()],
     // Relative, so nothing points at the root of the disk

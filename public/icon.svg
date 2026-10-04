@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Meridian: an amber globe with its meridians, on the app's night blue. Full bleed, with the globe
+       inside the middle 80%, so it can be cut to any shape as an app icon -->
+  <rect width="512" height="512" fill="#08131e"/>
+  <g fill="none" stroke="#e8a33d" stroke-linecap="round">
+    <circle cx="256" cy="256" r="150" stroke-width="18"/>
+    <ellipse cx="256" cy="256" rx="64" ry="150" stroke-width="12"/>
+    <path d="M106 256h300" stroke-width="12"/>
+    <path d="M126 181h260M126 331h260" stroke-width="8" opacity="0.7"/>
+  </g>
+</svg>
