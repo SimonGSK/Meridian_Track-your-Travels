@@ -10,7 +10,8 @@ export const BEST_TIMES_KEY = 'countries-app.best-times'
  * needs every country on the first try; the letter hunt no wrong letters.
  */
 export function isPerfect(game: GameState) {
-  if (!game.finished) return false
+  // A streak game keeps its longest streak, not a time
+  if (!game.finished || game.kind === 'higher') return false
   if (game.kind === 'rounds') return !game.stoppedEarly && game.score === maxScore(game)
   if (game.kind === 'letter') return !game.gaveUp && game.mistakes === 0
   return !game.gaveUp

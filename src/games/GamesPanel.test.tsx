@@ -6,6 +6,8 @@ import { answer, dontKnow, newRoundGame, next, stopEarly, type Difficulty, type 
 import { giveUp, newLetterGame, pickCountry, type LetterGameState } from './letterGame'
 import type { GameState } from './useGame'
 import { giveUpAll, nameCountry, newAllGame } from './allGame'
+import { guess, newHigherLower, type HigherLowerState } from './higherLower'
+import { capitalOf } from '../data/capitals'
 import { countries } from '../countries'
 
 const byName = (name: string) => countries.find((c) => c.properties.name === name)!
@@ -20,7 +22,9 @@ function setup(overrides: Partial<Parameters<typeof GamesPanel>[0]> = {}) {
     onStart: vi.fn(),
     onStartLetter: vi.fn(),
     onStartAll: vi.fn(),
+    onStartHigher: vi.fn(),
     onPick: vi.fn(),
+    onGuess: vi.fn(),
     onDontKnow: vi.fn(),
     onNext: vi.fn(),
     onStop: vi.fn(),
@@ -240,10 +244,10 @@ describe('GamesPanel: rounds', () => {
 
   it('lets you stop an "all countries" game once you have played a round', async () => {
     const fresh = newRoundGame('shape', 'all')
-    const { rerender } = render(<GamesPanel game={fresh} best={{}} previousBest={undefined} onStart={vi.fn()} onStartLetter={vi.fn()} onStartAll={vi.fn()} onPick={vi.fn()} onDontKnow={vi.fn()} onNext={vi.fn()} onStop={vi.fn()} onQuit={vi.fn()} />)
+    const { rerender } = render(<GamesPanel game={fresh} best={{}} previousBest={undefined} onStart={vi.fn()} onStartLetter={vi.fn()} onStartAll={vi.fn()} onStartHigher={vi.fn()} onPick={vi.fn()} onGuess={vi.fn()} onDontKnow={vi.fn()} onNext={vi.fn()} onStop={vi.fn()} onQuit={vi.fn()} />)
     expect(screen.queryByRole('button', { name: 'Stop and see results' })).not.toBeInTheDocument()
     const onStop = vi.fn()
-    rerender(<GamesPanel game={answer(fresh, fresh.rounds[0].target)} best={{}} previousBest={undefined} onStart={vi.fn()} onStartLetter={vi.fn()} onStartAll={vi.fn()} onPick={vi.fn()} onDontKnow={vi.fn()} onNext={vi.fn()} onStop={onStop} onQuit={vi.fn()} />)
+    rerender(<GamesPanel game={answer(fresh, fresh.rounds[0].target)} best={{}} previousBest={undefined} onStart={vi.fn()} onStartLetter={vi.fn()} onStartAll={vi.fn()} onStartHigher={vi.fn()} onPick={vi.fn()} onGuess={vi.fn()} onDontKnow={vi.fn()} onNext={vi.fn()} onStop={onStop} onQuit={vi.fn()} />)
     await userEvent.click(screen.getByRole('button', { name: 'Stop and see results' }))
     expect(onStop).toHaveBeenCalled()
   })
@@ -314,7 +318,9 @@ describe('GamesPanel: letter hunt', () => {
       onStart: vi.fn(),
       onStartLetter: vi.fn(),
       onStartAll: vi.fn(),
+      onStartHigher: vi.fn(),
       onPick: vi.fn(),
+      onGuess: vi.fn(),
       onDontKnow: vi.fn(),
       onNext: vi.fn(),
       onStop: vi.fn(),
@@ -434,5 +440,100 @@ describe('GamesPanel: time records', () => {
     await userEvent.click(screen.getByRole('button', { name: '← All games' }))
     await userEvent.click(screen.getByRole('button', { name: /Name them all/ }))
     expect(screen.getByRole('button', { name: /^Oceania/ })).toHaveTextContent('record 1:35.0')
+  })
+})
+
+describe('GamesPanel: capital quiz', () => {
+  const capitalGame = (difficulty: Difficulty = 'easy') => newRoundGame('capital', difficulty, () => 0.5, pool)
+
+  it('asks for the capital of a country, picking from four capitals on easy', async () => {
+    const game = capitalGame()
+    const { onPick } = setup({ game })
+    const { target, options } = game.rounds[0]
+    expect(screen.getByText("What's the capital of")).toBeInTheDocument()
+    expect(screen.getByText(target.properties.name, { selector: '.game-target' })).toBeInTheDocument()
+    const capitals = options.map((o) => capitalOf(o)!)
+    expect(screen.getAllByRole('button', { name: new RegExp(`^(${capitals.join('|')})$`) })).toHaveLength(4)
+    await userEvent.click(screen.getByRole('button', { name: capitalOf(target)! }))
+    expect(onPick).toHaveBeenCalledWith(target)
+  })
+
+  it('says the capital once answered', () => {
+    const game = capitalGame()
+    const { target, options } = game.rounds[0]
+    const wrong = options.find((o) => o !== target)!
+    setup({ game: answer(game, wrong) })
+    expect(screen.getByRole('status')).toHaveTextContent(`The capital of ${target.properties.name} is ${capitalOf(target)}.`)
+  })
+
+  it('takes a typed capital on harder levels, saying whose capital a wrong one is', async () => {
+    const game = capitalGame('medium')
+    const { onPick } = setup({ game })
+    await userEvent.type(screen.getByRole('textbox', { name: 'Your answer' }), 'kiev{Enter}')
+    expect(onPick).toHaveBeenCalledWith(byName('Ukraine'), 'kiev')
+    await userEvent.type(screen.getByRole('textbox', { name: 'Your answer' }), 'Gotham{Enter}')
+    expect(screen.getByRole('alert')).toHaveTextContent('No capital called “Gotham”.')
+  })
+
+  it('explains a wrong typed capital', () => {
+    const game = capitalGame('medium')
+    const { target } = game.rounds[0]
+    const other = byName(target.properties.name === 'Peru' ? 'Chile' : 'Peru')
+    setup({ game: answer(game, other, 'lima') })
+    expect(screen.getByRole('status')).toHaveTextContent(
+      `lima is the capital of ${other.properties.name}. The capital of ${target.properties.name} is ${capitalOf(target)}.`,
+    )
+  })
+})
+
+describe('GamesPanel: higher or lower', () => {
+  const pair = (known: string, next: string, measure: 'people' | 'area' = 'people'): HigherLowerState => ({
+    ...newHigherLower(measure, () => 0.5),
+    known: byName(known),
+    next: byName(next),
+  })
+
+  it('offers population or area, each with its best streak', async () => {
+    const { onStartHigher } = setup({ best: { 'higher:area': 7 } })
+    await userEvent.click(screen.getByRole('button', { name: /Higher or lower/ }))
+    expect(screen.getByRole('button', { name: /^Area/ })).toHaveTextContent('Best: 7 in a row')
+    expect(screen.getByRole('button', { name: /^Population/ })).not.toHaveTextContent('Best')
+    await userEvent.click(screen.getByRole('button', { name: /^Population/ }))
+    expect(onStartHigher).toHaveBeenCalledWith('people')
+  })
+
+  it("shows the known country's figure, hides the other's, and takes a guess", async () => {
+    const { onGuess } = setup({ game: pair('Japan', 'Brazil'), best: { 'higher:people': 5 } })
+    const [known, next] = [...document.querySelectorAll('.higher-country')]
+    expect(known).toHaveTextContent(/^Japan.+million people$/)
+    expect(next).toHaveTextContent(/^Brazil\?$/)
+    expect(screen.getByText('Does Brazil have more or fewer people than Japan?')).toBeInTheDocument()
+    expect(screen.getByText('Best 5')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Fewer' }))
+    expect(onGuess).toHaveBeenCalledWith('fewer')
+  })
+
+  it('asks about size for area, and goes on after a right guess', async () => {
+    const game = guess(pair('Denmark', 'Brazil', 'area'), 'more')
+    const { onNext } = setup({ game })
+    expect(screen.getByText('Is Brazil bigger or smaller than Denmark?')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Bigger' })).not.toBeInTheDocument()
+    expect(screen.getByRole('status')).toHaveTextContent(/^Right! Brazil has [\d,.]+ (million )?km²\.$/)
+    expect(screen.getByText('Streak 1')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Next' }))
+    expect(onNext).toHaveBeenCalled()
+  })
+
+  it('ends with the streak, what was true, and a new best', async () => {
+    const game = guess({ ...pair('China', 'Iceland'), streak: 6 }, 'more')
+    const { onStartHigher, onQuit } = setup({ game, previousBest: 4 })
+    expect(screen.getByText('6', { selector: '.big-score' })).toBeInTheDocument()
+    expect(screen.getByText('Iceland has fewer people than China.')).toBeInTheDocument()
+    expect(screen.getByText('New best streak!')).toBeInTheDocument()
+    expect(screen.queryByText(/Only perfect runs/)).not.toBeInTheDocument() // no time records here
+    await userEvent.click(screen.getByRole('button', { name: 'Play again' }))
+    expect(onStartHigher).toHaveBeenCalledWith('people')
+    await userEvent.click(screen.getByRole('button', { name: 'All games' }))
+    expect(onQuit).toHaveBeenCalled()
   })
 })

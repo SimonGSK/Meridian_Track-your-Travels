@@ -1569,6 +1569,50 @@ code {
   gap: 8px;
 }
 
+/* Higher or lower: more and fewer side by side */
+.options.two {
+  grid-template-columns: 1fr 1fr;
+}
+
+.options.two .option {
+  text-align: center;
+  font-weight: 700;
+}
+
+/* The country to beat and the one to guess about, with their figures */
+.higher-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  margin: 0;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--card);
+  overflow: hidden;
+}
+
+.higher-country {
+  min-width: 0;
+  padding: 12px;
+  border-left: 3px solid var(--selected, var(--accent));
+}
+
+.higher-country + .higher-country {
+  border-left-color: var(--blue);
+}
+
+.higher-country dt {
+  font-family: var(--font-serif);
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.15;
+  overflow-wrap: break-word;
+}
+
+.higher-country dd {
+  margin: 8px 0 0;
+  white-space: normal;
+}
+
 .option {
   padding: 11px 14px;
   border: 1px solid var(--line);

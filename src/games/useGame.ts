@@ -15,8 +15,9 @@ import {
 import { giveUp, newLetterGame, pickCountry, type LetterGameState } from './letterGame'
 import { giveUpAll, nameCountry, newAllGame, type AllGameState, type Scope } from './allGame'
 import { BEST_TIMES_KEY, isPerfect, runTime } from './records'
+import { guess, newHigherLower, nextPair, type Guess, type HigherLowerState, type Measure } from './higherLower'
 
-export type GameState = RoundGameState | LetterGameState | AllGameState
+export type GameState = RoundGameState | LetterGameState | AllGameState | HigherLowerState
 
 export const BEST_SCORES_KEY = 'countries-app.best-scores'
 
@@ -29,9 +30,12 @@ export const bestKey = (id: GameId, difficulty: Difficulty) =>
 export const letterKey = (letter: string) => `letter:${letter}`
 /** "Name them all" keeps a best score (countries named) per continent, or the world */
 export const scopeKey = (scope: Scope) => `all:${scope}`
+/** Higher or lower keeps the longest streak for people, and for area */
+export const measureKey = (measure: Measure) => `higher:${measure}`
 function keyOf(game: GameState) {
   if (game.kind === 'letter') return letterKey(game.letter)
   if (game.kind === 'all') return scopeKey(game.scope)
+  if (game.kind === 'higher') return measureKey(game.measure)
   return bestKey(game.id, game.difficulty)
 }
 
@@ -41,8 +45,12 @@ export const isBestScores = (value: unknown): value is BestScores =>
   !Array.isArray(value) &&
   Object.values(value).every((n) => typeof n === 'number')
 
-/** Points, or for the letter hunt and "name them all" the number of countries found */
-export const gameScore = (game: GameState) => (game.kind === 'rounds' ? game.score : game.found.length)
+/** Points; for the letter hunt and "name them all" the number of countries found; for higher or lower the streak */
+export function gameScore(game: GameState) {
+  if (game.kind === 'rounds') return game.score
+  if (game.kind === 'higher') return game.streak
+  return game.found.length
+}
 
 /**
  * The game being played, if any, plus the best scores and the fastest
@@ -85,6 +93,15 @@ export function useGame() {
   )
   const startAll = useCallback((scope: Scope) => begin(newAllGame(scope)), [begin])
   const startLetter = useCallback((letter: string) => begin(newLetterGame(letter)), [begin])
+  const startHigher = useCallback((measure: Measure) => begin(newHigherLower(measure)), [begin])
+
+  /** Higher or lower: more, or fewer */
+  const guessHigher = useCallback(
+    (direction: Guess) => {
+      if (game?.kind === 'higher') update(guess(game, direction))
+    },
+    [game, update],
+  )
 
   /** Answer a round, or click a country in the letter hunt. `alias` is the name typed, if not the usual one. */
   const pick = useCallback(
@@ -92,7 +109,7 @@ export function useGame() {
       if (!game) return
       if (game.kind === 'letter') update(pickCountry(game, country))
       else if (game.kind === 'all') update(nameCountry(game, country, alias))
-      else update(answer(game, country, alias))
+      else if (game.kind === 'rounds') update(answer(game, country, alias))
     },
     [game, update],
   )
@@ -102,6 +119,7 @@ export function useGame() {
     if (!game) return
     if (game.kind === 'letter') update(giveUp(game))
     else if (game.kind === 'all') update(giveUpAll(game))
+    else if (game.kind === 'higher') update(nextPair(game))
     else update(next(game))
   }, [game, update])
 
@@ -126,7 +144,9 @@ export function useGame() {
     start,
     startLetter,
     startAll,
+    startHigher,
     pick,
+    guessHigher,
     giveUpRound,
     advance,
     stop,

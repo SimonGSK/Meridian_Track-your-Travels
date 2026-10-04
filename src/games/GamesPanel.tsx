@@ -2,7 +2,11 @@ import { useEffect, useState } from 'react'
 import { flagUrl } from '../flags'
 import type { CountryFeature } from '../countries'
 import CountryInput from './CountryInput'
+import CapitalInput from './CapitalInput'
 import CountryShape from './CountryShape'
+import { capitalOf } from '../data/capitals'
+import { HigherLowerPlay, HigherLowerResults, MeasureChoice } from './HigherLowerPanel'
+import type { Guess, Measure } from './higherLower'
 import {
   DIFFICULTIES,
   GAMES,
@@ -44,7 +48,10 @@ type Props = {
   onStart: (id: RoundGameId, difficulty: Difficulty) => void
   onStartLetter: (letter: string) => void
   onStartAll: (scope: Scope) => void
+  onStartHigher: (measure: Measure) => void
   onPick: (country: CountryFeature, alias?: string | null) => void
+  /** Higher or lower: more, or fewer */
+  onGuess: (guess: Guess) => void
   /** "I don't know" in a game played in rounds */
   onDontKnow: () => void
   onNext: () => void
@@ -75,15 +82,18 @@ export default function GamesPanel(props: Props) {
   if (game.finished) return <Results {...props} {...choice} game={game} />
   if (game.kind === 'letter') return <LetterHunt {...props} game={game} />
   if (game.kind === 'all') return <NameThemAll {...props} game={game} />
+  if (game.kind === 'higher') return <HigherLowerPlay {...props} game={game} />
   return <RoundPlay {...props} game={game} />
 }
 
 /** All games; picking one asks for the difficulty, or for the letter hunt the letter. */
-function GameList({ best, bestTimes = {}, onStart, onStartLetter, onStartAll, chosen, setChosen }: Props & Chosen) {
+function GameList(props: Props & Chosen) {
+  const { best, bestTimes = {}, onStart, onStartLetter, onStartAll, onStartHigher, chosen, setChosen } = props
   const back = () => setChosen(null)
   const bests = { best, bestTimes }
   if (chosen === 'letter') return <LetterChoice {...bests} onStartLetter={onStartLetter} onBack={back} />
   if (chosen === 'all') return <ScopeChoice {...bests} onStartAll={onStartAll} onBack={back} />
+  if (chosen === 'higher') return <MeasureChoice best={best} onStart={onStartHigher} onBack={back} />
   if (chosen) return <DifficultyChoice id={chosen} {...bests} onStart={onStart} onBack={back} />
   return (
     <>
@@ -149,10 +159,11 @@ const PROMPTS: Record<RoundGameState['id'], string> = {
   flags: 'Which country has this flag?',
   name: 'Which country is highlighted on the globe?',
   shape: 'Which country has this shape?',
+  capital: "What's the capital of",
 }
 
 /** The game and its difficulty, with a clock running since it started ("name them all" shows its own) */
-function GameHeader({ game }: { game: GameState }) {
+function GameHeader({ game }: { game: RoundGameState | LetterGameState | AllGameState }) {
   return (
     <p className="game-title">
       <span>
@@ -212,6 +223,7 @@ function RoundPlay({ game, onPick, onDontKnow, onNext, onStop, onQuit }: Props &
   }
 
   const isFind = game.id === 'find'
+  const isCapital = game.id === 'capital'
   const lastMiss = game.misses.at(-1)
   const triesLeft = MAX_TRIES - game.misses.length
 
@@ -223,6 +235,12 @@ function RoundPlay({ game, onPick, onDontKnow, onNext, onStop, onQuit }: Props &
       return `That's ${lastMiss.properties.name}. Try again: ${triesLeft} ${triesLeft === 1 ? 'try' : 'tries'} left.`
     }
     const points = isFind ? ` +${answer.points} ${answer.points === 1 ? 'point' : 'points'}` : ''
+    if (isCapital) {
+      const capital = capitalOf(target)
+      if (answer.correct) return `Correct! The capital of ${name} is ${capital}.`
+      if (!answer.picked || mode === 'choices') return `The capital of ${name} is ${capital}.`
+      return `${answer.alias ?? capitalOf(answer.picked)} is the capital of ${answer.picked.properties.name}. The capital of ${name} is ${capital}.`
+    }
     if (answer.correct) return answer.alias ? `Correct: ${name} (you wrote ${answer.alias})${points}` : `Correct!${points}`
     if (!answer.picked || mode === 'choices') return `The answer is ${name}.`
     return `That's ${answer.picked.properties.name}. The answer is ${name}.`
@@ -251,7 +269,7 @@ function RoundPlay({ game, onPick, onDontKnow, onNext, onStop, onQuit }: Props &
       </div>
 
       <p className="game-prompt">{PROMPTS[game.id]}</p>
-      {isFind && <p className="game-target">{target.properties.name}</p>}
+      {(isFind || isCapital) && <p className="game-target">{target.properties.name}</p>}
       {isFind && !answer && (
         <p className="tries" aria-label={`Try ${game.misses.length + 1} of ${MAX_TRIES}`}>
           {Array.from({ length: MAX_TRIES }, (_, i) => (
@@ -275,12 +293,13 @@ function RoundPlay({ game, onPick, onDontKnow, onNext, onStop, onQuit }: Props &
               disabled={!!answer}
               onClick={() => onPick(option)}
             >
-              {option.properties.name}
+              {isCapital ? capitalOf(option) : option.properties.name}
             </button>
           ))}
         </div>
       )}
-      {mode === 'typing' && !answer && <CountryInput key={game.index} onAnswer={onPick} />}
+      {mode === 'typing' && !answer && isCapital && <CapitalInput key={game.index} onAnswer={onPick} />}
+      {mode === 'typing' && !answer && !isCapital && <CountryInput key={game.index} onAnswer={onPick} />}
 
       <p className={`feedback${tone}`} role="status">
         {feedback()}
@@ -375,6 +394,18 @@ function verdict(share: number) {
 }
 
 function Results(props: Props & Chosen & { game: GameState }) {
+  const { game, previousBest, setChosen, onQuit } = props
+  if (game.kind === 'higher') {
+    const allGames = () => {
+      setChosen(null)
+      onQuit()
+    }
+    return <HigherLowerResults game={game} previousBest={previousBest} onStart={props.onStartHigher} onAllGames={allGames} />
+  }
+  return <ScoredResults {...props} game={game} />
+}
+
+function ScoredResults(props: Props & Chosen & { game: RoundGameState | LetterGameState | AllGameState }) {
   const { game, previousBest, previousTime, onStart, onStartLetter, onStartAll, onQuit, setChosen } = props
   const score = gameScore(game)
   const newBest = previousBest !== undefined && score > previousBest

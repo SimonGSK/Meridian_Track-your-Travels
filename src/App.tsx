@@ -23,6 +23,7 @@ import {
   showsGame,
 } from './games/globeView'
 import { useGame } from './games/useGame'
+import type { Measure } from './games/higherLower'
 import { useTheme } from './design/useTheme'
 import FlagCorner from './FlagCorner'
 import Tabs from './nav/Tabs'
@@ -109,7 +110,9 @@ export default function App() {
     start: startGame,
     startLetter,
     startAll,
+    startHigher,
     pick,
+    guessHigher,
     giveUpRound,
     advance,
     stop,
@@ -352,6 +355,10 @@ export default function App() {
     selectCountry(null)
     startAll(scope)
   }
+  const playHigher = (measure: Measure) => {
+    selectCountry(null)
+    startHigher(measure)
+  }
 
   // Leaving the Games panel ends the game
   const changeView = (next: ViewId | null) => {
@@ -529,7 +536,9 @@ export default function App() {
                 onStart={playGame}
                 onStartLetter={playLetter}
                 onStartAll={playAll}
+                onStartHigher={playHigher}
                 onPick={pick}
+                onGuess={guessHigher}
                 onDontKnow={giveUpRound}
                 onNext={advance}
                 onStop={stop}

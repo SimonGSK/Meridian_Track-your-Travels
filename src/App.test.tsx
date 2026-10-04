@@ -7,6 +7,8 @@ import App from './App'
 import { countries, findCountryAt, tinyPlaces } from './countries'
 import { LETTER_HUNT_RINGS, TINY_COUNTRIES } from './games/globeView'
 import { subsolarPoint } from './globe/sun'
+import { capitalOf } from './data/capitals'
+import { valueOf } from './games/higherLower'
 import { SUN_UPDATE_MS } from './globe/hooks'
 import { SETTINGS_KEY } from './explore/useSettings'
 import { loadCities } from './data/cities'
@@ -1062,6 +1064,42 @@ describe('App', () => {
         expect(screen.getByText('Shape quiz · Medium')).toBeInTheDocument()
         expect(screen.getByText('Round 1 of 5')).toBeInTheDocument()
       })
+    })
+
+    it('capital quiz: lights up the country, flies there, and takes its capital', async () => {
+      await startGame(/Capital quiz/)
+      const target = screen.getByText("What's the capital of").nextElementSibling!.textContent!
+      expect(painted()).toEqual({ [target]: DEFAULT_THEME.selected })
+      expect(lastFlight()![0]).toMatchObject({ lat: expect.any(Number) })
+      const capital = capitalOf(countries.find((c) => c.properties.name === target)!)!
+      await userEvent.click(screen.getByRole('button', { name: capital }))
+      expect(feedback()).toHaveTextContent(`Correct! The capital of ${target} is ${capital}.`)
+      expect(painted()).toEqual({ [target]: DEFAULT_THEME.correct })
+    })
+
+    it('higher or lower: lights up both countries, and ends at the first wrong guess with the streak', async () => {
+      render(<App />)
+      await userEvent.click(screen.getByRole('button', { name: 'Games' }))
+      await userEvent.click(screen.getByRole('button', { name: /Higher or lower/ }))
+      await userEvent.click(screen.getByRole('button', { name: /^Area/ }))
+      const pair = () => [...document.querySelectorAll('.higher-country dt')].map((dt) => dt.textContent!)
+      const more = () => {
+        const [known, next] = pair().map((name) => countries.find((c) => c.properties.name === name)!)
+        return valueOf(next, 'area') > valueOf(known, 'area')
+      }
+      const [known, next] = pair()
+      expect(painted()).toEqual({ [known]: DEFAULT_THEME.selected, [next]: DEFAULT_THEME.flight })
+
+      await userEvent.click(screen.getByRole('button', { name: more() ? 'Bigger' : 'Smaller' }))
+      await userEvent.click(screen.getByRole('button', { name: 'Next' }))
+      expect(pair()[0]).toBe(next) // the one just guessed is the one to beat
+      await userEvent.click(screen.getByRole('button', { name: more() ? 'Smaller' : 'Bigger' }))
+      expect(screen.getByText('1', { selector: '.big-score' })).toBeInTheDocument()
+      expect(screen.getByText('in a row')).toBeInTheDocument()
+
+      await userEvent.click(screen.getByRole('button', { name: 'All games' }))
+      await userEvent.click(screen.getByRole('button', { name: /Higher or lower/ }))
+      expect(screen.getByRole('button', { name: /^Area/ })).toHaveTextContent('Best: 1 in a row')
     })
 
     it('rings no territories in the other games, as they are no part of them', async () => {
