@@ -254,7 +254,7 @@ input:focus-visible {
   letter-spacing: 0.06em;
 }
 
-.card h3:not(.card-label, .game-heading) {
+.card h3:not(.card-label, .game-heading, .year-heading) {
   margin: 22px 0 8px;
   color: var(--label);
   font-family: var(--font-mono);
@@ -2068,6 +2068,58 @@ code {
     bottom: calc(var(--tab-bar-height) + 16px);
     width: 64px;
   }
+}
+
+/* Years, in the Visited tab */
+
+.year-picker {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.year-heading {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: 44px;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.icon-button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.icon-button:disabled:hover {
+  background: var(--surface-raised);
+}
+
+.year-badge {
+  margin: 6px 0 0;
+  color: var(--accent);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.year-summary {
+  margin: 10px 0 14px;
+  font-size: 15px;
+  text-align: center;
+}
+
+.year-summary span {
+  display: block;
+  text-wrap: balance;
+}
+
+.year-note {
+  margin: 18px 0 0;
+  font-size: 13px;
 }
 
 /* Achievements, in the Visited tab */
