@@ -2,7 +2,7 @@ import { countries, type CountryFeature } from '../countries'
 import { capitalOf } from '../data/capitals'
 import { flagUrl } from '../flags'
 
-export type GameId = 'find' | 'flags' | 'name' | 'shape' | 'capital' | 'letter' | 'all' | 'higher'
+export type GameId = 'find' | 'flags' | 'name' | 'shape' | 'capital' | 'capital-country' | 'letter' | 'all' | 'higher'
 /** Games played in rounds, at a difficulty */
 export type RoundGameId = Exclude<GameId, 'letter' | 'all' | 'higher'>
 /** "all" goes through every country, instead of 10 rounds */
@@ -16,6 +16,7 @@ export const GAMES: { id: GameId; title: string; description: string }[] = [
   { id: 'name', title: 'Name that country', description: 'A country lights up on the globe. Which one is it?' },
   { id: 'shape', title: 'Shape quiz', description: 'Name the country from its outline alone.' },
   { id: 'capital', title: 'Capital quiz', description: "What's the capital of the country lit up on the globe?" },
+  { id: 'capital-country', title: 'Whose capital?', description: 'Which country has this capital?' },
   { id: 'higher', title: 'Higher or lower', description: 'More people, or fewer? Bigger, or smaller? Keep it going.' },
 ]
 
@@ -59,7 +60,7 @@ export function gamePool(id: GameId, difficulty: Difficulty): CountryFeature[] {
       c.properties.areaKm2 >= MIN_AREA_KM2[difficulty] &&
       !tooEasy(c) &&
       (id !== 'flags' || flagUrl(c)) &&
-      (id !== 'capital' || capitalOf(c)),
+      ((id !== 'capital' && id !== 'capital-country') || capitalOf(c)),
   )
 }
 

@@ -154,6 +154,17 @@ describe('capital quiz', () => {
   })
 })
 
+describe('whose capital?', () => {
+  it('gives nothing away on the globe until answered, then shows the country', () => {
+    const game = round('capital-country')
+    const { target } = game.rounds[0]
+    expect(gameHighlights(game, CLASSIC).size).toBe(0)
+    expect(flightTarget(game)).toBeNull()
+    expect(names(gameHighlights(answer(game, target), CLASSIC))).toEqual({ [target.properties.name]: CLASSIC.correct })
+    expect(flightTarget(answer(game, target))).toBe(target)
+  })
+})
+
 describe('higher or lower', () => {
   const pair = () => ({ ...newHigherLower('people', () => 0.5), known: byName('Japan'), next: byName('Brazil') })
 
