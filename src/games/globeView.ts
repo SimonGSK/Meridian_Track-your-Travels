@@ -10,8 +10,13 @@ const NONE: ReadonlyMap<CountryFeature, string> = new Map()
 /** A game is running (not yet on its results screen) */
 export const isPlaying = (game: GameState | null): game is GameState & { finished: false } => !!game && !game.finished
 
-/** The globe shows the game: while playing, and for the letter hunt and "name them all" also on the results (what was missed) */
-export const showsGame = (game: GameState | null) => isPlaying(game) || game?.kind === 'letter' || game?.kind === 'all'
+/**
+ * The globe shows the game: while playing, and for the letter hunt and
+ * "name them all" also on the results (what was missed), and for higher or
+ * lower (the pair it ended on)
+ */
+export const showsGame = (game: GameState | null) =>
+  isPlaying(game) || game?.kind === 'letter' || game?.kind === 'all' || game?.kind === 'higher'
 
 /** Island countries up to this size (km²) are hard to spot out in the ocean */
 export const SMALL_ISLAND_KM2 = 30_000
@@ -61,21 +66,33 @@ export function gameHighlights(game: GameState | null, theme: Theme): ReadonlyMa
     else if (game.last?.result === 'wrong-letter') colors.set(game.last.country, theme.wrong)
     return colors
   }
+  if (game.kind === 'higher') {
+    // The one to beat, and the one to guess about, green or red once guessed
+    colors.set(game.known, theme.selected)
+    colors.set(game.next, game.answer ? (game.answer.correct ? theme.correct : theme.wrong) : theme.flight)
+    return colors
+  }
   const { target } = currentRound(game)
   for (const miss of game.misses) colors.set(miss, theme.wrong)
   if (game.answer) {
     if (!game.answer.correct && game.answer.picked) colors.set(game.answer.picked, theme.wrong)
     colors.set(target, theme.correct)
-  } else if (game.id === 'name') {
+  } else if (game.id === 'name' || game.id === 'capital') {
     colors.set(target, theme.selected)
   }
   return colors
 }
 
-/** Where the camera should go: the country asked about ("name that country"), or the answer once given */
+/**
+ * Where the camera should go: the country asked about ("name that country",
+ * the capital quiz), the answer once given, or in higher or lower the
+ * country to guess about
+ */
 export function flightTarget(game: GameState | null): CountryFeature | null {
-  if (!isPlaying(game) || game.kind !== 'rounds') return null
-  return game.answer || game.id === 'name' ? currentRound(game).target : null
+  if (!isPlaying(game)) return null
+  if (game.kind === 'higher') return game.next
+  if (game.kind !== 'rounds') return null
+  return game.answer || game.id === 'name' || game.id === 'capital' ? currentRound(game).target : null
 }
 
 /** Changes whenever the view should zoom out to show the whole globe: each "find" round and each letter hunt */

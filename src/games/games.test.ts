@@ -68,6 +68,13 @@ describe('gamePool', () => {
   it('only asks about flags that exist', () => {
     expect(gamePool('flags', 'hard').every((c) => flagUrl(c))).toBe(true)
   })
+
+  it('leaves the countries with disputed capitals out of the capital quiz', () => {
+    const names = gamePool('capital', 'all').map((c) => c.properties.name)
+    expect(names).toHaveLength(195)
+    expect(names).not.toContain('Israel')
+    expect(names).not.toContain('Palestine')
+  })
 })
 
 describe('answerMode', () => {
@@ -75,6 +82,8 @@ describe('answerMode', () => {
     expect(answerMode('flags', 'easy')).toBe('choices')
     expect(answerMode('shape', 'medium')).toBe('typing')
     expect(answerMode('name', 'hard')).toBe('typing')
+    expect(answerMode('capital', 'easy')).toBe('choices')
+    expect(answerMode('capital', 'all')).toBe('typing')
   })
 
   it('always answers "find" and the letter hunt on the globe', () => {

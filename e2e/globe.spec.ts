@@ -429,6 +429,46 @@ test.describe('games', () => {
     await expect(page.getByRole('button', { name: 'Next' })).toBeFocused()
   })
 
+  test('capital quiz: pick a capital on easy, type one on medium', async ({ page }) => {
+    await openGlobe(page)
+    await page.getByRole('button', { name: 'Games', exact: true }).click()
+    await page.getByRole('button', { name: /Capital quiz/ }).click()
+    await page.getByRole('button', { name: /^Easy/ }).click()
+    await expect(page.getByText("What's the capital of")).toBeVisible()
+    await page.locator('.options .option').first().click()
+    await expect(feedback(page)).toHaveText(/The capital of .+ is .+\./)
+    await page.getByRole('button', { name: 'Next' }).click()
+    await expect(page.getByText('Round 2 of 10')).toBeVisible()
+
+    await page.getByRole('button', { name: 'Quit game' }).click()
+    await page.getByRole('button', { name: '← All games' }).click()
+    await page.getByRole('button', { name: /Capital quiz/ }).click()
+    await page.getByRole('button', { name: /^Medium/ }).click()
+    const input = page.getByRole('textbox', { name: 'Your answer' })
+    await expect(input).toBeFocused()
+    await input.fill('kiev')
+    await input.press('Enter')
+    await expect(feedback(page)).toHaveText(/Correct|is the capital of Ukraine/)
+  })
+
+  test('higher or lower: guess until the run ends', async ({ page }) => {
+    await openGlobe(page)
+    await page.getByRole('button', { name: 'Games', exact: true }).click()
+    await page.getByRole('button', { name: /Higher or lower/ }).click()
+    await page.getByRole('button', { name: /^Population/ }).click()
+    const over = page.getByText('in a row')
+    // Always "more": right about half the time, so the run soon ends
+    for (let i = 0; i < 40 && !(await over.isVisible()); i++) {
+      await page.getByRole('button', { name: 'More', exact: true }).click()
+      const next = page.getByRole('button', { name: 'Next', exact: true })
+      if (await next.isVisible()) await next.click()
+    }
+    await expect(over).toBeVisible()
+    await page.getByRole('button', { name: 'All games' }).click()
+    await page.getByRole('button', { name: /Higher or lower/ }).click()
+    await expect(page.getByRole('button', { name: /^Population/ })).toContainText('in a row')
+  })
+
   test('name them all: type countries until giving up', async ({ page }) => {
     await openGlobe(page)
     await page.getByRole('button', { name: 'Games', exact: true }).click()

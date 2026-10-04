@@ -5,6 +5,7 @@ import { answer, dontKnow, newRoundGame, next, stopEarly, type RoundGameId } fro
 import { LETTER_HUNT_RINGS, TINY_COUNTRIES, flightTarget, gameHighlights, gameRings, globeAnswers, isPlaying, overviewKey, showsGame } from './globeView'
 import { giveUp, newLetterGame, pickCountry } from './letterGame'
 import { giveUpAll, nameCountry, newAllGame } from './allGame'
+import { guess, newHigherLower } from './higherLower'
 
 const byName = (name: string) => countries.find((c) => c.properties.name === name)!
 const pool = ['Denmark', 'France', 'Brazil', 'Japan', 'Kenya'].map(byName)
@@ -139,6 +140,39 @@ describe('letter hunt', () => {
     const colors = names(gameHighlights(game, CLASSIC))
     expect(colors.Kenya).toBe(CLASSIC.correct)
     expect(colors.Kazakhstan).toBe(CLASSIC.selected)
+  })
+})
+
+describe('capital quiz', () => {
+  it('lights up the country asked about and flies there, then shows the answer', () => {
+    const game = round('capital')
+    const { target } = game.rounds[0]
+    expect(names(gameHighlights(game, CLASSIC))).toEqual({ [target.properties.name]: CLASSIC.selected })
+    expect(flightTarget(game)).toBe(target)
+    expect(globeAnswers(game)).toBe(false)
+    expect(names(gameHighlights(answer(game, target), CLASSIC))).toEqual({ [target.properties.name]: CLASSIC.correct })
+  })
+})
+
+describe('higher or lower', () => {
+  const pair = () => ({ ...newHigherLower('people', () => 0.5), known: byName('Japan'), next: byName('Brazil') })
+
+  it('lights up the country to beat and the one to guess about, flying to the latter', () => {
+    const game = pair()
+    expect(names(gameHighlights(game, CLASSIC))).toEqual({ Japan: CLASSIC.selected, Brazil: CLASSIC.flight })
+    expect(flightTarget(game)).toBe(byName('Brazil'))
+    expect(overviewKey(game)).toBeNull()
+    expect(globeAnswers(game)).toBe(false)
+  })
+
+  it('colors the guess right or wrong, and keeps the pair it ended on for the results', () => {
+    // Brazil has more people than Japan
+    expect(names(gameHighlights(guess(pair(), 'more'), CLASSIC)).Brazil).toBe(CLASSIC.correct)
+    const over = guess(pair(), 'fewer')
+    expect(over.finished).toBe(true)
+    expect(showsGame(over)).toBe(true)
+    expect(names(gameHighlights(over, CLASSIC)).Brazil).toBe(CLASSIC.wrong)
+    expect(flightTarget(over)).toBeNull()
   })
 })
 

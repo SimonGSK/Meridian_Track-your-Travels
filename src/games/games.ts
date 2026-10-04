@@ -1,9 +1,10 @@
 import { countries, type CountryFeature } from '../countries'
+import { capitalOf } from '../data/capitals'
 import { flagUrl } from '../flags'
 
-export type GameId = 'find' | 'flags' | 'name' | 'shape' | 'letter' | 'all'
+export type GameId = 'find' | 'flags' | 'name' | 'shape' | 'capital' | 'letter' | 'all' | 'higher'
 /** Games played in rounds, at a difficulty */
-export type RoundGameId = Exclude<GameId, 'letter' | 'all'>
+export type RoundGameId = Exclude<GameId, 'letter' | 'all' | 'higher'>
 /** "all" goes through every country, instead of 10 rounds */
 export type Difficulty = 'easy' | 'medium' | 'hard' | 'all'
 
@@ -14,6 +15,8 @@ export const GAMES: { id: GameId; title: string; description: string }[] = [
   { id: 'flags', title: 'Flag quiz', description: 'Which country has this flag?' },
   { id: 'name', title: 'Name that country', description: 'A country lights up on the globe. Which one is it?' },
   { id: 'shape', title: 'Shape quiz', description: 'Name the country from its outline alone.' },
+  { id: 'capital', title: 'Capital quiz', description: "What's the capital of the country lit up on the globe?" },
+  { id: 'higher', title: 'Higher or lower', description: 'More people, or fewer? Bigger, or smaller? Keep it going.' },
 ]
 
 export const DIFFICULTIES: { id: Difficulty; label: string; countries: string }[] = [
@@ -52,7 +55,11 @@ export function gamePool(id: GameId, difficulty: Difficulty): CountryFeature[] {
   const tooEasy = (c: CountryFeature) =>
     id === 'find' && difficulty === 'hard' && c.properties.areaKm2 >= HARD_FIND_MAX_KM2
   return allCountries.filter(
-    (c) => c.properties.areaKm2 >= MIN_AREA_KM2[difficulty] && !tooEasy(c) && (id !== 'flags' || flagUrl(c)),
+    (c) =>
+      c.properties.areaKm2 >= MIN_AREA_KM2[difficulty] &&
+      !tooEasy(c) &&
+      (id !== 'flags' || flagUrl(c)) &&
+      (id !== 'capital' || capitalOf(c)),
   )
 }
 

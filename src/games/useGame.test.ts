@@ -5,6 +5,7 @@ import { BEST_TIMES_KEY } from './records'
 import { currentRound, type RoundGameState } from './games'
 import { countries } from '../countries'
 import type { LetterGameState } from './letterGame'
+import { isMore, type HigherLowerState } from './higherLower'
 
 type Hook = { current: ReturnType<typeof useGame> }
 const rounds = (result: Hook) => result.current.game as RoundGameState
@@ -158,6 +159,33 @@ describe('useGame', () => {
         act(() => result.current.pick(country))
       }
       expect(result.current.bestTimes).toEqual({ 'letter:Z': 10_000 })
+    })
+  })
+
+  describe('higher or lower', () => {
+    const higher = (result: Hook) => result.current.game as HigherLowerState
+
+    it('counts right guesses in a row, saving the longest streak per measure when one is wrong', () => {
+      const { result } = renderHook(() => useGame())
+      act(() => result.current.startHigher('area'))
+      for (let i = 0; i < 3; i++) {
+        act(() => result.current.guessHigher(isMore(higher(result)) ? 'more' : 'fewer'))
+        act(() => result.current.advance())
+      }
+      expect(higher(result)).toMatchObject({ streak: 3, finished: false })
+      act(() => result.current.guessHigher(isMore(higher(result)) ? 'fewer' : 'more'))
+      expect(higher(result)).toMatchObject({ streak: 3, finished: true })
+      expect(result.current.best).toEqual({ 'higher:area': 3 })
+      expect(result.current.bestTimes).toEqual({}) // a streak, not a time
+      act(() => result.current.startHigher('area'))
+      expect(result.current.previousBest).toBe(3)
+    })
+
+    it('ignores guesses in other games', () => {
+      const { result } = renderHook(() => useGame())
+      act(() => result.current.start('flags', 'easy'))
+      act(() => result.current.guessHigher('more'))
+      expect(rounds(result).answer).toBeNull()
     })
   })
 
