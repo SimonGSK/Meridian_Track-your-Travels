@@ -9,6 +9,7 @@ import { LETTER_HUNT_RINGS, TINY_COUNTRIES } from './games/globeView'
 import { subsolarPoint } from './globe/sun'
 import { capitalOf } from './data/capitals'
 import { valueOf } from './games/higherLower'
+import { ACHIEVEMENTS } from './visited/achievements'
 import { SUN_UPDATE_MS } from './globe/hooks'
 import { SETTINGS_KEY } from './explore/useSettings'
 import { loadCities } from './data/cities'
@@ -495,6 +496,47 @@ describe('App', () => {
 
       render(<App />)
       expect(painted()).toEqual({ Denmark: DEFAULT_THEME.visited })
+    })
+  })
+
+  describe('achievements', () => {
+    // The note waits for the cities and airports, so what they make count isn't taken for something you did
+    const loaded = async () => {
+      await act(() => Promise.all([loadCities(), loadAirports()]))
+      await act(async () => {})
+    }
+    const note = () => screen.queryByRole('button', { name: /^Achievement unlocked/ })
+
+    it('tells you when you earn one, and opens them all from the note', async () => {
+      render(<App />)
+      await loaded()
+      await userEvent.click(screen.getByRole('button', { name: 'Visited' }))
+      await userEvent.type(screen.getByRole('searchbox', { name: 'Add a country' }), 'denmark{Enter}')
+      expect(note()).toHaveTextContent('Achievement unlockedFirst stampYour first country')
+
+      await userEvent.click(note()!)
+      expect(note()).not.toBeInTheDocument()
+      expect(screen.getByRole('tab', { name: 'Achievements' })).toHaveAttribute('aria-selected', 'true')
+      expect(screen.getByText('First stamp', { selector: '.achievement-title' }).closest('li')).toHaveClass('earned')
+    })
+
+    it('says nothing about the ones you had already, but lists them', async () => {
+      localStorage.setItem('countries-app.visited', JSON.stringify(['Denmark', 'Norway', 'Sweden']))
+      render(<App />)
+      await loaded()
+      expect(note()).not.toBeInTheDocument()
+      await userEvent.click(screen.getByRole('button', { name: 'Visited' }))
+      await userEvent.click(screen.getByRole('tab', { name: 'Achievements' }))
+      expect(within(sidePanel()!).getByText(new RegExp(`^2 / ${ACHIEVEMENTS.length}$`))).toBeInTheDocument()
+      expect(screen.getByText('Scandinavia', { selector: '.achievement-title' }).closest('li')).toHaveClass('earned')
+    })
+
+    it('counts states toward their achievements', async () => {
+      localStorage.setItem('countries-app.visited-regions', JSON.stringify(['US-CA', 'US-NY']))
+      render(<App />)
+      await userEvent.click(screen.getByRole('button', { name: 'Visited' }))
+      await userEvent.click(screen.getByRole('tab', { name: 'Achievements' }))
+      expect(screen.getByText('Road trip', { selector: '.achievement-title' }).closest('li')).toHaveTextContent('2 of 10')
     })
   })
 
