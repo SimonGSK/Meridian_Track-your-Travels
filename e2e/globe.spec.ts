@@ -303,6 +303,29 @@ test.describe('explore', () => {
   })
 })
 
+test.describe('achievements', () => {
+  test('visiting all of Scandinavia earns it, with a note that opens the achievements', async ({ page }) => {
+    await openGlobe(page)
+    await page.getByRole('button', { name: 'Visited', exact: true }).click()
+    const add = page.getByRole('searchbox', { name: 'Add a country' })
+    for (const name of ['Denmark', 'Norway']) {
+      await add.fill(name)
+      await add.press('Enter')
+    }
+    const note = page.getByRole('button', { name: /^Achievement unlocked/ })
+    await expect(note).toContainText('First stamp')
+    await add.fill('Sweden')
+    await add.press('Enter')
+    await expect(note).toContainText('Scandinavia')
+
+    await note.click()
+    await expect(page.getByRole('tab', { name: 'Achievements' })).toHaveAttribute('aria-selected', 'true')
+    const achievement = (title: string) => page.locator('li.achievement', { has: page.getByText(title, { exact: true }) })
+    await expect(achievement('Scandinavia')).toHaveClass(/earned/)
+    await expect(achievement('The Nordics')).toContainText('3 of 5')
+  })
+})
+
 test.describe('settings', () => {
   test('a backup downloaded and restored brings the places back', async ({ page }) => {
     await openGlobe(page)
