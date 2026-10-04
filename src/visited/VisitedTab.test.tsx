@@ -45,3 +45,15 @@ describe('VisitedTab', () => {
     expect(onViewChange).toHaveBeenCalledWith('flights')
   })
 })
+
+describe('VisitedTab, switched from elsewhere', () => {
+  it('brings the switch back into view, but not when first shown', () => {
+    const scrolled = vi.fn()
+    HTMLElement.prototype.scrollIntoView = scrolled
+    const props = { onViewChange: vi.fn(), places: 5, flights: 1, earned: 3, achievementCount: 50, countries: null, flightsPanel: null, achievements: null }
+    const { rerender } = render(<VisitedTab view="countries" {...props} />)
+    expect(scrolled).not.toHaveBeenCalled()
+    rerender(<VisitedTab view="achievements" {...props} />)
+    expect(scrolled).toHaveBeenCalledWith({ block: 'nearest' })
+  })
+})

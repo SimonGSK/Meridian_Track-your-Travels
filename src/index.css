@@ -2041,6 +2041,10 @@ code {
   .sheet-close + .atlas-search {
     margin-right: 44px;
   }
+  /* Scrolled to, it stops below the sheet's close button */
+  .segmented {
+    scroll-margin-top: 48px;
+  }
   .card {
     padding: 14px 14px;
   }
@@ -2143,7 +2147,7 @@ code {
   color: var(--accent);
 }
 
-/* A note when you earn one */
+/* A note when you earn one. Only the note itself takes clicks, never the space it's shown in. */
 .achievement-toast-region {
   position: fixed;
   left: 50%;
@@ -2151,9 +2155,19 @@ code {
   z-index: 5;
   transform: translateX(-50%);
   width: min(360px, calc(100vw - 32px));
+  pointer-events: none;
+}
+
+/* On phones, over the globe under the header, rather than over the sheet you're using */
+@media (max-width: 640px) {
+  .achievement-toast-region {
+    top: calc(var(--topbar-height) + 12px);
+    bottom: auto;
+  }
 }
 
 .achievement-toast {
+  pointer-events: auto;
   display: flex;
   align-items: center;
   gap: 10px;
