@@ -23,7 +23,8 @@ The design (navy and amber, after a mock-up made in Lovable) has a top bar with 
   Games played in rounds are Easy (big countries, four answers to pick from), Medium (all but the smallest), Hard (all 197) or All countries (every one of the 197, one after another; stop whenever you like). Beyond Easy you type answers with no suggestions; any known spelling counts ("East Timor", "Burma", "Ceylon"), punctuation and spacing don't matter, and the answer shows the name used today. Tiny countries that are answers get a dot so you can see them. Rounds have an "I don't know" button that shows the answer; the round counts as wrong. Every game is about the 197 countries only: clicking or typing a territory (Greenland, Puerto Rico…) counts neither way, and territories don't light up under the pointer or get a ring.
 
   A clock runs while you play. Perfect runs set a time record to beat, next to the best score: every point (in *Find the country*, every country on the first try), no wrong letters in the letter hunt, and played to the end. Being fast with a mistake doesn't count. The clock stops at the last answer, not when you look at the results.
-- **Design**: switch the globe between Midnight (the default), Classic, Vintage, Political (neighbors always in different colors), Night and Minimal. The layers are here too, and how to make the globe your Mac's screensaver (below).
+- **Design**: switch the globe between Midnight (the default), Classic, Vintage, Political (neighbors always in different colors), Night and Minimal. The layers are here too.
+- **Settings**: back up everything to a file, or restore a backup (below), and how to make the globe your Mac's screensaver.
 
 The globe spins on its own until you touch it, and again once it's been left alone for 30 seconds. Tiny countries and islands get a ring marker, and clicks just beside a small island still count, also with the rings hidden. Zoomed in, tiny places reach 3.5 km around them, so pointing near Vatican City finds it (at this map's scale it's drawn 1.6 km from where it is). Only a pin's head answers to the pointer, so what's under its stem stays clickable. City pins fade out as they near the edge of the globe.
 
@@ -35,11 +36,13 @@ The globe can be your Mac's screensaver, spinning with your places on it. With `
 2. Install [WebViewScreenSaver](https://github.com/liquidx/webviewscreensaver) (Apache 2.0), which shows a web page as a screensaver: `brew install --cask webviewscreensaver`. (Its README adds `--no-quarantine`, but current Homebrew no longer has that option; macOS asks you to allow the screensaver instead, below.)
 3. Open System Settings › Wallpaper and click Screen Saver…. Scroll down to Other, all the way to the right, and pick WebViewScreenSaver.
 4. The first time, macOS blocks it: in System Settings › Privacy & Security, allow it on the message there.
-5. Back in Screen Saver, click Options and paste the screensaver address, which the app's Design tab copies for you.
+5. Back in Screen Saver, click Options and paste the screensaver address, which the app's Settings tab copies for you.
 
 The screensaver doesn't update by itself. After changing your places or design, copy the address again and paste it in Options; after changing the app, run `npm run build:screensaver` again.
 
-Visited places, states, cities and flights, best scores and times, the design and the settings are saved in your browser (`localStorage`). Nothing is sent anywhere.
+## Backup
+
+Visited places, states, cities and flights, best scores and times, the design and the settings are saved in your browser (`localStorage`). Nothing is sent anywhere, so clearing the browser's site data, or moving to another browser or computer, would leave them behind. In the Settings tab, **Download backup** saves all of it to a file (`meridian-backup-2026-10-04.json`, readable JSON), and shows when you last did. **Restore from a backup…** reads one, says what it holds and when it was made, and only replaces what's in this browser when you confirm. Every part of the file is checked the way the app checks it when loading, so a damaged or foreign file is refused as a whole rather than half restored.
 
 Built with React, TypeScript and Vite, using [react-globe.gl](https://github.com/vasturiano/react-globe.gl) (three.js) for the globe, [world-atlas](https://github.com/topojson/world-atlas) (Natural Earth 1:50m) for country shapes and [flag-icons](https://github.com/lipis/flag-icons) for flags. The fonts are Fraunces, Inter and JetBrains Mono (SIL Open Font License), from Fontsource. Flags and fonts are bundled, so no requests go to third parties.
 
@@ -81,7 +84,7 @@ npx playwright install chromium
 ## Tests
 
 - **Unit and component tests** (Vitest and Testing Library, in jsdom): the data, the game rules, the globe's layers against a real three.js camera, every panel, and the whole app with a stand-in for the WebGL globe. About 630 tests, covering over 99% of the lines.
-- **End-to-end tests** (Playwright): the real app with its WebGL globe in headless Chromium, on a desktop and a phone (touch, tab bar, sheets): hovering and clicking countries, visited places, states, cities and flights kept after reloading, the settings, the designs, every game, and the screensaver.
+- **End-to-end tests** (Playwright): the real app with its WebGL globe in headless Chromium, on a desktop and a phone (touch, tab bar, sheets): hovering and clicking countries, visited places, states, cities and flights kept after reloading, the settings, a backup downloaded and restored, the designs, every game, and the screensaver.
 
 `.github/workflows/tests.yml` runs all of it on GitHub for every pull request and every push to `main`: lint, the unit tests, the build (which type-checks), and the end-to-end tests.
 
@@ -115,6 +118,7 @@ src/
   explore/             the Explore tools: atlas search, design and layers; settings
   visited/             visited countries, states and cities; flights, and the airport search
   design/              design picker, and how to set up the screensaver
+  settings/            backups: making, checking and restoring them, and their card
   games/               game rules (games.ts, letterGame.ts), what the globe shows (globeView.ts),
                        state and best scores (useGame.ts), perfect runs and their times (records.ts),
                        the panel, answer box and outlines
