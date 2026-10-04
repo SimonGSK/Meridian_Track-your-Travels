@@ -303,6 +303,41 @@ test.describe('explore', () => {
   })
 })
 
+test.describe('settings', () => {
+  test('a backup downloaded and restored brings the places back', async ({ page }) => {
+    await openGlobe(page)
+    await page.getByRole('button', { name: 'Visited', exact: true }).click()
+    for (const name of ['Denmark', 'Japan']) {
+      await page.getByRole('searchbox', { name: 'Add a country' }).fill(name)
+      await page.keyboard.press('Enter')
+    }
+    await expect(page.getByText('2 visited')).toBeVisible()
+
+    await page.getByRole('button', { name: 'Settings', exact: true }).click()
+    await expect(page.getByText('In this browser: 2 places.')).toBeVisible()
+    const [download] = await Promise.all([
+      page.waitForEvent('download'),
+      page.getByRole('button', { name: 'Download backup' }).click(),
+    ])
+    expect(download.suggestedFilename()).toMatch(/^meridian-backup-\d{4}-\d{2}-\d{2}\.json$/)
+    const file = await download.path()
+
+    // As in a new browser
+    await page.evaluate(() => localStorage.clear())
+    await page.reload()
+    await expect(page.getByText('0 visited')).toBeVisible()
+
+    await page.getByRole('button', { name: 'Settings', exact: true }).click()
+    await page.getByLabel('Backup file').setInputFiles(file)
+    await expect(page.getByRole('alertdialog')).toContainText('2 places')
+    await page.getByRole('button', { name: 'Replace with this backup' }).click()
+    // The page starts over with the backup
+    await expect(page.getByText('2 visited')).toBeVisible()
+    await page.getByRole('button', { name: 'Visited', exact: true }).click()
+    await expect(page.getByRole('list', { name: 'Visited countries' })).toContainText('Japan')
+  })
+})
+
 test.describe('design', () => {
   test('switching design repaints the globe and is remembered', async ({ page }) => {
     test.slow() // compares screenshots of the software-rendered globe

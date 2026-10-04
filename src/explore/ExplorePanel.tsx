@@ -3,7 +3,7 @@ import { searchCountries, type CountryFeature } from '../countries'
 import { countryOfCity, findCities, type City } from '../data/cities'
 import { normalizeName } from '../data/names'
 import { THEMES, type Theme } from '../globe/themes'
-import { GearIcon, SearchIcon } from '../icons'
+import { LayersIcon, SearchIcon } from '../icons'
 import Card from '../ui/Card'
 import LayerList from './LayerList'
 import type { Settings } from './useSettings'
@@ -81,7 +81,7 @@ export default function ExplorePanel({ compact = true, ...props }: Props) {
         onMouseDown={keepFocus}
         onClick={() => toggle('settings')}
       >
-        <GearIcon size={20} />
+        <LayersIcon size={20} />
       </button>
       {open === 'settings' && <LayersCard {...props} />}
     </div>

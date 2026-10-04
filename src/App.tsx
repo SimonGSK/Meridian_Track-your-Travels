@@ -33,6 +33,7 @@ import SidePanel from './nav/SidePanel'
 import Card from './ui/Card'
 import { isScreensaver } from './screensaver'
 import ScreensaverCard from './design/ScreensaverCard'
+import BackupCard from './settings/BackupCard'
 import VisitedPanel from './visited/VisitedPanel'
 import { useVisited } from './visited/useVisited'
 import { useVisitedRegions } from './visited/useVisitedRegions'
@@ -501,6 +502,11 @@ export default function App() {
               <Card letter="C" label="Layers">
                 <LayerList settings={settings} onChange={changeSettings} />
               </Card>
+            </>
+          )}
+          {view === 'settings' && (
+            <>
+              <BackupCard />
               <ScreensaverCard />
             </>
           )}

@@ -7,7 +7,7 @@ import { usePersistentState } from '../storage'
 export const FLIGHTS_KEY = 'countries-app.flights'
 
 const isEnd = (end: unknown) => typeof end === 'string' || typeof end === 'number'
-const isFlightList = (value: unknown): value is StoredFlight[] =>
+export const isFlightList = (value: unknown): value is StoredFlight[] =>
   Array.isArray(value) &&
   value.every((f) => typeof f === 'object' && f !== null && typeof f.id === 'string' && isEnd(f.from) && isEnd(f.to))
 
