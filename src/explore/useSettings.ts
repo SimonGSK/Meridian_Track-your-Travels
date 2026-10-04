@@ -12,8 +12,10 @@ export type Settings = {
   showCities: boolean
   /** Lines for the flights you've taken */
   showFlights: boolean
-  /** Night where the sun has set, as it is now, with city lights */
+  /** Night where the sun has set, as it is now */
   showDayNight: boolean
+  /** The cities lit up at night, while day and night is shown */
+  showCityLights: boolean
 }
 
 export const SETTINGS_KEY = 'countries-app.settings'
@@ -24,6 +26,7 @@ export const DEFAULT_SETTINGS: Settings = {
   showCities: true,
   showFlights: true,
   showDayNight: false,
+  showCityLights: true,
 }
 
 export const isSettings = (value: unknown): value is Partial<Settings> =>

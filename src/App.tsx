@@ -292,7 +292,7 @@ export default function App() {
   )
   usePinLayer(globe, pinned, theme.pin, screensaver ? SCREENSAVER_PIN_FADE : PIN_FADE)
   // Night as it is now, lit by the cities; not in games, where it would hide what to find
-  useNightLayer(globe, settings.showDayNight && !showsGame(game), cities ?? NO_LIGHTS)
+  useNightLayer(globe, settings.showDayNight && !showsGame(game), (settings.showCityLights && cities) || NO_LIGHTS)
 
   // Each route once, with a plane flying it; the one picked in the list stands out
   const flightLines = useMemo(() => {
