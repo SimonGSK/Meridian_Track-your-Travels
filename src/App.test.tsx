@@ -891,6 +891,16 @@ describe('App', () => {
       }
     })
 
+    it('can show night without the city lights', async () => {
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify({ showDayNight: true }))
+      render(<App />)
+      await waitFor(() => expect(nightLayer.setLights.mock.lastCall![0].length).toBeGreaterThan(1000))
+      await openLayers()
+      await userEvent.click(screen.getByRole('switch', { name: /City lights/ }))
+      expect(night()).toBe(true)
+      expect(nightLayer.setLights).toHaveBeenLastCalledWith([])
+    })
+
     it('is hidden during games, where it would hide what to find', async () => {
       localStorage.setItem(SETTINGS_KEY, JSON.stringify({ showDayNight: true }))
       render(<App />)

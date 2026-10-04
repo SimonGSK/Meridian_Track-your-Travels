@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { render, screen, within } from '@testing-library/react'
+import { cleanup, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import ExplorePanel from './ExplorePanel'
 import { DEFAULT_SETTINGS, type Settings } from './useSettings'
@@ -110,6 +110,20 @@ describe('ExplorePanel', () => {
       expect(screen.getByRole('switch', { name: /Visited states/ })).toBeChecked()
       expect(screen.getByRole('switch', { name: /City pins/ })).toBeChecked()
       expect(screen.getByRole('switch', { name: /Small islands/ })).not.toBeChecked()
+    })
+
+    it('offers city lights only while day and night is on, under it', async () => {
+      setup({ settings: { ...DEFAULT_SETTINGS, showDayNight: false } })
+      await userEvent.click(gear())
+      expect(screen.queryByRole('switch', { name: /City lights/ })).not.toBeInTheDocument()
+      cleanup()
+      const { onChange } = setup({ settings: { ...DEFAULT_SETTINGS, showDayNight: true } })
+      await userEvent.click(gear())
+      const lights = screen.getByRole('switch', { name: /City lights/ })
+      expect(lights).toBeChecked()
+      expect(lights.closest('li')).toHaveClass('sublayer')
+      await userEvent.click(lights)
+      expect(onChange).toHaveBeenCalledWith({ showCityLights: false })
     })
 
     it('turns layers on and off', async () => {

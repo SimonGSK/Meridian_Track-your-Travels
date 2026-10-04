@@ -2196,3 +2196,8 @@ code {
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
+
+/* A layer offered only while the one above it is on */
+.layers .sublayer {
+  margin-left: 22px;
+}
