@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { render, screen, within } from '@testing-library/react'
+import { cleanup, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import GamesPanel from './GamesPanel'
 import { answer, dontKnow, newRoundGame, next, stopEarly, type Difficulty, type RoundGameId, type RoundGameState } from './games'
@@ -537,5 +537,40 @@ describe('GamesPanel: higher or lower', () => {
     expect(onStartHigher).toHaveBeenCalledWith('people')
     await userEvent.click(screen.getByRole('button', { name: 'All games' }))
     expect(onQuit).toHaveBeenCalled()
+  })
+})
+
+describe('GamesPanel: whose capital?', () => {
+  const game = (difficulty: Difficulty = 'easy') => newRoundGame('capital-country', difficulty, () => 0.5, pool)
+
+  it('shows a capital and asks whose it is, picking from four countries on easy', async () => {
+    const start = game()
+    const { onPick } = setup({ game: start })
+    const { target, options } = start.rounds[0]
+    expect(screen.getByText('Which country has this capital?')).toBeInTheDocument()
+    expect(screen.getByText(capitalOf(target)!, { selector: '.game-target' })).toBeInTheDocument()
+    expect(screen.queryByText(target.properties.name, { selector: '.game-target' })).not.toBeInTheDocument()
+    for (const option of options) expect(screen.getByRole('button', { name: option.properties.name })).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: target.properties.name }))
+    expect(onPick).toHaveBeenCalledWith(target)
+  })
+
+  it('says whose capital it is once answered', () => {
+    const start = game('medium')
+    const { target } = start.rounds[0]
+    const other = byName(target.properties.name === 'Peru' ? 'Chile' : 'Peru')
+    setup({ game: answer(start, target) })
+    expect(screen.getByRole('status')).toHaveTextContent(`Correct! ${capitalOf(target)} is the capital of ${target.properties.name}.`)
+    cleanup()
+    setup({ game: answer(start, other) })
+    expect(screen.getByRole('status')).toHaveTextContent(
+      `${capitalOf(target)} is the capital of ${target.properties.name}, not ${other.properties.name}.`,
+    )
+  })
+
+  it('takes a typed country on harder levels', async () => {
+    const { onPick } = setup({ game: game('hard') })
+    await userEvent.type(screen.getByRole('textbox', { name: 'Your answer' }), 'holland{Enter}')
+    expect(onPick).toHaveBeenCalledWith(byName('Netherlands'), 'holland')
   })
 })

@@ -160,6 +160,7 @@ const PROMPTS: Record<RoundGameState['id'], string> = {
   name: 'Which country is highlighted on the globe?',
   shape: 'Which country has this shape?',
   capital: "What's the capital of",
+  'capital-country': 'Which country has this capital?',
 }
 
 /** The game and its difficulty, with a clock running since it started ("name them all" shows its own) */
@@ -224,6 +225,8 @@ function RoundPlay({ game, onPick, onDontKnow, onNext, onStop, onQuit }: Props &
 
   const isFind = game.id === 'find'
   const isCapital = game.id === 'capital'
+  // The other way round: a capital, answered with its country
+  const isCapitalCountry = game.id === 'capital-country'
   const lastMiss = game.misses.at(-1)
   const triesLeft = MAX_TRIES - game.misses.length
 
@@ -235,6 +238,12 @@ function RoundPlay({ game, onPick, onDontKnow, onNext, onStop, onQuit }: Props &
       return `That's ${lastMiss.properties.name}. Try again: ${triesLeft} ${triesLeft === 1 ? 'try' : 'tries'} left.`
     }
     const points = isFind ? ` +${answer.points} ${answer.points === 1 ? 'point' : 'points'}` : ''
+    if (isCapitalCountry) {
+      const capital = capitalOf(target)
+      if (answer.correct) return `Correct! ${capital} is the capital of ${name}.`
+      if (!answer.picked || mode === 'choices') return `${capital} is the capital of ${name}.`
+      return `${capital} is the capital of ${name}, not ${answer.picked.properties.name}.`
+    }
     if (isCapital) {
       const capital = capitalOf(target)
       if (answer.correct) return `Correct! The capital of ${name} is ${capital}.`
@@ -270,6 +279,7 @@ function RoundPlay({ game, onPick, onDontKnow, onNext, onStop, onQuit }: Props &
 
       <p className="game-prompt">{PROMPTS[game.id]}</p>
       {(isFind || isCapital) && <p className="game-target">{target.properties.name}</p>}
+      {isCapitalCountry && <p className="game-target">{capitalOf(target)}</p>}
       {isFind && !answer && (
         <p className="tries" aria-label={`Try ${game.misses.length + 1} of ${MAX_TRIES}`}>
           {Array.from({ length: MAX_TRIES }, (_, i) => (

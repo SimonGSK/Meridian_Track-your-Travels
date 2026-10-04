@@ -69,7 +69,8 @@ describe('gamePool', () => {
     expect(gamePool('flags', 'hard').every((c) => flagUrl(c))).toBe(true)
   })
 
-  it('leaves the countries with disputed capitals out of the capital quiz', () => {
+  it('leaves the countries with disputed capitals out of the capital quizzes', () => {
+    expect(gamePool('capital-country', 'all')).toEqual(gamePool('capital', 'all'))
     const names = gamePool('capital', 'all').map((c) => c.properties.name)
     expect(names).toHaveLength(195)
     expect(names).not.toContain('Israel')
