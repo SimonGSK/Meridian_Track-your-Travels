@@ -189,6 +189,29 @@ describe('useGame', () => {
     })
   })
 
+  describe('daily challenge', () => {
+    afterEach(() => vi.useRealTimers())
+
+    it("plays today's challenge once, keeping how it went by day, not as a best score or time", () => {
+      vi.useFakeTimers({ toFake: ['Date'], now: new Date(2026, 9, 5, 9) })
+      const { result } = renderHook(() => useGame())
+      act(() => result.current.startDaily())
+      expect(rounds(result)).toMatchObject({ id: 'daily', index: 0 })
+      expect(rounds(result).rounds.map((r) => r.kind)).toEqual(['find', 'flags', 'capital', 'shape', 'name'])
+      playAll(result, (i) => i !== 1)
+      expect(result.current.daily).toEqual({ '2026-10-05': { score: 6, max: 7, squares: '🟩🟥🟩🟩🟩' } })
+      expect(result.current.best).toEqual({})
+      expect(result.current.bestTimes).toEqual({})
+
+      act(() => result.current.quit())
+      act(() => result.current.startDaily())
+      expect(result.current.game).toBeNull() // played today
+      vi.setSystemTime(new Date(2026, 9, 6, 9))
+      act(() => result.current.startDaily())
+      expect(rounds(result).id).toBe('daily')
+    })
+  })
+
   it('quits', () => {
     const { result } = renderHook(() => useGame())
     act(() => result.current.start('find', 'easy'))

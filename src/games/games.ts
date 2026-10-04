@@ -2,13 +2,26 @@ import { countries, type CountryFeature } from '../countries'
 import { capitalOf } from '../data/capitals'
 import { flagUrl } from '../flags'
 
-export type GameId = 'find' | 'flags' | 'name' | 'shape' | 'capital' | 'capital-country' | 'letter' | 'all' | 'higher'
-/** Games played in rounds, at a difficulty */
+export type GameId =
+  | 'daily'
+  | 'find'
+  | 'flags'
+  | 'name'
+  | 'shape'
+  | 'capital'
+  | 'capital-country'
+  | 'letter'
+  | 'all'
+  | 'higher'
+/** Games played in rounds, at a difficulty (the daily challenge mixes the others) */
 export type RoundGameId = Exclude<GameId, 'letter' | 'all' | 'higher'>
+/** What a round asks: one of the quizzes */
+export type QuizKind = Exclude<RoundGameId, 'daily'>
 /** "all" goes through every country, instead of 10 rounds */
 export type Difficulty = 'easy' | 'medium' | 'hard' | 'all'
 
 export const GAMES: { id: GameId; title: string; description: string }[] = [
+  { id: 'daily', title: 'Daily challenge', description: 'Five countries, one of each quiz, the same for everyone today.' },
   { id: 'find', title: 'Find the country', description: 'We name a country, you click it on the globe.' },
   { id: 'letter', title: 'Letter hunt', description: 'Click every country that starts with a letter.' },
   { id: 'all', title: 'Name them all', description: 'Type every country you can think of, from memory.' },
@@ -83,6 +96,8 @@ export function shuffle<T>(items: readonly T[], random: Random = Math.random): T
 // ── Games played in rounds: find, flags, name, shape ─────────────────────────
 
 export type Round = {
+  /** Which quiz it is, when the game mixes them (the daily challenge); else the game's */
+  kind?: QuizKind
   target: CountryFeature
   /** Answer choices, including the target. Empty unless answering by choosing. */
   options: CountryFeature[]
@@ -105,6 +120,8 @@ export type RoundGameState = {
   rounds: Round[]
   index: number
   score: number
+  /** The points won in each round, once it's over */
+  scores: number[]
   /** Set once the current round is over */
   answer: Answer | null
   /** Wrong tries so far this round ("find the country" allows MAX_TRIES) */
@@ -149,6 +166,7 @@ export function newRoundGame(
     rounds,
     index: 0,
     score: 0,
+    scores: [],
     answer: null,
     misses: [],
     notACountry: null,
@@ -162,15 +180,24 @@ export function newRoundGame(
 /** Rounds answered so far */
 export const roundsPlayed = (game: RoundGameState) => game.index + (game.answer ? 1 : 0)
 
+/** Which quiz a round is: its own kind in a mix, else the game's */
+export const kindOf = (game: RoundGameState, index = game.index): QuizKind =>
+  game.rounds[index]?.kind ?? (game.id as QuizKind)
+
+/** "Find the country" scores 3, 2 or 1 points by try; the others 1 point a round */
+export const pointsFor = (kind: QuizKind) => (kind === 'find' ? MAX_TRIES : 1)
+const pointsOf = (game: RoundGameState, rounds: number) =>
+  game.rounds.slice(0, rounds).reduce((sum, _, i) => sum + pointsFor(kindOf(game, i)), 0)
+
 /** End the game now, scoring the rounds played (an unanswered round doesn't count) */
 export function stopEarly(game: RoundGameState, now = Date.now()): RoundGameState {
   return game.finished ? game : { ...game, finished: true, stoppedEarly: true, endedAt: game.endedAt ?? now }
 }
 
 /** "Find the country" scores 3, 2 or 1 points by try; the other games 1 point per round. */
-export const maxScore = (game: RoundGameState) => game.rounds.length * (game.id === 'find' ? MAX_TRIES : 1)
+export const maxScore = (game: RoundGameState) => pointsOf(game, game.rounds.length)
 /** The most points the rounds played could have scored */
-export const maxScorePlayed = (game: RoundGameState) => roundsPlayed(game) * (game.id === 'find' ? MAX_TRIES : 1)
+export const maxScorePlayed = (game: RoundGameState) => pointsOf(game, roundsPlayed(game))
 
 export const currentRound = (game: RoundGameState) => game.rounds[game.index]
 
@@ -192,7 +219,7 @@ export function answer(
   if (game.answer || game.finished || game.misses.includes(picked)) return game
   if (picked.properties.kind !== 'country') return { ...game, notACountry: picked }
   const correct = picked === currentRound(game).target
-  const tries = game.id === 'find' ? MAX_TRIES : 1
+  const tries = pointsFor(kindOf(game))
   if (!correct && game.misses.length + 1 < tries) return { ...game, misses: [...game.misses, picked], notACountry: null }
   const points = correct ? tries - game.misses.length : 0
   const misses = correct ? game.misses : [...game.misses, picked]
@@ -202,6 +229,7 @@ export function answer(
     misses,
     notACountry: null,
     score: game.score + points,
+    scores: [...game.scores, points],
     endedAt: endedAt(game, now),
   }
 }
@@ -213,6 +241,7 @@ export function dontKnow(game: RoundGameState, now = Date.now()): RoundGameState
     ...game,
     answer: { picked: null, correct: false, alias: null, points: 0 },
     notACountry: null,
+    scores: [...game.scores, 0],
     endedAt: endedAt(game, now),
   }
 }

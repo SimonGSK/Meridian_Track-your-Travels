@@ -2,6 +2,7 @@ import { THEME_STORAGE_KEY, isThemeId } from '../design/useTheme'
 import { SETTINGS_KEY, isSettings } from '../explore/useSettings'
 import { BEST_TIMES_KEY } from '../games/records'
 import { BEST_SCORES_KEY, isBestScores } from '../games/useGame'
+import { DAILY_KEY, isDailyResults } from '../games/daily'
 import { FLIGHTS_KEY, isFlightList } from '../visited/useFlights'
 import { VISITED_STORAGE_KEY, isNameList } from '../visited/useVisited'
 import { VISITED_CITIES_KEY, isCityIdList } from '../visited/useVisitedCities'
@@ -24,6 +25,7 @@ const SAVED: { key: string; isValid: (value: unknown) => boolean }[] = [
   { key: FLIGHTS_KEY, isValid: isFlightList },
   { key: BEST_SCORES_KEY, isValid: isBestScores },
   { key: BEST_TIMES_KEY, isValid: isBestScores },
+  { key: DAILY_KEY, isValid: isDailyResults },
   { key: THEME_STORAGE_KEY, isValid: isThemeId },
   { key: SETTINGS_KEY, isValid: isSettings },
 ]

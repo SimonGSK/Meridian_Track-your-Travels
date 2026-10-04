@@ -18,6 +18,7 @@ const saved = {
   'countries-app.flights': [{ id: 'a', from: 'CPH', to: 'NRT' }],
   'countries-app.best-scores': { 'flags:easy': 9, 'letter:Z': 2 },
   'countries-app.best-times': { 'letter:Z': 8100 },
+  'countries-app.daily': { '2026-10-05': { score: 6, max: 7, squares: '🟩🟩🟨🟩🟥' } },
   'countries-app.design': 'night',
   'countries-app.settings': { showMarkers: false },
 }

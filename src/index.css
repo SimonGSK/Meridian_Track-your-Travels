@@ -2201,3 +2201,30 @@ code {
 .layers .sublayer {
   margin-left: 22px;
 }
+
+/* The daily challenge: first in the list, and its result */
+.game-card.daily {
+  border-color: var(--accent);
+}
+
+.daily-result {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  text-align: center;
+}
+
+.daily-result .big-score {
+  margin: 0;
+}
+
+.daily-squares {
+  margin: 0;
+  font-size: 28px;
+  letter-spacing: 4px;
+}
+
+.countdown {
+  color: var(--text);
+  font-family: var(--font-mono);
+}

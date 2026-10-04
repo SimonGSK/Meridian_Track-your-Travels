@@ -4,6 +4,7 @@ import { usePersistentState } from '../storage'
 import {
   answer,
   dontKnow,
+  maxScore,
   newRoundGame,
   next,
   stopEarly,
@@ -16,6 +17,7 @@ import { giveUp, newLetterGame, pickCountry, type LetterGameState } from './lett
 import { giveUpAll, nameCountry, newAllGame, type AllGameState, type Scope } from './allGame'
 import { BEST_TIMES_KEY, isPerfect, runTime } from './records'
 import { guess, newHigherLower, nextPair, type Guess, type HigherLowerState, type Measure } from './higherLower'
+import { DAILY_KEY, dayKey, isDailyResults, newDailyGame, squaresOf, type DailyResults } from './daily'
 
 export type GameState = RoundGameState | LetterGameState | AllGameState | HigherLowerState
 
@@ -60,6 +62,8 @@ export function useGame() {
   const [game, setGame] = useState<GameState | null>(null)
   const [best, setBest] = usePersistentState<BestScores>(BEST_SCORES_KEY, {}, isBestScores)
   const [bestTimes, setBestTimes] = usePersistentState<BestScores>(BEST_TIMES_KEY, {}, isBestScores)
+  /** How each day's challenge went */
+  const [daily, setDaily] = usePersistentState<DailyResults>(DAILY_KEY, {}, isDailyResults)
   // The bests before the current game started, to celebrate beating them
   const [previousBest, setPreviousBest] = useState<number | undefined>(undefined)
   const [previousTime, setPreviousTime] = useState<number | undefined>(undefined)
@@ -68,13 +72,19 @@ export function useGame() {
     (after: GameState) => {
       setGame(after)
       if (!after.finished || game?.finished) return
+      // The daily challenge is kept by day, for its streaks, not as a best score or time
+      if (after.kind === 'rounds' && after.id === 'daily') {
+        const day = dayKey(new Date(after.startedAt))
+        setDaily((prev) => ({ ...prev, [day]: { score: after.score, max: maxScore(after), squares: squaresOf(after) } }))
+        return
+      }
       const key = keyOf(after)
       if (gameScore(after) > (best[key] ?? -1)) setBest({ ...best, [key]: gameScore(after) })
       if (isPerfect(after) && runTime(after) < (bestTimes[key] ?? Infinity)) {
         setBestTimes({ ...bestTimes, [key]: runTime(after) })
       }
     },
-    [game, best, setBest, bestTimes, setBestTimes],
+    [game, best, setBest, bestTimes, setBestTimes, setDaily],
   )
 
   const begin = useCallback(
@@ -94,6 +104,11 @@ export function useGame() {
   const startAll = useCallback((scope: Scope) => begin(newAllGame(scope)), [begin])
   const startLetter = useCallback((letter: string) => begin(newLetterGame(letter)), [begin])
   const startHigher = useCallback((measure: Measure) => begin(newHigherLower(measure)), [begin])
+  /** Today's challenge, unless it's been played */
+  const startDaily = useCallback(() => {
+    const today = dayKey(new Date())
+    if (!(today in daily)) begin(newDailyGame(today))
+  }, [begin, daily])
 
   /** Higher or lower: more, or fewer */
   const guessHigher = useCallback(
@@ -141,6 +156,8 @@ export function useGame() {
     previousBest,
     bestTimes,
     previousTime,
+    daily,
+    startDaily,
     start,
     startLetter,
     startAll,

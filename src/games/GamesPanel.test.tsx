@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import GamesPanel from './GamesPanel'
@@ -7,6 +7,7 @@ import { giveUp, newLetterGame, pickCountry, type LetterGameState } from './lett
 import type { GameState } from './useGame'
 import { giveUpAll, nameCountry, newAllGame } from './allGame'
 import { guess, newHigherLower, type HigherLowerState } from './higherLower'
+import { dayKey, newDailyGame, shiftDay } from './daily'
 import { capitalOf } from '../data/capitals'
 import { countries } from '../countries'
 
@@ -23,6 +24,8 @@ function setup(overrides: Partial<Parameters<typeof GamesPanel>[0]> = {}) {
     onStartLetter: vi.fn(),
     onStartAll: vi.fn(),
     onStartHigher: vi.fn(),
+    onStartDaily: vi.fn(),
+    daily: {},
     onPick: vi.fn(),
     onGuess: vi.fn(),
     onDontKnow: vi.fn(),
@@ -572,5 +575,61 @@ describe('GamesPanel: whose capital?', () => {
     const { onPick } = setup({ game: game('hard') })
     await userEvent.type(screen.getByRole('textbox', { name: 'Your answer' }), 'holland{Enter}')
     expect(onPick).toHaveBeenCalledWith(byName('Netherlands'), 'holland')
+  })
+})
+
+describe('GamesPanel: daily challenge', () => {
+  afterEach(() => vi.useRealTimers())
+  const today = () => dayKey(new Date())
+  const result = { score: 6, max: 7, squares: '🟩🟩🟨🟩🟥' }
+
+  it('comes first in the list, saying if today is played and the streak', async () => {
+    const { onStartDaily } = setup({ daily: { [shiftDay(today(), -1)]: result } })
+    const card = screen.getAllByRole('button')[0]
+    expect(card).toHaveTextContent(/^Daily challenge/)
+    expect(card).toHaveTextContent('Not played today · 1 day in a row')
+    await userEvent.click(card)
+    expect(screen.getByRole('heading', { name: 'Daily challenge' })).toBeInTheDocument()
+    expect(screen.getByText('Streak', { selector: 'dt' }).nextElementSibling).toHaveTextContent('1')
+    await userEvent.click(screen.getByRole('button', { name: "Play today's challenge" }))
+    expect(onStartDaily).toHaveBeenCalled()
+  })
+
+  it("shows today's result once played, to copy, and when the next one comes", async () => {
+    vi.useFakeTimers({ toFake: ['Date'], now: new Date(2026, 9, 5, 21, 30) })
+    const writeText = vi.fn(() => Promise.resolve())
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true })
+    setup({ daily: { '2026-10-05': result } })
+    expect(screen.getAllByRole('button')[0]).toHaveTextContent('Today: 6 / 7 · 1 day in a row')
+    await userEvent.click(screen.getAllByRole('button')[0])
+    expect(screen.queryByRole('button', { name: "Play today's challenge" })).not.toBeInTheDocument()
+    expect(screen.getByText('6 / 7')).toBeInTheDocument()
+    expect(screen.getByLabelText('Rounds: 🟩🟩🟨🟩🟥')).toBeInTheDocument()
+    expect(screen.getByText(/^Next challenge in/)).toHaveTextContent('Next challenge in 2h 30m')
+    await userEvent.click(screen.getByRole('button', { name: 'Copy result' }))
+    expect(writeText).toHaveBeenCalledWith('Meridian daily · 5 Oct 2026 · 6/7\n🟩🟩🟨🟩🟥')
+    expect(screen.getByRole('button', { name: 'Copied' })).toBeInTheDocument()
+  })
+
+  it('plays each round as its own quiz, with the day in the header', () => {
+    const game = newDailyGame('2026-10-05', new Date(2026, 9, 5, 9).getTime())
+    setup({ game })
+    expect(screen.getByText(/^Daily challenge · 5 Oct$/)).toBeInTheDocument()
+    expect(screen.getByText('Find this country on the globe')).toBeInTheDocument()
+    expect(screen.getByText('Round 1 of 5')).toBeInTheDocument()
+    cleanup()
+    setup({ game: next(dontKnow(game)) })
+    expect(screen.getByText('Which country has this flag?')).toBeInTheDocument()
+    expect(screen.getAllByRole('button', { name: /./ }).filter((b) => b.classList.contains('option'))).toHaveLength(4)
+  })
+
+  it('ends with the result and the streaks', async () => {
+    let game = newDailyGame(today())
+    for (let i = 0; i < 5; i++) game = next(dontKnow(game))
+    const { onQuit } = setup({ game, daily: { [today()]: { score: 0, max: 7, squares: '🟥🟥🟥🟥🟥' } } })
+    expect(screen.getByText('0 / 7')).toBeInTheDocument()
+    expect(screen.getByText('Played', { selector: 'dt' }).nextElementSibling).toHaveTextContent('1')
+    await userEvent.click(screen.getByRole('button', { name: 'All games' }))
+    expect(onQuit).toHaveBeenCalled()
   })
 })
