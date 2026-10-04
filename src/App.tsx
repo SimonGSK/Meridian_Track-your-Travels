@@ -40,6 +40,10 @@ import { useVisited } from './visited/useVisited'
 import { useVisitedRegions } from './visited/useVisitedRegions'
 import { useVisitedCities } from './visited/useVisitedCities'
 import { useVisitDates } from './visited/useVisitDates'
+import { ACHIEVEMENTS, earnedIds, type Atlas } from './visited/achievements'
+import AchievementsPanel from './visited/AchievementsPanel'
+import AchievementToast from './visited/AchievementToast'
+import { useNewAchievements } from './visited/useNewAchievements'
 import { describeVisits } from './data/visitDates'
 import { useFlights } from './visited/useFlights'
 import FlightsPanel from './visited/FlightsPanel'
@@ -169,6 +173,20 @@ export default function App() {
     () => flights.flatMap((flight) => routeOf(flight, airportByCode) ?? []),
     [flights, airportByCode],
   )
+
+  // What achievements are earned from, and the ones just earned
+  const visitedCityList = useMemo(() => (cities ?? []).filter((c) => visitedCities.has(c.id)), [cities, visitedCities])
+  const atlas = useMemo<Atlas>(
+    () => ({
+      visited,
+      regions: visitedRegions,
+      cities: visitedCityList,
+      flights: routes,
+      visitsTo: (name) => datesOf(name).length,
+    }),
+    [visited, visitedRegions, visitedCityList, routes, datesOf],
+  )
+  const [newAchievements, clearAchievements] = useNewAchievements(atlas, !!cities && !!airports)
 
   /** Flies to show a flight's whole route, from above its middle */
   const showRoute = useCallback(
@@ -475,6 +493,9 @@ export default function App() {
               onViewChange={setVisitedView}
               places={visited.size}
               flights={routes.length}
+              earned={earnedIds(atlas).size}
+              achievementCount={ACHIEVEMENTS.length}
+              achievements={<AchievementsPanel atlas={atlas} />}
               countries={
                 <VisitedPanel
                   visited={visited}
@@ -556,6 +577,15 @@ export default function App() {
         text={playing ? null : (hoveredCity?.name ?? hoveredRegion?.properties.name ?? hovered?.properties.name ?? null)}
       />
       <FlagCorner country={playing ? null : hovered} />
+      <AchievementToast
+        achievements={newAchievements}
+        onOpen={() => {
+          clearAchievements()
+          setVisitedView('achievements')
+          changeView('visited')
+        }}
+        onDismiss={clearAchievements}
+      />
 
       {selected && (
         <CountryPanel

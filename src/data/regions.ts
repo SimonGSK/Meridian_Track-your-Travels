@@ -73,6 +73,9 @@ const byAlpha3 = new Map(Object.entries(REGIONS).map(([alpha2, r]) => [r.alpha3,
 export const hasRegions = (country: CountryFeature) =>
   country.properties.kind === 'country' && !!country.properties.isoAlpha2 && country.properties.isoAlpha2 in REGIONS
 
+/** Every region of a country, by id ("US-CA"), without needing their shapes: none for a country without */
+export const regionIdsOf = (alpha2: string) => Object.keys(REGIONS[alpha2]?.names ?? {}).map((code) => `${alpha2}-${code}`)
+
 /** What a country's regions are called, e.g. "Provinces and territories" */
 export const regionsLabel = (country: CountryFeature) => REGIONS[country.properties.isoAlpha2 ?? '']?.label ?? 'Regions'
 

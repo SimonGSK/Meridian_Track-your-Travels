@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import Card from '../ui/Card'
 
-export type VisitedView = 'countries' | 'flights'
+export type VisitedView = 'countries' | 'flights' | 'achievements'
 
 type Props = {
   view: VisitedView
@@ -9,23 +9,33 @@ type Props = {
   /** Countries and territories visited, for the header */
   places: number
   flights: number
+  /** Achievements earned, and how many there are */
+  earned: number
+  achievementCount: number
   countries: ReactNode
   flightsPanel: ReactNode
+  achievements: ReactNode
 }
 
 const VIEWS: { id: VisitedView; label: string }[] = [
   { id: 'countries', label: 'Countries' },
   { id: 'flights', label: 'Flights' },
+  { id: 'achievements', label: 'Achievements' },
 ]
 
-/** The Visited tab: your countries or your flights, switched at the top */
-export default function VisitedTab({ view, onViewChange, places, flights, countries, flightsPanel }: Props) {
+const plural = (n: number, one: string) => `${n} ${n === 1 ? one : `${one}s`}`
+
+/** The Visited tab: your countries, your flights or your achievements, switched at the top */
+export default function VisitedTab(props: Props) {
+  const { view, onViewChange, places, flights, earned, achievementCount } = props
+  const meta = {
+    countries: plural(places, 'place'),
+    flights: plural(flights, 'flight'),
+    achievements: `${earned} / ${achievementCount}`,
+  }[view]
+  const panel = { countries: props.countries, flights: props.flightsPanel, achievements: props.achievements }[view]
   return (
-    <Card
-      letter="B"
-      label="Visited atlas"
-      meta={view === 'countries' ? `${places} ${places === 1 ? 'place' : 'places'}` : `${flights} ${flights === 1 ? 'flight' : 'flights'}`}
-    >
+    <Card letter="B" label="Visited atlas" meta={meta}>
       <div className="segmented" role="tablist" aria-label="Show">
         {VIEWS.map(({ id, label }) => (
           <button
@@ -42,7 +52,7 @@ export default function VisitedTab({ view, onViewChange, places, flights, countr
         ))}
       </div>
       <div role="tabpanel" id={`visited-${view}`} aria-labelledby={`visited-${view}-tab`}>
-        {view === 'countries' ? countries : flightsPanel}
+        {panel}
       </div>
     </Card>
   )

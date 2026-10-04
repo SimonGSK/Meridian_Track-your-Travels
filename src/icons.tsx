@@ -89,6 +89,15 @@ export const PlusIcon = ({ size = 16 }: Props) => svg(size, <path d="M12 5v14M5 
 
 export const CloseIcon = ({ size = 16 }: Props) => svg(size, <path d="m6 6 12 12M18 6 6 18" />)
 
+export const TrophyIcon = ({ size = 24 }: Props) =>
+  svg(
+    size,
+    <>
+      <path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4z" />
+      <path d="M17 6h2.5a1.5 1.5 0 0 1 1.5 1.5c0 2.2-1.8 4-4 4M7 6H4.5A1.5 1.5 0 0 0 3 7.5c0 2.2 1.8 4 4 4" />
+    </>,
+  )
+
 export const LayersIcon = ({ size = 24 }: Props) =>
   svg(
     size,
