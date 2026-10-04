@@ -23,10 +23,12 @@ The design (navy and amber, after a mock-up made in Lovable) has a top bar with 
   - *Flag quiz*: which country has this flag?
   - *Name that country*: a country lights up on the globe; which one is it?
   - *Shape quiz*: name the country from its outline.
+  - *Capital quiz*: what's the capital of the country lit up on the globe? Typed answers take older names ("Kiev") and every capital of countries with several (Pretoria, Cape Town or Bloemfontein). Israel and Palestine are left out, as their capitals are disputed and a quiz would have to take a side.
+  - *Higher or lower*: you see one country's population (or area); does the next have more or fewer? Each right guess makes that country the one to beat, and the first wrong one ends the run. Both countries light up on the globe, and the longest streak is kept for population and for area.
 
-  Games played in rounds are Easy (big countries, four answers to pick from), Medium (all but the smallest), Hard (all 197) or All countries (every one of the 197, one after another; stop whenever you like). Beyond Easy you type answers with no suggestions; any known spelling counts ("East Timor", "Burma", "Ceylon"), punctuation and spacing don't matter, and the answer shows the name used today. Tiny countries that are answers get a dot so you can see them. Rounds have an "I don't know" button that shows the answer; the round counts as wrong. Every game is about the 197 countries only: clicking or typing a territory (Greenland, Puerto Rico…) counts neither way, and territories don't light up under the pointer or get a ring.
+  Games played in rounds (all but the letter hunt, "name them all" and higher or lower) are Easy (big countries, four answers to pick from), Medium (all but the smallest), Hard (all 197) or All countries (every one of the 197, one after another; stop whenever you like). Beyond Easy you type answers with no suggestions; any known spelling counts ("East Timor", "Burma", "Ceylon"), punctuation and spacing don't matter, and the answer shows the name used today. Tiny countries that are answers get a dot so you can see them. Rounds have an "I don't know" button that shows the answer; the round counts as wrong. Every game is about the 197 countries only: clicking or typing a territory (Greenland, Puerto Rico…) counts neither way, and territories don't light up under the pointer or get a ring.
 
-  A clock runs while you play. Perfect runs set a time record to beat, next to the best score: every point (in *Find the country*, every country on the first try), no wrong letters in the letter hunt, and played to the end. Being fast with a mistake doesn't count. The clock stops at the last answer, not when you look at the results.
+  A clock runs while you play. Perfect runs set a time record to beat, next to the best score: every point (in *Find the country*, every country on the first try), no wrong letters in the letter hunt, and played to the end. Being fast with a mistake doesn't count. The clock stops at the last answer, not when you look at the results. Higher or lower keeps its longest streak instead.
 - **Design**: switch the globe between Midnight (the default), Classic, Vintage, Political (neighbors always in different colors), Night and Minimal. The layers are here too.
 - **Settings**: back up everything to a file, or restore a backup (below), and how to make the globe your Mac's screensaver.
 
@@ -123,7 +125,7 @@ src/
   visited/             visited countries, states and cities; flights, and the airport search
   design/              design picker, and how to set up the screensaver
   settings/            backups: making, checking and restoring them, and their card
-  games/               game rules (games.ts, letterGame.ts), what the globe shows (globeView.ts),
+  games/               game rules (games.ts, letterGame.ts, higherLower.ts), what the globe shows (globeView.ts),
                        state and best scores (useGame.ts), perfect runs and their times (records.ts),
                        the panel, answer box and outlines
   globe/
