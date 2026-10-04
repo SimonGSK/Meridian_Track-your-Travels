@@ -4,7 +4,7 @@ import { usePersistentState } from '../storage'
 
 export const VISITED_STORAGE_KEY = 'countries-app.visited'
 
-const isNameList = (value: unknown): value is string[] =>
+export const isNameList = (value: unknown): value is string[] =>
   Array.isArray(value) && value.every((v) => typeof v === 'string')
 
 // Earlier versions saved the map's names ("Dem. Rep. Congo"); read them as today's names

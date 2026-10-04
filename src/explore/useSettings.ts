@@ -23,7 +23,7 @@ export const DEFAULT_SETTINGS: Settings = {
   showFlights: true,
 }
 
-const isSettings = (value: unknown): value is Partial<Settings> =>
+export const isSettings = (value: unknown): value is Partial<Settings> =>
   typeof value === 'object' && value !== null && Object.values(value).every((v) => typeof v === 'boolean')
 
 /** Only the settings there are now: older versions saved some that are gone (which Explore cards to show) */

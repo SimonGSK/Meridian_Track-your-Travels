@@ -5,7 +5,7 @@ import { DEFAULT_THEME, THEMES, themeById } from '../globe/themes'
 // Renamed with the Midnight redesign, so everyone starts out in it once
 export const THEME_STORAGE_KEY = 'countries-app.design'
 
-const isThemeId = (value: unknown): value is string => THEMES.some((t) => t.id === value)
+export const isThemeId = (value: unknown): value is string => THEMES.some((t) => t.id === value)
 
 /** The chosen globe design, saved in this browser. */
 export function useTheme() {

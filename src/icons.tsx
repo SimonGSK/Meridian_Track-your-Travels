@@ -89,6 +89,16 @@ export const PlusIcon = ({ size = 16 }: Props) => svg(size, <path d="M12 5v14M5 
 
 export const CloseIcon = ({ size = 16 }: Props) => svg(size, <path d="m6 6 12 12M18 6 6 18" />)
 
+export const LayersIcon = ({ size = 24 }: Props) =>
+  svg(
+    size,
+    <>
+      <path d="m12 3 9 5-9 5-9-5 9-5z" />
+      <path d="m3 12.5 9 5 9-5" />
+      <path d="m3 16.5 9 5 9-5" />
+    </>,
+  )
+
 export const GearIcon = ({ size = 24 }: Props) =>
   svg(
     size,

@@ -878,6 +878,33 @@ code {
   font-size: 12px;
 }
 
+/* Settings: the backup */
+.backup .muted:first-of-type {
+  margin-top: 0;
+}
+
+.backup-current {
+  margin: 10px 0 0;
+  font-size: 14px;
+}
+
+.card-actions {
+  flex-wrap: wrap;
+}
+
+/* Asking before a backup replaces what's here */
+.backup-restore {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border: 1px solid var(--accent);
+  border-radius: 10px;
+  background: var(--surface-raised);
+}
+
+.backup-restore p {
+  margin: 0;
+}
+
 /* The Visited tab: countries or flights, each with its figures */
 .segmented {
   display: grid;
@@ -1790,14 +1817,16 @@ code {
   .country-name {
     font-size: 38px;
   }
+  /* Five tabs leave the name room */
+  .tab {
+    padding: 9px 14px;
+    font-size: 14px;
+  }
 }
 
 @media (max-width: 860px) {
   .brand-text {
     display: none;
-  }
-  .tab {
-    padding: 9px 14px;
   }
 }
 
@@ -1838,10 +1867,13 @@ code {
     border-radius: 0;
     background: var(--panel-strong);
   }
+  /* Each tab an equal share of the bar, so five fit on the narrowest phones */
   .tab {
+    flex: 1 1 0;
+    min-width: 0;
     flex-direction: column;
     gap: 3px;
-    padding: 6px 12px;
+    padding: 6px 2px;
     border-radius: 12px;
     font-size: 11px;
   }

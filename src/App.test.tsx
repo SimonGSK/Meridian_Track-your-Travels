@@ -345,6 +345,17 @@ describe('App', () => {
       expect(within(sidePanel()!).getByRole('switch', { name: /City pins/ })).toBeChecked()
     })
 
+    it('has the backup and the screensaver in the Settings tab, and only the design and layers in Design', async () => {
+      render(<App />)
+      await userEvent.click(screen.getByRole('button', { name: 'Settings' }))
+      expect(sidePanel()).toHaveAccessibleName('Settings')
+      expect(within(sidePanel()!).getByRole('button', { name: 'Download backup' })).toBeInTheDocument()
+      expect(within(sidePanel()!).getByRole('region', { name: /Screensaver/ })).toBeInTheDocument()
+      await userEvent.click(screen.getByRole('button', { name: 'Design' }))
+      expect(within(sidePanel()!).queryByRole('region', { name: /Screensaver/ })).not.toBeInTheDocument()
+      expect(within(sidePanel()!).queryByRole('region', { name: /Backup/ })).not.toBeInTheDocument()
+    })
+
     it('switches design with the swatches', async () => {
       render(<App />)
       await openLayers()

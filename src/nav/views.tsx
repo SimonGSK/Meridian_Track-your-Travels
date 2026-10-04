@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
-import { CompassIcon, GamepadIcon, PaletteIcon, PinIcon } from '../icons'
+import { CompassIcon, GamepadIcon, GearIcon, PaletteIcon, PinIcon } from '../icons'
 
-export type ViewId = 'explore' | 'visited' | 'games' | 'design'
+export type ViewId = 'explore' | 'visited' | 'games' | 'design' | 'settings'
 
 /** The items in the main menu, in order */
 export const VIEWS: { id: ViewId; label: string; icon: ReactNode }[] = [
@@ -9,4 +9,5 @@ export const VIEWS: { id: ViewId; label: string; icon: ReactNode }[] = [
   { id: 'visited', label: 'Visited', icon: <PinIcon size={20} /> },
   { id: 'games', label: 'Games', icon: <GamepadIcon size={20} /> },
   { id: 'design', label: 'Design', icon: <PaletteIcon size={20} /> },
+  { id: 'settings', label: 'Settings', icon: <GearIcon size={20} /> },
 ]

@@ -35,7 +35,7 @@ function keyOf(game: GameState) {
   return bestKey(game.id, game.difficulty)
 }
 
-const isBestScores = (value: unknown): value is BestScores =>
+export const isBestScores = (value: unknown): value is BestScores =>
   typeof value === 'object' &&
   value !== null &&
   !Array.isArray(value) &&
