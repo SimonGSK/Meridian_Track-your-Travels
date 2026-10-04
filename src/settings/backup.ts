@@ -6,10 +6,11 @@ import { FLIGHTS_KEY, isFlightList } from '../visited/useFlights'
 import { VISITED_STORAGE_KEY, isNameList } from '../visited/useVisited'
 import { VISITED_CITIES_KEY, isCityIdList } from '../visited/useVisitedCities'
 import { VISITED_REGIONS_KEY, isRegionIdList } from '../visited/useVisitedRegions'
+import { VISIT_DATES_KEY, isVisitDates } from '../visited/useVisitDates'
 
 /**
  * Everything is saved in this browser only, so a backup is a file with all
- * of it: places, states, cities, flights, best scores and times, the design
+ * of it: places and when you went, states, cities, flights, best scores and times, the design
  * and the layers. Restoring one replaces what's here, part by part checked
  * as the app checks it when loading.
  */
@@ -19,6 +20,7 @@ const SAVED: { key: string; isValid: (value: unknown) => boolean }[] = [
   { key: VISITED_STORAGE_KEY, isValid: isNameList },
   { key: VISITED_REGIONS_KEY, isValid: isRegionIdList },
   { key: VISITED_CITIES_KEY, isValid: isCityIdList },
+  { key: VISIT_DATES_KEY, isValid: isVisitDates },
   { key: FLIGHTS_KEY, isValid: isFlightList },
   { key: BEST_SCORES_KEY, isValid: isBestScores },
   { key: BEST_TIMES_KEY, isValid: isBestScores },

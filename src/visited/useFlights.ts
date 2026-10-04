@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo } from 'react'
 import type { Airport } from '../data/airports'
 import type { City } from '../data/cities'
 import { isAirportFlight, migrateFlights, type StoredFlight } from '../data/flights'
+import { isVisitDate, type VisitDate } from '../data/visitDates'
 import { usePersistentState } from '../storage'
 
 export const FLIGHTS_KEY = 'countries-app.flights'
@@ -9,7 +10,15 @@ export const FLIGHTS_KEY = 'countries-app.flights'
 const isEnd = (end: unknown) => typeof end === 'string' || typeof end === 'number'
 export const isFlightList = (value: unknown): value is StoredFlight[] =>
   Array.isArray(value) &&
-  value.every((f) => typeof f === 'object' && f !== null && typeof f.id === 'string' && isEnd(f.from) && isEnd(f.to))
+  value.every(
+    (f) =>
+      typeof f === 'object' &&
+      f !== null &&
+      typeof f.id === 'string' &&
+      isEnd(f.from) &&
+      isEnd(f.to) &&
+      (f.date === undefined || isVisitDate(f.date)),
+  )
 
 const newId = () => (crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`)
 
@@ -28,11 +37,23 @@ export function useFlights(cities: readonly City[] | null, airports: readonly Ai
   }, [cities, airports, stored, setStored])
 
   const add = useCallback(
-    (from: string, to: string) => {
-      if (from !== to) setStored((prev) => [...prev, { id: newId(), from, to }])
+    (from: string, to: string, date: VisitDate | null = null) => {
+      if (from !== to) setStored((prev) => [...prev, { id: newId(), from, to, ...(date ? { date } : {}) }])
     },
     [setStored],
   )
   const remove = useCallback((id: string) => setStored((prev) => prev.filter((f) => f.id !== id)), [setStored])
-  return { flights, add, remove }
+  /** When a flight was, or null for no date */
+  const setDate = useCallback(
+    (id: string, date: VisitDate | null) =>
+      setStored((prev) =>
+        prev.map((flight) => {
+          if (flight.id !== id) return flight
+          const undated = { id: flight.id, from: flight.from, to: flight.to }
+          return date ? { ...undated, date } : undated
+        }),
+      ),
+    [setStored],
+  )
+  return { flights, add, remove, setDate }
 }

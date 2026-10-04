@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  byDate,
   distanceKm,
   flightStats,
   formatDistance,
@@ -51,11 +52,20 @@ describe('flights', () => {
       { id: 'c', from: 'CPH', to: 'DXB' },
     ]
     expect(isAirportFlight(saved[0])).toBe(false)
+    expect(migrateFlights([{ ...saved[0], date: '2015' }], cityById, airports)).toEqual([
+      { id: 'a', from: 'CPH', to: 'HND', date: '2015' }, // keeping when it was
+    ])
     expect(migrateFlights(saved, cityById, airports)).toEqual([
       { id: 'a', from: 'CPH', to: 'HND' },
       { id: 'b', from: 'NAN', to: 'SIN' },
       { id: 'c', from: 'CPH', to: 'DXB' },
     ])
+  })
+
+  it('orders flights by date, newest first, then those without one, the last added first', () => {
+    const dated = (from: string, to: string, date?: string) => routeOf({ ...flight(from, to), ...(date ? { date } : {}) }, byCode)!
+    const order = byDate([dated('CPH', 'BKK', '2019'), dated('BKK', 'SYD'), dated('SYD', 'AKL'), dated('LHR', 'JFK', '2023-05')])
+    expect(order.map((r) => r.flight.id)).toEqual(['LHR-JFK', 'CPH-BKK', 'SYD-AKL', 'BKK-SYD'])
   })
 
   it('drops a saved flight whose city is gone', () => {

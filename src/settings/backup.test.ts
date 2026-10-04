@@ -14,6 +14,7 @@ const saved = {
   'countries-app.visited': ['Denmark', 'Japan'],
   'countries-app.visited-regions': ['US-CA'],
   'countries-app.visited-cities': [2618425],
+  'countries-app.visit-dates': { Denmark: ['2023-05', '2019'] },
   'countries-app.flights': [{ id: 'a', from: 'CPH', to: 'NRT' }],
   'countries-app.best-scores': { 'flags:easy': 9, 'letter:Z': 2 },
   'countries-app.best-times': { 'letter:Z': 8100 },
@@ -36,10 +37,12 @@ describe('createBackup', () => {
   it('leaves out what the app would ignore: damaged data, and other keys', () => {
     localStorage.setItem('countries-app.flights', 'not json')
     localStorage.setItem('countries-app.visited', JSON.stringify([1, 2]))
+    localStorage.setItem('countries-app.visit-dates', JSON.stringify({ Denmark: ['last summer'] }))
     localStorage.setItem('countries-app.last-backup', JSON.stringify('2026-10-01T00:00:00Z'))
     const { data } = createBackup()
     expect(data).not.toHaveProperty('countries-app.flights')
     expect(data).not.toHaveProperty('countries-app.visited')
+    expect(data).not.toHaveProperty('countries-app.visit-dates')
     expect(data).not.toHaveProperty('countries-app.last-backup')
   })
 })

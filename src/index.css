@@ -963,6 +963,76 @@ code {
   gap: 8px;
 }
 
+/* A month and a year: when you went, or flew */
+.month-year {
+  display: flex;
+  gap: 6px;
+  min-width: 0;
+}
+
+.month-year select {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(3, 10, 18, 0.45);
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+}
+
+.month-year select:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* Adding a visit: the date, and the button beside it */
+.date-adder {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.date-adder .month-year {
+  flex: 1 1 200px;
+}
+
+.date-adder .primary-button {
+  flex: none;
+  padding: 8px 14px;
+}
+
+.visits-card {
+  margin-top: 18px;
+}
+
+/* A flight's date, beside it in the list, and changing it */
+.flight-date {
+  flex: none;
+  padding: 4px 6px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.country-item.editing {
+  flex-wrap: wrap;
+}
+
+.flight-date-editor {
+  flex-basis: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 10px 10px;
+}
+
+.flight-date-editor .month-year {
+  flex: 1;
+}
+
 .city-choice {
   display: grid;
   gap: 4px;

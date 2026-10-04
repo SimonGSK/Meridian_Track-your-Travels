@@ -36,7 +36,22 @@ describe('useFlights', () => {
     expect(JSON.parse(localStorage.getItem(FLIGHTS_KEY)!)).toEqual([{ id: 'a', from: 'CPH', to: 'DXB' }])
   })
 
+  it('keeps when a flight was, and changes or clears it', () => {
+    const { result } = renderHook(() => useFlights(null, null))
+    act(() => result.current.add('CPH', 'BKK', '2024-05'))
+    act(() => result.current.add('BKK', 'SYD'))
+    const [first, second] = result.current.flights
+    expect(first).toMatchObject({ from: 'CPH', to: 'BKK', date: '2024-05' })
+    expect(second).not.toHaveProperty('date')
+    act(() => result.current.setDate(second.id, '2024-06'))
+    act(() => result.current.setDate(first.id, null))
+    expect(result.current.flights.map((f) => f.date)).toEqual([undefined, '2024-06'])
+    expect(result.current.flights[0]).not.toHaveProperty('date')
+  })
+
   it('ignores corrupted data', () => {
+    localStorage.setItem(FLIGHTS_KEY, JSON.stringify([{ id: 'a', from: 'CPH', to: 'BKK', date: 'last May' }]))
+    expect(renderHook(() => useFlights(null, null)).result.current.flights).toEqual([])
     localStorage.setItem(FLIGHTS_KEY, JSON.stringify([{ from: 'Paris' }]))
     expect(renderHook(() => useFlights(null, null)).result.current.flights).toEqual([])
   })

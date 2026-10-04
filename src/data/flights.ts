@@ -1,12 +1,13 @@
 import { geoDistance } from 'd3-geo'
 import { nearestAirport, type Airport } from './airports'
 import type { City } from './cities'
+import { newestFirst, type VisitDate } from './visitDates'
 
-/** A flight you've taken, between two airports (IATA codes) */
-export type Flight = { id: string; from: string; to: string }
+/** A flight you've taken, between two airports (IATA codes), and when, if you said */
+export type Flight = { id: string; from: string; to: string; date?: VisitDate }
 
 /** As saved: the first flights went between cities (GeoNames ids), before there were airports */
-export type StoredFlight = { id: string; from: string | number; to: string | number }
+export type StoredFlight = { id: string; from: string | number; to: string | number; date?: VisitDate }
 
 const EARTH_KM = 6371
 /** Once around the Earth at the equator */
@@ -61,8 +62,14 @@ export function migrateFlights(
   }
   return stored.flatMap((flight) => {
     const [from, to] = [airportOf(flight.from), airportOf(flight.to)]
-    return from && to && from !== to ? [{ id: flight.id, from, to }] : []
+    return from && to && from !== to ? [{ ...flight, from, to }] : []
   })
+}
+
+/** Newest first; flights without a date after them, the last added first */
+export function byDate(routes: readonly Route[]) {
+  const dated = routes.filter((r) => r.flight.date).sort((a, b) => newestFirst(a.flight.date!, b.flight.date!))
+  return [...dated, ...routes.filter((r) => !r.flight.date).reverse()]
 }
 
 const whole = new Intl.NumberFormat('en-US')

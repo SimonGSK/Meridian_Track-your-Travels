@@ -4,6 +4,7 @@ import { factsOf, formatArea, formatAreaShort, formatPopulation, formatPopulatio
 import { CheckIcon, CloseIcon, PlusIcon } from './icons'
 import CityPicker from './CityPicker'
 import RegionPicker from './RegionPicker'
+import VisitsCard from './visited/VisitsCard'
 
 type Props = {
   country: CountryFeature
@@ -14,10 +15,12 @@ type Props = {
   regions?: ComponentProps<typeof RegionPicker>
   /** For countries with cities to pick */
   cities?: ComponentProps<typeof CityPicker>
+  /** When you went, once it's visited */
+  visits?: ComponentProps<typeof VisitsCard>
 }
 
 /** The selected country, on the left: "(A) SELECTED COUNTRY", its facts, cities and states. */
-export default function CountryPanel({ country, visited, onToggleVisited, onClose, regions, cities }: Props) {
+export default function CountryPanel({ country, visited, onToggleVisited, onClose, regions, cities, visits }: Props) {
   const { name, kind, continent, areaKm2: mapArea, isoCode, isoAlpha2 } = country.properties
   const facts = factsOf(country)
   const code = isoCode ?? isoAlpha2
@@ -37,6 +40,7 @@ export default function CountryPanel({ country, visited, onToggleVisited, onClos
       </h2>
       <p className="panel-meta">{[continent, regionCount].filter(Boolean).join(' · ')}</p>
       {facts && <Facts facts={facts} mapArea={mapArea} />}
+      {visits && <VisitsCard {...visits} />}
       {cities && <CityPicker {...cities} />}
       {regions && <RegionPicker {...regions} />}
       <button
