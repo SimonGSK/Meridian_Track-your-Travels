@@ -5,7 +5,7 @@ import { useEffect, useImperativeHandle, useRef, type Ref } from 'react'
 import type { GlobeProps } from 'react-globe.gl'
 import App from './App'
 import { countries, findCountryAt, tinyPlaces } from './countries'
-import { LETTER_HUNT_RINGS } from './games/globeView'
+import { LETTER_HUNT_RINGS, TINY_COUNTRIES } from './games/globeView'
 import { SETTINGS_KEY } from './explore/useSettings'
 import { loadCities } from './data/cities'
 import { loadAirports } from './data/airports'
@@ -979,6 +979,13 @@ describe('App', () => {
         expect(screen.getByText('Shape quiz · Medium')).toBeInTheDocument()
         expect(screen.getByText('Round 1 of 5')).toBeInTheDocument()
       })
+    })
+
+    it('rings no territories in the other games, as they are no part of them', async () => {
+      await startGame(/Find the country/)
+      expect(layer.setRings).toHaveBeenLastCalledWith(TINY_COUNTRIES, null)
+      await userEvent.click(screen.getByRole('button', { name: 'Quit game' }))
+      expect(layer.setRings).toHaveBeenLastCalledWith(tinyPlaces, null)
     })
 
     describe('letter hunt', () => {

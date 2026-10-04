@@ -12,7 +12,16 @@ import { useSettings } from './explore/useSettings'
 import GamesPanel from './games/GamesPanel'
 import { GAMES, type Difficulty, type GameId, type RoundGameId } from './games/games'
 import type { Scope } from './games/allGame'
-import { flightTarget, gameHighlights, gameRings, globeAnswers, isPlaying, overviewKey, showsGame } from './games/globeView'
+import {
+  LETTER_HUNT_RINGS,
+  flightTarget,
+  gameHighlights,
+  gameRings,
+  globeAnswers,
+  isPlaying,
+  overviewKey,
+  showsGame,
+} from './games/globeView'
 import { useGame } from './games/useGame'
 import { useTheme } from './design/useTheme'
 import FlagCorner from './FlagCorner'
@@ -192,11 +201,11 @@ export default function App() {
   )
   // Game answers on tiny islands get a dot, or they'd be invisible
   const gameColors = useMemo(() => gameHighlights(game, theme), [game, theme])
-  // Rings around tiny places, if switched on; the letter hunt rings the small islands too, always, in a color
-  // that shows over the sea
-  const huntRings = gameRings(game)
-  const rings = huntRings ?? (settings.showMarkers ? tinyPlaces : NO_RINGS)
-  useCountryLayer(globe, theme, colorOf, { rings, ringColor: huntRings && theme.flight, emphasized: gameColors })
+  // Rings around tiny places, if switched on; games ring only countries, and the letter hunt the small islands
+  // too, always, in a color that shows over the sea
+  const rings = gameRings(game, settings.showMarkers) ?? (settings.showMarkers ? tinyPlaces : NO_RINGS)
+  const ringColor = rings === LETTER_HUNT_RINGS ? theme.flight : null
+  useCountryLayer(globe, theme, colorOf, { rings, ringColor, emphasized: gameColors })
   useSelectedCountry(globe, editing ? null : selected, theme.selected)
 
   // A hovered country's visited states turn the hover color with it (only countries with states matter here)

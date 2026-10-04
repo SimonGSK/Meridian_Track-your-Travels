@@ -1,4 +1,4 @@
-import { countries, type CountryFeature } from '../countries'
+import { countries, tinyPlaces, type CountryFeature } from '../countries'
 import type { Theme } from '../globe/themes'
 import { currentRound } from './games'
 import { missing } from './letterGame'
@@ -25,8 +25,20 @@ export const LETTER_HUNT_RINGS: readonly CountryFeature[] = countries.filter(
   ({ properties: p }) => p.kind === 'country' && (p.tiny || (p.island && p.areaKm2 < SMALL_ISLAND_KM2)),
 )
 
-/** The rings a game wants on the globe, or null for the usual ones */
-export const gameRings = (game: GameState | null) => (showsGame(game) && game?.kind === 'letter' ? LETTER_HUNT_RINGS : null)
+/** The tiny countries, without the territories, which aren't part of the games */
+export const TINY_COUNTRIES: readonly CountryFeature[] = tinyPlaces.filter((c) => c.properties.kind === 'country')
+const NO_RINGS: readonly CountryFeature[] = []
+
+/**
+ * The rings a game wants on the globe: only around countries, if the rings
+ * are on, and in the letter hunt around the small islands too, always. Null
+ * without a game on the globe.
+ */
+export function gameRings(game: GameState | null, ringsOn: boolean) {
+  if (!showsGame(game)) return null
+  if (game?.kind === 'letter') return LETTER_HUNT_RINGS
+  return ringsOn ? TINY_COUNTRIES : NO_RINGS
+}
 
 /** You answer by clicking the globe: finding a country, or hunting for a letter */
 export function globeAnswers(game: GameState | null) {
