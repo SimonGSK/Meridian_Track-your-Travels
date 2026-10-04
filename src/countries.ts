@@ -214,25 +214,28 @@ export const tinyPlaces: readonly CountryFeature[] = countries.filter((c) => c.p
 
 /**
  * Like findCountryAt, but forgiving, so small islands can be hit with a
- * mouse. Tiny places, and the `ringed` ones, are found within
- * `markerRadius` of their middle (even on top of a bigger country), and any
- * country within `tolerance` of its outline. Both in radians.
+ * mouse. Places with a ring are found within `markerRadius` of their middle,
+ * and tiny places without one within `unringedRadius` (both even on top of
+ * a bigger country), and any country within `tolerance` of its outline. All
+ * in radians.
  */
 export function findCountryNear(
   lat: number,
   lng: number,
   {
     markerRadius,
+    unringedRadius = markerRadius,
     tolerance,
-    ringed = [],
-  }: { markerRadius: number; tolerance: number; ringed?: readonly CountryFeature[] },
+    ringed = tinyPlaces,
+  }: { markerRadius: number; unringedRadius?: number; tolerance: number; ringed?: readonly CountryFeature[] },
 ): CountryFeature | null {
   const point: [number, number] = [lng, lat]
+  const withRing = new Set(ringed)
   let nearest: CountryFeature | null = null
-  let distance = markerRadius
-  for (const country of [...tinyPlaces, ...ringed]) {
+  let distance = Infinity
+  for (const country of [...ringed, ...tinyPlaces]) {
     const d = geoDistance(point, country.properties.centroid)
-    if (d <= distance) [nearest, distance] = [country, d]
+    if (d <= (withRing.has(country) ? markerRadius : unringedRadius) && d < distance) [nearest, distance] = [country, d]
   }
   if (nearest) return nearest
 

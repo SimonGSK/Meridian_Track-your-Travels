@@ -192,18 +192,16 @@ describe('useDepthPrecision', () => {
 
 describe('hitDistances', () => {
   it('reaches at least a few km around tiny places when zoomed in', () => {
-    const closeUp = 0.1 / 6371 // a pixel is 100 m
-    expect(hitDistances(closeUp, true).markerRadius * 6371).toBeCloseTo(TINY_REACH_KM)
-    expect(hitDistances(closeUp, false).markerRadius * 6371).toBeCloseTo(TINY_REACH_KM)
-    expect(hitDistances(closeUp, false).tolerance * 6371).toBeLessThan(1) // coasts don't reach further
+    const closeUp = hitDistances(0.1 / 6371) // a pixel is 100 m
+    expect(closeUp.markerRadius * 6371).toBeCloseTo(TINY_REACH_KM)
+    expect(closeUp.unringedRadius * 6371).toBeCloseTo(TINY_REACH_KM)
+    expect(closeUp.tolerance * 6371).toBeLessThan(1) // coasts don't reach further
   })
 
-  it('keeps tiny places clickable when their rings are hidden, in a smaller circle', () => {
-    const shown = hitDistances(0.001, true)
-    const hidden = hitDistances(0.001, false)
-    expect(hidden.markerRadius).toBeGreaterThan(0)
-    expect(hidden.markerRadius).toBeLessThan(shown.markerRadius)
-    expect(hidden.tolerance).toBe(shown.tolerance)
+  it('keeps tiny places clickable without a ring, in a smaller circle', () => {
+    const { markerRadius, unringedRadius } = hitDistances(0.001)
+    expect(unringedRadius).toBeGreaterThan(0)
+    expect(unringedRadius).toBeLessThan(markerRadius)
   })
 })
 

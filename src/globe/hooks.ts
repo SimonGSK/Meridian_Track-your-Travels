@@ -29,9 +29,10 @@ const HIDDEN_MARKER_HIT_PX = 5
 export const TINY_REACH_KM = 3.5
 const EARTH_KM = 6371
 
-/** How far from a tiny place's middle, and from any coast, the pointer counts as on it (radians) */
-export const hitDistances = (perPixel: number, markersShown: boolean) => ({
-  markerRadius: Math.max((markersShown ? MARKER_HIT_PX : HIDDEN_MARKER_HIT_PX) * perPixel, TINY_REACH_KM / EARTH_KM),
+/** How far from a place's middle (with a ring, or tiny without one), and from any coast, the pointer counts as on it (radians) */
+export const hitDistances = (perPixel: number) => ({
+  markerRadius: Math.max(MARKER_HIT_PX * perPixel, TINY_REACH_KM / EARTH_KM),
+  unringedRadius: Math.max(HIDDEN_MARKER_HIT_PX * perPixel, TINY_REACH_KM / EARTH_KM),
   tolerance: NEAR_MISS_PX * perPixel,
 })
 
@@ -276,7 +277,7 @@ export function useCountryPointer(globe: GlobeMethods | null, { onHover, onClick
       // How far one pixel is on the globe here, to turn pixel tolerances into distances
       const beside = screenToLatLng(globe, x + 1, y) ?? screenToLatLng(globe, x - 1, y)
       const perPixel = beside ? geoDistance([pos.lng, pos.lat], [beside.lng, beside.lat]) : 0
-      const country = findCountryNear(pos.lat, pos.lng, { ...hitDistances(perPixel, rings.length > 0), ringed: rings })
+      const country = findCountryNear(pos.lat, pos.lng, { ...hitDistances(perPixel), ringed: rings })
       return [country, pos]
     },
     [globe, rings],

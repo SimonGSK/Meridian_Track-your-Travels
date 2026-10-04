@@ -248,6 +248,15 @@ describe('findCountryNear', () => {
     expect(findCountryNear(lat + 0.8, lng, { ...ring, ringed: [fiji] })).toBe(fiji)
   })
 
+  it('reaches less far around a tiny place without a ring, like a territory during a game', () => {
+    const gibraltar = countries.find((c) => c.properties.name === 'Gibraltar')!
+    const [lng, lat] = gibraltar.properties.centroid
+    const reach = { markerRadius: 0.1 * DEG, unringedRadius: 0.01 * DEG, tolerance: 0 }
+    expect(findCountryNear(lat + 0.05, lng, reach)?.properties.name).toBe('Gibraltar') // ringed, as usual
+    expect(findCountryNear(lat + 0.05, lng, { ...reach, ringed: [] })?.properties.name).not.toBe('Gibraltar')
+    expect(findCountryNear(lat + 0.005, lng, { ...reach, ringed: [] })?.properties.name).toBe('Gibraltar')
+  })
+
   it('returns null in the open ocean', () => {
     expect(near(30, -40)).toBeNull()
     expect(near(-40, -120)).toBeNull()

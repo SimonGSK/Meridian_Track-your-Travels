@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { countries } from '../countries'
 import { CLASSIC } from '../globe/themes'
-import { answer, dontKnow, newRoundGame, next, type RoundGameId } from './games'
-import { LETTER_HUNT_RINGS, flightTarget, gameHighlights, gameRings, globeAnswers, isPlaying, overviewKey, showsGame } from './globeView'
+import { answer, dontKnow, newRoundGame, next, stopEarly, type RoundGameId } from './games'
+import { LETTER_HUNT_RINGS, TINY_COUNTRIES, flightTarget, gameHighlights, gameRings, globeAnswers, isPlaying, overviewKey, showsGame } from './globeView'
 import { giveUp, newLetterGame, pickCountry } from './letterGame'
 import { giveUpAll, nameCountry, newAllGame } from './allGame'
 
@@ -20,11 +20,21 @@ describe('without a game', () => {
     expect(gameHighlights(null, CLASSIC).size).toBe(0)
     expect(flightTarget(null)).toBeNull()
     expect(overviewKey(null)).toBeNull()
-    expect(gameRings(null)).toBeNull()
+    expect(gameRings(null, true)).toBeNull()
   })
 })
 
 describe('round games', () => {
+  it('ring only countries, as territories are no part of the games', () => {
+    const ringed = TINY_COUNTRIES.map((c) => c.properties.name)
+    expect(ringed).toEqual(expect.arrayContaining(['Nauru', 'Monaco', 'Vatican City']))
+    for (const name of ['Gibraltar', 'Bermuda', 'Saint Barthélemy']) expect(ringed).not.toContain(name)
+    expect(gameRings(round('find'), true)).toBe(TINY_COUNTRIES)
+    expect(gameRings(round('flags'), false)).toEqual([])
+    // Back to the usual rings once the game is over
+    expect(gameRings(stopEarly(round('flags')), true)).toBeNull()
+  })
+
   it('highlights the country asked about in "name that country"', () => {
     const game = round('name')
     const target = game.rounds[0].target
@@ -118,9 +128,8 @@ describe('letter hunt', () => {
     for (const name of ['Gibraltar', 'Bermuda', 'Taiwan', 'Sri Lanka', 'Cuba', 'Haiti', 'Timor-Leste', 'Brazil']) {
       expect(ringed).not.toContain(name)
     }
-    expect(gameRings(kGame())).toBe(LETTER_HUNT_RINGS)
-    expect(gameRings(giveUp(kGame()))).toBe(LETTER_HUNT_RINGS)
-    expect(gameRings(round('find'))).toBeNull()
+    expect(gameRings(kGame(), false)).toBe(LETTER_HUNT_RINGS) // even with the rings switched off
+    expect(gameRings(giveUp(kGame()), true)).toBe(LETTER_HUNT_RINGS)
   })
 
   it('shows the missed countries on the results', () => {
