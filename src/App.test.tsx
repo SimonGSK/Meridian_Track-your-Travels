@@ -461,6 +461,22 @@ describe('App', () => {
       expect(globe.pointOfView).toHaveBeenLastCalledWith(expect.objectContaining({ altitude: 1.8 }), expect.any(Number))
     })
 
+    it('keeps when you went, once visited, and shows the latest visit in the Visited list', async () => {
+      render(<App />)
+      click(100)
+      expect(within(countryPanel()!).queryByRole('region', { name: 'Visits' })).not.toBeInTheDocument()
+      await userEvent.click(within(countryPanel()!).getByRole('button', { name: 'Add to visited atlas' }))
+      const visits = within(within(countryPanel()!).getByRole('region', { name: 'Visits' }))
+      await userEvent.selectOptions(visits.getByRole('combobox', { name: 'Year' }), '2019')
+      await userEvent.click(visits.getByRole('button', { name: 'Add visit' }))
+      await userEvent.selectOptions(visits.getByRole('combobox', { name: 'Month' }), 'June')
+      await userEvent.click(visits.getByRole('button', { name: 'Add visit' }))
+      expect(visits.getByRole('list', { name: 'Visits' })).toHaveTextContent('Jun 20192019')
+
+      await userEvent.click(within(screen.getByRole('navigation')).getByRole('button', { name: 'Visited' }))
+      expect(screen.getByRole('button', { name: /^Denmark/ })).toHaveTextContent('2 visits, last Jun 2019')
+    })
+
     it('remembers visited countries after a reload', async () => {
       const first = render(<App />)
       click(100)

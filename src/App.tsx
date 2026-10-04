@@ -38,6 +38,8 @@ import VisitedPanel from './visited/VisitedPanel'
 import { useVisited } from './visited/useVisited'
 import { useVisitedRegions } from './visited/useVisitedRegions'
 import { useVisitedCities } from './visited/useVisitedCities'
+import { useVisitDates } from './visited/useVisitDates'
+import { describeVisits } from './data/visitDates'
 import { useFlights } from './visited/useFlights'
 import FlightsPanel from './visited/FlightsPanel'
 import VisitedTab, { type VisitedView } from './visited/VisitedTab'
@@ -121,9 +123,10 @@ export default function App() {
   const [hoveredRegion, setHoveredRegion] = useState<RegionFeature | null>(null)
   const cities = useCities()
   const { visitedCities, toggle: toggleCityId } = useVisitedCities()
+  const { datesOf, addVisit, removeVisit } = useVisitDates()
   const [hoveredCity, setHoveredCity] = useState<City | null>(null)
   const airports = useAirports()
-  const { flights, add: addFlight, remove: removeFlight } = useFlights(cities, airports)
+  const { flights, add: addFlight, remove: removeFlight, setDate: setFlightDate } = useFlights(cities, airports)
   const [visitedView, setVisitedView] = useState<VisitedView>('countries')
   /** A flight picked in the list, shown on the globe (and highlighted) until the view moves on */
   const [shownRoute, setShownRoute] = useState<Route | null>(null)
@@ -468,14 +471,14 @@ export default function App() {
                   onRemove={removeVisited}
                   onShow={showCountry}
                   note={(country) => {
-                    const notes = []
+                    const notes = [describeVisits(datesOf(country.properties.name))]
                     if (regions && hasRegions(country)) {
                       const { visited: count, total } = regionProgress(regions, visitedRegions, country)
                       if (count > 0) notes.push(`${count} of ${total} ${regionsLabel(country).toLowerCase()}`)
                     }
                     const cityCount = cities ? citiesOf(cities, country).filter((c) => visitedCities.has(c.id)).length : 0
                     if (cityCount > 0) notes.push(citiesLabel(cityCount))
-                    return notes.join(' · ') || null
+                    return notes.filter(Boolean).join(' · ') || null
                   }}
                   cityCount={cities ? cities.filter((c) => visitedCities.has(c.id)).length : 0}
                 />
@@ -489,6 +492,7 @@ export default function App() {
                     if (shownRoute?.flight.id === id) setShownRoute(null)
                     removeFlight(id)
                   }}
+                  onDate={setFlightDate}
                   onShow={showRoute}
                 />
               }
@@ -562,6 +566,15 @@ export default function App() {
                   cities: cities && selectedCities,
                   visited: visitedCities,
                   onToggle: (city) => toggleCity(city, selected),
+                }
+              : undefined
+          }
+          visits={
+            visited.has(selected.properties.name)
+              ? {
+                  dates: datesOf(selected.properties.name),
+                  onAdd: (date) => addVisit(selected.properties.name, date),
+                  onRemove: (date) => removeVisit(selected.properties.name, date),
                 }
               : undefined
           }
