@@ -34,7 +34,7 @@ The design (navy and amber, after a mock-up made in Lovable) has a top bar with 
 
   A clock runs while you play. Perfect runs set a time record to beat, next to the best score: every point (in *Find the country*, every country on the first try), no wrong letters in the letter hunt, and played to the end. Being fast with a mistake doesn't count. The clock stops at the last answer, not when you look at the results. Higher or lower keeps its longest streak instead.
 - **Design**: switch the globe between Midnight (the default), Classic, Vintage, Political (neighbors always in different colors), Night and Minimal. The layers are here too.
-- **Settings**: back up everything to a file, or restore a backup (below), and how to make the globe your Mac's screensaver.
+- **Settings**: back up everything to a file, or restore a backup (below); install Meridian as an app that works offline (below); and how to make the globe your Mac's screensaver.
 
 The globe spins on its own until you touch it, and again once it's been left alone for 30 seconds. Tiny countries and islands get a ring marker, and clicks just beside a small island still count, also with the rings hidden. Zoomed in, tiny places reach 3.5 km around them, so pointing near Vatican City finds it (at this map's scale it's drawn 1.6 km from where it is). Only a pin's head answers to the pointer, so what's under its stem stays clickable. City pins fade out as they near the edge of the globe.
 
@@ -53,6 +53,18 @@ The screensaver doesn't update by itself. After changing your places or design, 
 ## Backup
 
 Visited places and when you went, states, cities and flights, best scores and times, daily challenges, the design and the settings are saved in your browser (`localStorage`). Nothing is sent anywhere, so clearing the browser's site data, or moving to another browser or computer, would leave them behind. In the Settings tab, **Download backup** saves all of it to a file (`meridian-backup-2026-10-04.json`, readable JSON), and shows when you last did. **Restore from a backup…** reads one, says what it holds and when it was made, and only replaces what's in this browser when you confirm. Every part of the file is checked the way the app checks it when loading, so a damaged or foreign file is refused as a whole rather than half restored.
+
+Opening the app never writes over what's saved: something is saved only when you change it. So if the app finds data it can't read (saved by a newer version, or damaged), it leaves it as it is. If you then change that part, the new data is saved and the old is kept beside it, under the same name with `.unreadable` added.
+
+## Install as an app
+
+Meridian can be installed as an app, which opens in its own window from the dock or home screen, with its globe icon:
+
+- **Chrome or Edge**: the **Install Meridian** button in the Settings tab, or the install icon at the end of the address bar.
+- **Safari on a Mac**: File › Add to Dock.
+- **iPhone or iPad**: in Safari, Share › Add to Home Screen.
+
+After the first visit it works offline, installed or not: the globe, your places and flights, the cities and airports, and every game. The build writes a service worker (`sw.js`, by `vite.offline.ts`) that keeps a copy of every file of the app, with a version made from their contents. Online, the page comes from the network, so a new build is noticed. The new version takes over the next time the app is opened, and the old copy is cleared. The service worker runs only in the production build served over the web (not `npm run dev`, nor the screensaver). Browsers allow one only on `https://` or `localhost`.
 
 Built with React, TypeScript and Vite, using [react-globe.gl](https://github.com/vasturiano/react-globe.gl) (three.js) for the globe, [world-atlas](https://github.com/topojson/world-atlas) (Natural Earth 1:50m) for country shapes and [flag-icons](https://github.com/lipis/flag-icons) for flags. The fonts are Fraunces, Inter and JetBrains Mono (SIL Open Font License), from Fontsource. Flags and fonts are bundled, so no requests go to third parties.
 
@@ -84,6 +96,7 @@ Then open http://localhost:5173.
 | `npm run data:facts` | Download capitals, population and area from the World Bank into `src/data/country-facts.json` |
 | `npm run data:cities` | Regenerate `src/data/cities.json` (each place's big and well-known cities) |
 | `npm run data:airports` | Download the airports with scheduled flights from OurAirports into `src/data/airports.json` |
+| `npm run data:icons` | Draw the app icons in `public/icons/` (192, 512, and 180 for iPhone) from `public/icon.svg` |
 
 The first time you run the end-to-end tests, install the browser:
 
@@ -93,8 +106,8 @@ npx playwright install chromium
 
 ## Tests
 
-- **Unit and component tests** (Vitest and Testing Library, in jsdom): the data, the game rules, the globe's layers against a real three.js camera, every panel, and the whole app with a stand-in for the WebGL globe. About 630 tests, covering over 99% of the lines.
-- **End-to-end tests** (Playwright): the real app with its WebGL globe in headless Chromium, on a desktop and a phone (touch, tab bar, sheets): hovering and clicking countries, visited places, states, cities and flights kept after reloading, the settings, a backup downloaded and restored, the designs, every game, and the screensaver.
+- **Unit and component tests** (Vitest and Testing Library, in jsdom): the data, the game rules, the globe's layers against a real three.js camera, every panel, and the whole app with a stand-in for the WebGL globe. About 810 tests, covering over 99% of the lines.
+- **End-to-end tests** (Playwright): the real app with its WebGL globe in headless Chromium, on a desktop and a phone (touch, tab bar, sheets): hovering and clicking countries, visited places, states, cities and flights kept after reloading, the settings, a backup downloaded and restored, the designs, every game, and the screensaver. In CI they run on the production build, with the service worker.
 
 `.github/workflows/tests.yml` runs all of it on GitHub for every pull request and every push to `main`: lint, the unit tests, the build (which type-checks), and the end-to-end tests.
 
@@ -129,7 +142,9 @@ src/
   visited/             visited countries, states and cities; flights, and the airport search;
                        achievements (achievements.ts), their view and the note when one is earned
   design/              design picker, and how to set up the screensaver
-  settings/            backups: making, checking and restoring them, and their card
+  settings/            backups: making, checking and restoring them, and their card; installing the app
+  pwa/                 the service worker (serviceWorker.ts, written into the build by vite.offline.ts),
+                       starting it, and the browser's offer to install
   games/               game rules (games.ts, letterGame.ts, higherLower.ts, daily.ts), what the globe shows (globeView.ts),
                        state and best scores (useGame.ts), perfect runs and their times (records.ts),
                        the panel, answer box and outlines
