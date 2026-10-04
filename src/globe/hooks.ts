@@ -11,6 +11,8 @@ import { PIN_FADE, createPinLayer, type Pin, type PinLayer } from './pinLayer'
 import { createFlightLayer, type FlightLayer, type FlightLine } from './flightLayer'
 import { loadAirports, type Airport } from '../data/airports'
 import { createRegionLayer, type RegionLayer } from './regionLayer'
+import { createNightLayer, type Light } from './nightLayer'
+import { subsolarPoint } from './sun'
 import { approach, isClick, type LatLng, type Point } from './interaction'
 import { screenToLatLng } from './picking'
 import { LAND_ALTITUDE, SELECTED_ALTITUDE } from './style'
@@ -423,6 +425,35 @@ export function usePinLayer(globe: GlobeMethods | null, pins: readonly Pin[], co
   useEffect(() => {
     layer.current?.show(pins)
   }, [globe, pins])
+}
+
+/** How often night moves on: the sun crosses a quarter of a degree a minute */
+export const SUN_UPDATE_MS = 60_000
+
+/** Night where the sun has set, as it is now, with `lights` lit in it, while `shown` */
+export function useNightLayer(globe: GlobeMethods | null, shown: boolean, lights: readonly Light[]) {
+  const layer = useRef<ReturnType<typeof createNightLayer> | null>(null)
+
+  useEffect(() => {
+    if (!globe || !shown) return
+    const scene = globe.scene()
+    const created = createNightLayer(globe.getGlobeRadius())
+    const moveSun = () => created.setSun(subsolarPoint(new Date()))
+    moveSun()
+    const timer = setInterval(moveSun, SUN_UPDATE_MS)
+    scene.add(created.object)
+    layer.current = created
+    return () => {
+      clearInterval(timer)
+      scene.remove(created.object)
+      created.dispose()
+      layer.current = null
+    }
+  }, [globe, shown])
+
+  useEffect(() => {
+    layer.current?.setLights(lights)
+  }, [globe, shown, lights])
 }
 
 /** Draws states and provinces over their countries: `fills` in their colors, and `outlines`. */

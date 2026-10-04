@@ -7,6 +7,7 @@ const LAYERS: { key: keyof Settings; label: string; description: string; dot: 'a
   { key: 'showCities', label: 'City pins', description: "A pin on each city you've visited", dot: 'accent' },
   { key: 'showFlights', label: 'Flights', description: "A line for each flight you've taken", dot: 'blue' },
   { key: 'showMarkers', label: 'Small islands', description: 'Rings around small islands and territories', dot: 'blue' },
+  { key: 'showDayNight', label: 'Day and night', description: 'Night where the sun has set now, with city lights', dot: 'blue' },
 ]
 
 /** A switch with an eye for each layer on the globe */
