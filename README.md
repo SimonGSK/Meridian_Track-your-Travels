@@ -4,7 +4,7 @@ An interactive 3D globe: spin it, hover a country to see its name and flag, clic
 
 The design (navy and amber, after a mock-up made in Lovable) has a top bar with the five tabs, where the globe is looking and how many places you've visited. The selected country shows on the left: its ISO code, capital, inhabitants and area, the cities you've visited there, its states, and a button to put it in your visited atlas. The open tab's cards are on the right. On phones the tabs move to the bottom and panels open as sheets, with the tab's name and a close button above the cards, which scroll under them.
 
-- **Explore**: two round buttons in the corner, so the globe has the room. The magnifying glass opens a search of the whole atlas, countries by any name and cities. The layers button opens the designs as swatches and the layers to show or hide (visited countries, the wishlist, visited states, city pins, flights, rings around small islands, day and night). On phones both are shown in the sheet.
+- **Explore**: two round buttons in the corner, so the globe has the room. The magnifying glass opens a search of the whole atlas, countries by any name and cities. The layers button opens the designs as swatches and the layers to show or hide (visited countries and their heat map by visits, the wishlist, visited states, city pins, flights, rings around small islands, day and night). On phones both are shown in the sheet.
 
   **Day and night** (off until switched on) darkens the side of the globe where the sun has set, as it is right now, fading through twilight down to 18° below the horizon, and lights the cities there, bigger for more people. **City lights** shows under it while it's on, to have night without the lights. It moves on every minute, and is hidden during games. Where the sun is overhead comes from the Astronomical Almanac's low-precision formulas (`src/globe/sun.ts`), good to about 0.01°.
 - **Visited**: switch between your countries, your flights, your years and your achievements, each with a small box of figures. Keep track of where you've been, out of the world's 197 countries, with the count and percentage for each continent (territories are counted separately). Your places are listed by continent. Search to add places (old names like "Swaziland" work too), or click a country and press "Add to visited atlas". They're colored on the globe.
@@ -13,7 +13,9 @@ The design (navy and amber, after a mock-up made in Lovable) has a top bar with 
 
   Countries you want to visit go on your wishlist: press "Add to wishlist" in a country's panel, or the ☆ next to a search result. They're colored on the globe in their own color (lilac in Midnight), and listed under Wishlist in the Visited tab with their continent. "Been there" moves one to your visited atlas, and visiting a place any other way takes it off the wishlist too.
 
-  A visited country's panel has its visits: add each one as a month and year, or just the year if you don't remember the month. The Visited list shows the latest ("3 visits, last May 2023").
+  A visited country's panel has its visits: add each one as a month and year, or just the year if you don't remember the month. The Visited list shows the latest ("3 visits, last May 2023"). The pencil next to a visit adds a note, like "honeymoon" or "rained all week" (up to 200 characters), shown under its date and next to the place in that year's review. Removing a visit removes its note.
+
+  The heat map, a switch under "Visited countries" in the layers, shades your places by how many times you've been instead of one color. The shades go from near the land color for one visit to the full visited color for four or more, with a key in the corner. A place marked visited without dates counts once. It gives way to a year shown in the Years view.
 
   Every country's panel also has its visited cities, and a box to add more from its big and well-known cities (focus it to see the biggest). Each city you've visited gets a pin on the globe; point at a pin to see the city's name, or click it to open its country. Adding a city also marks its country, and its state, as visited.
 
@@ -65,7 +67,7 @@ The screensaver doesn't update by itself. After changing your places or design, 
 
 ## Backup
 
-Visited places and when you went, states, cities and flights, the wishlist, best scores and times, daily challenges, the design and the settings are saved in your browser (`localStorage`). Nothing is sent anywhere, so clearing the browser's site data, or moving to another browser or computer, would leave them behind. In the Settings tab, **Download backup** saves all of it to a file (`meridian-backup-2026-10-04.json`, readable JSON), and shows when you last did. **Restore from a backup…** reads one, says what it holds and when it was made, and only replaces what's in this browser when you confirm. Every part of the file is checked the way the app checks it when loading, so a damaged or foreign file is refused as a whole rather than half restored.
+Visited places, when you went and your notes, states, cities and flights, the wishlist, best scores and times, daily challenges, the design and the settings are saved in your browser (`localStorage`). Nothing is sent anywhere, so clearing the browser's site data, or moving to another browser or computer, would leave them behind. In the Settings tab, **Download backup** saves all of it to a file (`meridian-backup-2026-10-04.json`, readable JSON), and shows when you last did. **Restore from a backup…** reads one, says what it holds and when it was made, and only replaces what's in this browser when you confirm. Every part of the file is checked the way the app checks it when loading, so a damaged or foreign file is refused as a whole rather than half restored.
 
 Opening the app never writes over what's saved: something is saved only when you change it. So if the app finds data it can't read (saved by a newer version, or damaged), it leaves it as it is. If you then change that part, the new data is saved and the old is kept beside it, under the same name with `.unreadable` added.
 
@@ -90,7 +92,7 @@ npm run dev
 
 Then open http://localhost:5173.
 
-To see the app with someone's travels already in it, run `npm run dev:demo` and open http://localhost:5174. It has 42 places with visits over ten years, states, cities, nine trips, a wishlist, best scores and a daily streak. Being on another port, its data is kept apart from yours. The sample data is put in when nothing is saved there yet; add `?reset` to the address to start over. It's only in this mode, not in the build.
+To see the app with someone's travels already in it, run `npm run dev:demo` and open http://localhost:5174. It has 42 places with visits over ten years (some with notes, and several visited again and again for the heat map), states, cities, nine trips, a wishlist, best scores and a daily streak. Being on another port, its data is kept apart from yours. The sample data is put in when nothing is saved there yet; add `?reset` to the address to start over. It's only in this mode, not in the build.
 
 ## Scripts
 
@@ -122,7 +124,7 @@ npx playwright install chromium
 
 ## Tests
 
-- **Unit and component tests** (Vitest and Testing Library, in jsdom): the data, the game rules, the globe's layers against a real three.js camera, every panel, and the whole app with a stand-in for the WebGL globe. About 870 tests, covering over 99% of the lines.
+- **Unit and component tests** (Vitest and Testing Library, in jsdom): the data, the game rules, the globe's layers against a real three.js camera, every panel, and the whole app with a stand-in for the WebGL globe. About 890 tests, covering over 99% of the lines.
 - **End-to-end tests** (Playwright): the real app with its WebGL globe in headless Chromium, on a desktop and a phone (touch, tab bar, sheets): hovering and clicking countries, visited places, states, cities and flights kept after reloading, the wishlist, the settings, a year in review, a backup downloaded and restored, the designs, every game, and the screensaver. In CI they run on the production build, with the service worker.
 
 `.github/workflows/tests.yml` runs all of it on GitHub for every pull request and every push to `main`: lint, the unit tests, the build (which type-checks), and the end-to-end tests.
