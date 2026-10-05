@@ -2,7 +2,7 @@
 
 An interactive 3D globe: spin it, hover a country to see its name and flag, click it to fly there and see its capital, inhabitants and area.
 
-The design (navy and amber, after a mock-up made in Lovable) has a top bar with the four tabs, where the globe is looking and how many places you've visited. The selected country shows on the left: its ISO code, capital, inhabitants and area, the cities you've visited there, its states, and a button to put it in your visited atlas. The open tab's cards are on the right. On phones the tabs move to the bottom and panels open as sheets.
+The design (navy and amber, after a mock-up made in Lovable) has a top bar with the five tabs, where the globe is looking and how many places you've visited. The selected country shows on the left: its ISO code, capital, inhabitants and area, the cities you've visited there, its states, and a button to put it in your visited atlas. The open tab's cards are on the right. On phones the tabs move to the bottom and panels open as sheets, with the tab's name and a close button above the cards, which scroll under them.
 
 - **Explore**: two round buttons in the corner, so the globe has the room. The magnifying glass opens a search of the whole atlas, countries by any name and cities. The layers button opens the designs as swatches and the layers to show or hide (visited countries, the wishlist, visited states, city pins, flights, rings around small islands, day and night). On phones both are shown in the sheet.
 
