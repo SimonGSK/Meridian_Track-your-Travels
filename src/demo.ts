@@ -4,7 +4,7 @@ import { FLIGHTS_KEY } from './visited/useFlights'
 import { VISITED_STORAGE_KEY } from './visited/useVisited'
 import { VISITED_CITIES_KEY } from './visited/useVisitedCities'
 import { VISITED_REGIONS_KEY } from './visited/useVisitedRegions'
-import { VISIT_DATES_KEY } from './visited/useVisitDates'
+import { VISIT_DATES_KEY, VISIT_NOTES_KEY } from './visited/useVisitDates'
 import { WISHLIST_KEY } from './visited/useWishlist'
 
 /**
@@ -17,7 +17,7 @@ import { WISHLIST_KEY } from './visited/useWishlist'
 /** When each place was visited; Denmark is home, so it has none */
 export const DEMO_VISITS: Record<string, string[]> = {
   Denmark: [],
-  Sweden: ['2018-07', '2021-06', '2024-08'],
+  Sweden: ['2018-07', '2020-05', '2021-06', '2023-12', '2024-08'],
   Norway: ['2017-02', '2023-07'],
   Finland: ['2022-01'],
   Iceland: ['2026-06'],
@@ -25,13 +25,13 @@ export const DEMO_VISITS: Record<string, string[]> = {
   Estonia: ['2022-01'],
   Latvia: ['2022-01'],
   Lithuania: ['2022-02'],
-  Germany: ['2016-10', '2024-12'],
+  Germany: ['2016-10', '2019-03', '2022-09', '2024-12'],
   Netherlands: ['2018-04'],
   Belgium: ['2018-04'],
   Luxembourg: ['2018-04'],
   France: ['2019-08', '2025-07'],
-  Italy: ['2021-09'],
-  Spain: ['2020-02'],
+  Italy: ['2018-05', '2021-09'],
+  Spain: ['2017-08', '2020-02', '2023-04'],
   Portugal: ['2022-05'],
   'United Kingdom': ['2017-11'],
   Greece: ['2023-06'],
@@ -58,6 +58,16 @@ export const DEMO_VISITS: Record<string, string[]> = {
   Peru: ['2019-11'],
   Argentina: ['2019-12'],
   Brazil: ['2019-12'],
+}
+
+/** A few words on some of the visits */
+export const DEMO_NOTES: Record<string, Record<string, string>> = {
+  Japan: { '2025-04': 'Cherry blossom in Kyoto' },
+  France: { '2025-07': 'The Tour de France finish in Paris' },
+  Iceland: { '2026-06': 'Midnight sun, and whales off Húsavík' },
+  Kenya: { '2025-11': 'Safari in the Masai Mara' },
+  Peru: { '2019-11': 'Machu Picchu at sunrise' },
+  Sweden: { '2023-12': 'Christmas markets in Stockholm' },
 }
 
 export const DEMO_WISHLIST = ['Chile', 'Bolivia', 'India', 'Nepal', 'Indonesia', 'Jordan', 'Namibia']
@@ -128,6 +138,7 @@ export function demoData(today = new Date()): Record<string, unknown> {
   return {
     [VISITED_STORAGE_KEY]: Object.keys(DEMO_VISITS),
     [VISIT_DATES_KEY]: Object.fromEntries(Object.entries(DEMO_VISITS).filter(([, dates]) => dates.length)),
+    [VISIT_NOTES_KEY]: DEMO_NOTES,
     [VISITED_REGIONS_KEY]: DEMO_REGIONS,
     [VISITED_CITIES_KEY]: DEMO_CITIES,
     [FLIGHTS_KEY]: DEMO_FLIGHTS,

@@ -6,10 +6,10 @@ import { regionIdsOf } from './data/regions'
 import { tripsOf } from './data/trips'
 import { routeOf } from './data/flights'
 import { isPast } from './data/visitDates'
-import { DEMO_CITIES, DEMO_FLIGHTS, DEMO_REGIONS, DEMO_VISITS, DEMO_WISHLIST, demoData, seedDemo } from './demo'
+import { DEMO_CITIES, DEMO_FLIGHTS, DEMO_NOTES, DEMO_REGIONS, DEMO_VISITS, DEMO_WISHLIST, demoData, seedDemo } from './demo'
 import { isDailyResults } from './games/daily'
 import { isFlightList } from './visited/useFlights'
-import { isVisitDates } from './visited/useVisitDates'
+import { isVisitDates, isVisitNotes } from './visited/useVisitDates'
 
 const TODAY = new Date(2026, 9, 5)
 
@@ -39,6 +39,11 @@ describe('the demo data', () => {
   it("is all as the app checks it when loading, and in the past", () => {
     const data = demoData(TODAY)
     expect(isVisitDates(data['countries-app.visit-dates'])).toBe(true)
+    expect(isVisitNotes(data['countries-app.visit-notes'])).toBe(true)
+    // Each note is on a visit there is
+    for (const [name, notes] of Object.entries(DEMO_NOTES)) {
+      for (const date of Object.keys(notes)) expect(DEMO_VISITS[name], `${name} ${date}`).toContain(date)
+    }
     expect(isFlightList(data['countries-app.flights'])).toBe(true)
     expect(isDailyResults(data['countries-app.daily'])).toBe(true)
     expect(Object.values(DEMO_VISITS).flat().every((date) => isPast(date, TODAY))).toBe(true)
