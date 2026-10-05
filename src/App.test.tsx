@@ -15,7 +15,7 @@ import { SETTINGS_KEY } from './explore/useSettings'
 import { loadCities } from './data/cities'
 import { loadAirports } from './data/airports'
 import { loadRegions } from './data/regions'
-import { DEFAULT_THEME, NIGHT, POLITICAL, hoveredRegionColor, visitedRegionColor } from './globe/themes'
+import { DEFAULT_THEME, NIGHT, POLITICAL, heatColor, hoveredRegionColor, visitedRegionColor } from './globe/themes'
 import { INITIAL_VIEW, SCREENSAVER_VIEW } from './globe/interaction'
 import { SCREENSAVER_PIN_FADE } from './globe/pinLayer'
 
@@ -514,6 +514,48 @@ describe('App', () => {
 
       render(<App />)
       expect(painted()).toEqual({ Denmark: DEFAULT_THEME.visited })
+    })
+  })
+
+  describe('visit heat map', () => {
+    const heat = (visits: number) => heatColor(DEFAULT_THEME, DEFAULT_THEME.land as string, visits)
+    const legend = () => screen.queryByRole('figure', { name: 'Visits' })
+    beforeEach(() => {
+      localStorage.setItem('countries-app.visited', JSON.stringify(['Denmark', 'Japan', 'France']))
+      localStorage.setItem(
+        'countries-app.visit-dates',
+        JSON.stringify({ Denmark: ['2019', '2023-05'], France: ['2016', '2018', '2020', '2022', '2024'] }),
+      )
+    })
+
+    it('shades visited countries by their visits once switched on, with a legend; no dates counts once', async () => {
+      render(<App />)
+      expect(painted()).toEqual({ Denmark: DEFAULT_THEME.visited, Japan: DEFAULT_THEME.visited, France: DEFAULT_THEME.visited })
+      expect(legend()).not.toBeInTheDocument()
+
+      await openLayers()
+      await userEvent.click(screen.getByRole('switch', { name: /Heat map by visits/ }))
+      expect(painted()).toEqual({ Denmark: heat(2), Japan: heat(1), France: heat(4) })
+      expect(legend()).toBeInTheDocument()
+      expect(JSON.parse(localStorage.getItem(SETTINGS_KEY)!)).toMatchObject({ showVisitHeat: true })
+    })
+
+    it('is offered only while visited countries are shown', async () => {
+      render(<App />)
+      await openLayers()
+      await userEvent.click(screen.getByRole('switch', { name: /Visited countries/ }))
+      expect(screen.queryByRole('switch', { name: /Heat map by visits/ })).not.toBeInTheDocument()
+    })
+
+    it('gives way to a year shown in the Visited tab', async () => {
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify({ showVisitHeat: true }))
+      render(<App />)
+      expect(legend()).toBeInTheDocument()
+      await userEvent.click(screen.getByRole('button', { name: 'Visited' }))
+      await userEvent.click(screen.getByRole('tab', { name: 'Years' }))
+      // 2024, the newest: France, in the plain visited color
+      expect(painted()).toEqual({ France: DEFAULT_THEME.visited })
+      expect(legend()).not.toBeInTheDocument()
     })
   })
 

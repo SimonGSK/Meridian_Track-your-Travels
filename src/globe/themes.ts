@@ -174,6 +174,21 @@ export const visitedRegionColor = (theme: Theme) => darker(theme.visited)
 /** Visited states of the country pointed at: a darker shade of the hover color */
 export const hoveredRegionColor = (theme: Theme) => darker(theme.hover)
 
+/** How far from the land color to the visited color, for 1, 2, 3, and 4 or more visits */
+const HEAT_STEPS = [0.35, 0.6, 0.8, 1]
+/** The most visits the heat map tells apart: more are shown as many */
+export const HEAT_MAX_VISITS = HEAT_STEPS.length
+
+/** A visited country on the heat map: nearer the visited color the more visits it's had */
+export function heatColor(theme: Theme, land: string, visits: number) {
+  const step = HEAT_STEPS[Math.min(Math.max(visits, 1), HEAT_MAX_VISITS) - 1]
+  return '#' + new Color(land).lerp(new Color(theme.visited), step).getHexString()
+}
+
+/** The heat map's colors in this design, for 1 visit up to the most it tells apart */
+export const heatColors = (theme: Theme) =>
+  HEAT_STEPS.map((_, i) => heatColor(theme, typeof theme.land === 'string' ? theme.land : theme.land[0], i + 1))
+
 /** A country's plain land color in this design. */
 export function landColor(theme: Theme, mapColor: number) {
   return typeof theme.land === 'string' ? theme.land : theme.land[mapColor % theme.land.length]

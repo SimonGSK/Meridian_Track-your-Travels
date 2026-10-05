@@ -12,6 +12,13 @@ type Layer = {
 
 const LAYERS: Layer[] = [
   { key: 'showVisited', label: 'Visited countries', description: "Color the countries you've visited", dot: 'accent' },
+  {
+    key: 'showVisitHeat',
+    label: 'Heat map by visits',
+    description: "Shade visited countries by how many times you've been",
+    dot: 'accent',
+    under: 'showVisited',
+  },
   { key: 'showWishlist', label: 'Wishlist', description: 'Color the countries you want to visit', dot: 'wish' },
   { key: 'showRegions', label: 'Visited states', description: "Color the states you've visited, a shade darker", dot: 'accent' },
   { key: 'showCities', label: 'City pins', description: "A pin on each city you've visited", dot: 'accent' },

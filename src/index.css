@@ -1271,6 +1271,58 @@ code {
 
 /* Hints and labels over the globe */
 
+/* What the heat map's shades mean, in the corner */
+.heat-legend {
+  position: fixed;
+  left: var(--gutter);
+  bottom: 22px;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  padding: 7px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: var(--panel);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  pointer-events: none;
+}
+
+.heat-legend figcaption {
+  color: var(--label);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.heat-legend ol {
+  display: flex;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.heat-legend li {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* The selected country's panel reaches down to that corner */
+.country-open .heat-legend {
+  display: none;
+}
+
+.heat-swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.15);
+}
+
 .hint {
   position: fixed;
   left: 50%;
@@ -2159,6 +2211,13 @@ code {
     font-size: 11px;
   }
   .hint {
+    display: none;
+  }
+  /* Above the tab bar, while no sheet covers it */
+  .heat-legend {
+    bottom: calc(var(--tab-bar-height) + 12px);
+  }
+  .panel-open .heat-legend {
     display: none;
   }
   .panel-open .globe,

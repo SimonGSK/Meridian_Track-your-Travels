@@ -7,6 +7,7 @@ describe('useSettings', () => {
     const { result } = renderHook(() => useSettings())
     expect(result.current[0]).toEqual({
       showVisited: true,
+      showVisitHeat: false,
       showWishlist: true,
       showMarkers: true,
       showRegions: true,

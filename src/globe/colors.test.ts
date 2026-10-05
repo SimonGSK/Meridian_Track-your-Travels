@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { countries } from '../countries'
 import { countryColor, type ColorState } from './colors'
-import { CLASSIC, POLITICAL } from './themes'
+import { CLASSIC, POLITICAL, heatColor } from './themes'
 
 const denmark = countries.find((c) => c.properties.name === 'Denmark')!
 const state = (overrides: Partial<ColorState> = {}): ColorState => ({
@@ -25,6 +25,17 @@ describe('countryColor', () => {
     expect(countryColor(denmark, state({ wishlist: new Set(['Denmark']) }))).toBe(CLASSIC.wishlist)
     expect(countryColor(denmark, state({ visited: new Set(['Denmark']), wishlist: new Set(['Denmark']) }))).toBe(CLASSIC.visited)
     expect(countryColor(denmark, state({ hovered: denmark, wishlist: new Set(['Denmark']) }))).toBe(CLASSIC.hover)
+  })
+
+  it('shades visited countries by their visits on the heat map, from their own land color', () => {
+    const visited = new Set(['Denmark'])
+    expect(countryColor(denmark, state({ visited, visits: () => 2 }))).toBe(heatColor(CLASSIC, CLASSIC.land as string, 2))
+    const palette = POLITICAL.land as readonly string[]
+    expect(countryColor(denmark, state({ theme: POLITICAL, visited, visits: () => 1 }))).toBe(
+      heatColor(POLITICAL, palette[denmark.properties.mapColor], 1),
+    )
+    // Only visited countries
+    expect(countryColor(denmark, state({ visits: () => 3 }))).toBe(CLASSIC.land)
   })
 
   it('lets hover override visited', () => {
