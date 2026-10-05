@@ -15,6 +15,7 @@ const saved = {
   'countries-app.visited-regions': ['US-CA'],
   'countries-app.visited-cities': [2618425],
   'countries-app.visit-dates': { Denmark: ['2023-05', '2019'] },
+  'countries-app.visit-notes': { Denmark: { '2023-05': 'Roskilde Festival' } },
   'countries-app.flights': [{ id: 'a', from: 'CPH', to: 'NRT' }],
   'countries-app.wishlist': ['Peru', 'Iceland'],
   'countries-app.best-scores': { 'flags:easy': 9, 'letter:Z': 2 },

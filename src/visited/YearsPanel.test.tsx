@@ -55,6 +55,21 @@ describe('YearsPanel', () => {
     expect(within(months).getByRole('list', { name: 'July' })).toHaveTextContent(/^France$/)
   })
 
+  it("adds each visit's note, after a first visit", () => {
+    const notes: Record<string, string> = { 'Japan 2024-04': 'Cherry blossom', 'Kenya 2024': 'Safari' }
+    const props = { onYearChange: vi.fn(), onShow: vi.fn(), onShowRoute: vi.fn() }
+    render(
+      <YearsPanel
+        years={yearsOf(TRAVELS)}
+        review={reviewOf(2024, TRAVELS)}
+        noteOf={(name, date) => notes[`${name} ${date}`]}
+        {...props}
+      />,
+    )
+    expect(screen.getByRole('button', { name: /^Japan/ })).toHaveTextContent('JapanFirst visit · Cherry blossom')
+    expect(screen.getByRole('button', { name: /^Kenya/ })).toHaveTextContent('KenyaFirst visit · Safari')
+  })
+
   it('shows a country, or the longest flight, on the globe', async () => {
     const { onShow, onShowRoute } = show(2024)
     await userEvent.click(screen.getByRole('button', { name: /^Kenya/ }))

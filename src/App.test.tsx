@@ -488,6 +488,23 @@ describe('App', () => {
       expect(screen.getByRole('button', { name: /^Denmark/ })).toHaveTextContent('2 visits, last Jun 2019')
     })
 
+    it('keeps a note on a visit, shown in the panel and in that year', async () => {
+      localStorage.setItem('countries-app.visited', JSON.stringify(['Denmark']))
+      localStorage.setItem('countries-app.visit-dates', JSON.stringify({ Denmark: ['2019-06'] }))
+      const first = render(<App />)
+      click(100)
+      const visits = within(within(countryPanel()!).getByRole('region', { name: 'Visits' }))
+      await userEvent.click(visits.getByRole('button', { name: 'Add a note to the visit in Jun 2019' }))
+      await userEvent.type(visits.getByRole('textbox', { name: 'Note on the visit in Jun 2019' }), 'Roskilde Festival{Enter}')
+      expect(visits.getByRole('list', { name: 'Visits' })).toHaveTextContent('Jun 2019Roskilde Festival')
+      first.unmount()
+
+      render(<App />)
+      await userEvent.click(screen.getByRole('button', { name: 'Visited' }))
+      await userEvent.click(screen.getByRole('tab', { name: 'Years' }))
+      expect(screen.getByRole('button', { name: /^Denmark/ })).toHaveTextContent('DenmarkFirst visit · Roskilde Festival')
+    })
+
     it('remembers visited countries after a reload', async () => {
       const first = render(<App />)
       click(100)
