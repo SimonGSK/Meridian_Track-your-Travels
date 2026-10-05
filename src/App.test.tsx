@@ -870,6 +870,23 @@ describe('App', () => {
       expect(sidePanel()).toBeInTheDocument() // Escape put the route away first
     })
 
+    it('shows a whole trip picked in the list, every leg highlighted, from above its middle', async () => {
+      withFlights(fly('CPH', 'DXB'), fly('DXB', 'BKK'), fly('BKK', 'CPH'), fly('LHR', 'CDG'))
+      render(<App />)
+      await openFlights()
+      await userEvent.click(await screen.findByRole('button', { name: /^Trip · 3 flights/ }))
+      expect(drawn()).toEqual(['CPH-DXB!', 'DXB-BKK!', 'BKK-CPH!', 'LHR-CDG'])
+      const [view] = globe.pointOfView.mock.calls.at(-1) as [{ lat: number; lng: number; altitude: number }]
+      // Between Copenhagen, Dubai and Bangkok, as far out as flights to a place go, to see them all
+      expect(view.lng).toBeGreaterThan(12.6)
+      expect(view.lng).toBeLessThan(100.7)
+      expect(view.altitude).toBe(1.8)
+
+      // Removing a leg puts the trip away
+      await userEvent.click(screen.getByRole('button', { name: 'Remove flight from Dubai to Bangkok' }))
+      expect(drawn()).toEqual(['CPH-DXB', 'BKK-CPH', 'LHR-CDG'])
+    })
+
     it('hides the flights when switched off, and during games', async () => {
       withFlights(fly('CPH', 'BKK'))
       render(<App />)

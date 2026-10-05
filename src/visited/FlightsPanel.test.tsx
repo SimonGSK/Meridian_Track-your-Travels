@@ -11,10 +11,12 @@ const route = (from: string, to: string, date?: string) =>
   routeOf({ id: `${from}-${to}`, from, to, ...(date ? { date } : {}) } satisfies Flight, byCode)!
 
 function setup(routes = [route('CPH', 'BKK'), route('BKK', 'SYD')]) {
-  const props = { routes, airports, onAdd: vi.fn(), onRemove: vi.fn(), onDate: vi.fn(), onShow: vi.fn() }
+  const props = { routes, airports, onAdd: vi.fn(), onRemove: vi.fn(), onDate: vi.fn(), onShow: vi.fn(), onShowTrip: vi.fn() }
   render(<FlightsPanel {...props} />)
   return props
 }
+/** The list's own rows, flights and trips, not the flights inside trips */
+const rows = () => [...screen.getByRole('list', { name: 'Flights' }).children] as HTMLElement[]
 const stat = (label: string) => screen.getByText(label, { selector: 'dt' }).nextElementSibling
 const pick = async (label: string, query: string) => {
   await userEvent.type(screen.getByRole('searchbox', { name: label }), query)
@@ -29,13 +31,33 @@ describe('FlightsPanel', () => {
     expect(stat('Earth laps')).toHaveTextContent('0.4×')
   })
 
-  it('lists the flights, newest first, with their distance', () => {
+  it('groups flights flown one after another into a trip, in the order flown, with their distance', () => {
     setup()
-    const rows = within(screen.getByRole('list', { name: 'Flights' })).getAllByRole('listitem')
-    expect(rows.map((row) => row.textContent)).toEqual([
-      expect.stringMatching(/^Bangkok → SydneyBKK → SYD · 7,\d{3} kmAdd date$/),
+    expect(rows()).toHaveLength(1)
+    expect(screen.getByRole('button', { name: /^Trip/ })).toHaveTextContent(
+      /^Trip · 2 flights · 16\.\dK kmCopenhagen → Bangkok → Sydney$/,
+    )
+    const legs = screen.getByRole('list', { name: 'Flights of the trip Copenhagen → Bangkok → Sydney' })
+    expect(within(legs).getAllByRole('listitem').map((row) => row.textContent)).toEqual([
       expect.stringMatching(/^Copenhagen → BangkokCPH → BKK · 8,\d{3} kmAdd date$/),
+      expect.stringMatching(/^Bangkok → SydneyBKK → SYD · 7,\d{3} kmAdd date$/),
     ])
+  })
+
+  it('shows a whole trip on the globe', async () => {
+    const { routes, onShowTrip } = setup()
+    await userEvent.click(screen.getByRole('button', { name: /^Trip/ }))
+    expect(onShowTrip).toHaveBeenCalledWith(routes)
+  })
+
+  it('lists trips and single flights together, newest first, by the date of the first leg', () => {
+    setup([route('CPH', 'NRT', '2024-04'), route('LHR', 'JFK', '2025-01'), route('NRT', 'CPH', '2024-05'), route('CPH', 'BKK')])
+    expect(rows().map((row) => row.querySelector('.row-name, .trip-meta')!.textContent)).toEqual([
+      'London → New York',
+      expect.stringMatching(/^Trip · Apr 2024 · 2 flights · /),
+      'Copenhagen → Bangkok',
+    ])
+    expect(rows()[1].querySelector('.trip-route')).toHaveTextContent('Copenhagen → Narita → Copenhagen')
   })
 
   it('shows a flight on the globe, or removes it', async () => {
@@ -73,15 +95,15 @@ describe('FlightsPanel', () => {
 
   it('lists flights by date, newest first, those without one after', () => {
     setup([route('CPH', 'BKK', '2019'), route('BKK', 'SYD'), route('LHR', 'JFK', '2023-05'), route('JFK', 'LAX', '2023-11')])
-    const rows = within(screen.getByRole('list', { name: 'Flights' })).getAllByRole('listitem')
-    expect(rows.map((row) => row.querySelector('.row-name')!.textContent)).toEqual([
+    // Months apart, or one without a date: not trips
+    expect(rows().map((row) => row.querySelector('.row-name')!.textContent)).toEqual([
       'New York → Los Angeles',
       'London → New York',
       'Copenhagen → Bangkok',
       'Bangkok → Sydney',
     ])
-    expect(rows[0]).toHaveTextContent('Nov 2023')
-    expect(rows[2]).toHaveTextContent(/2019$/)
+    expect(rows()[0]).toHaveTextContent('Nov 2023')
+    expect(rows()[2]).toHaveTextContent(/2019$/)
   })
 
   it('gives a flight a date, or changes it', async () => {

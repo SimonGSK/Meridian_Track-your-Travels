@@ -1,7 +1,7 @@
 import { geoDistance } from 'd3-geo'
 import { nearestAirport, type Airport } from './airports'
 import type { City } from './cities'
-import { newestFirst, type VisitDate } from './visitDates'
+import type { VisitDate } from './visitDates'
 
 /** A flight you've taken, between two airports (IATA codes), and when, if you said */
 export type Flight = { id: string; from: string; to: string; date?: VisitDate }
@@ -64,12 +64,6 @@ export function migrateFlights(
     const [from, to] = [airportOf(flight.from), airportOf(flight.to)]
     return from && to && from !== to ? [{ ...flight, from, to }] : []
   })
-}
-
-/** Newest first; flights without a date after them, the last added first */
-export function byDate(routes: readonly Route[]) {
-  const dated = routes.filter((r) => r.flight.date).sort((a, b) => newestFirst(a.flight.date!, b.flight.date!))
-  return [...dated, ...routes.filter((r) => !r.flight.date).reverse()]
 }
 
 const whole = new Intl.NumberFormat('en-US')
