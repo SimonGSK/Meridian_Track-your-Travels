@@ -28,7 +28,7 @@ The design (navy and amber, after a mock-up made in Lovable) has a top bar with 
   - the flights, how far, and the longest;
   - "Your most travelled year" on the year with the most places.
 
-  The places follow month by month, and those dated only by the year come last; click one to open it, or the longest flight to see its route. While Years is open, the globe shows just that year: its places and its flights, even with those layers off. States, city pins and the wishlist are hidden, as they have no dates. Places and flights without a date aren't in any year.
+  The places follow month by month, and those dated only by the year come last; click one to open it, or the longest flight to see its route. While Years is open, the globe shows just that year: its places and its flights, even with those layers off. Picking a year turns the globe to face them, zoomed out enough to see them all (or as far as it goes, for a year all around the world), and the globe stops spinning on its own until you leave. States, city pins and the wishlist are hidden, as they have no dates. Places and flights without a date aren't in any year.
 
   Under Achievements, 58 to earn from where you've been, in eight groups: milestones (your first country, then 10 up to all 197), continents (every continent, all of one, Antarctica, all four hemispheres), regions (Scandinavia, the Nordics, the Baltics, Benelux, the Caribbean, the Gulf, the Stans, the G7 and more), islands, states (every US state and D.C., all of Canada, Australia or Brazil), cities and capitals, flights and distance flown (around the world, to the Moon, long haul), and return trips (one country 3 or 5 times). Each shows how far along you are ("3 of 5"), and a note pops up at the bottom when something you add earns one; click it to see them all. They're worked out from what you've saved, so a backup brings them back too.
 - **Games**:
@@ -90,11 +90,14 @@ npm run dev
 
 Then open http://localhost:5173.
 
+To see the app with someone's travels already in it, run `npm run dev:demo` and open http://localhost:5174. It has 42 places with visits over ten years, states, cities, nine trips, a wishlist, best scores and a daily streak. Being on another port, its data is kept apart from yours. The sample data is put in when nothing is saved there yet; add `?reset` to the address to start over. It's only in this mode, not in the build.
+
 ## Scripts
 
 | Command | What it does |
 | --- | --- |
 | `npm run dev` | Start the dev server |
+| `npm run dev:demo` | Start the dev server with sample data, on port 5174 (see Getting started) |
 | `npm run build` | Type-check and build for production into `dist/` |
 | `npm run build:screensaver` | Build the screensaver file and copy it to `/Users/Shared/Meridian/` (see Screensaver) |
 | `npm run preview` | Serve the production build |
@@ -119,7 +122,7 @@ npx playwright install chromium
 
 ## Tests
 
-- **Unit and component tests** (Vitest and Testing Library, in jsdom): the data, the game rules, the globe's layers against a real three.js camera, every panel, and the whole app with a stand-in for the WebGL globe. About 860 tests, covering over 99% of the lines.
+- **Unit and component tests** (Vitest and Testing Library, in jsdom): the data, the game rules, the globe's layers against a real three.js camera, every panel, and the whole app with a stand-in for the WebGL globe. About 870 tests, covering over 99% of the lines.
 - **End-to-end tests** (Playwright): the real app with its WebGL globe in headless Chromium, on a desktop and a phone (touch, tab bar, sheets): hovering and clicking countries, visited places, states, cities and flights kept after reloading, the wishlist, the settings, a year in review, a backup downloaded and restored, the designs, every game, and the screensaver. In CI they run on the production build, with the service worker.
 
 `.github/workflows/tests.yml` runs all of it on GitHub for every pull request and every push to `main`: lint, the unit tests, the build (which type-checks), and the end-to-end tests.
@@ -150,6 +153,7 @@ src/
     trips.ts           flights grouped into trips, and where to look from to see them
   storage.ts           state saved in the browser
   screensaver.ts       the screensaver mode, and carrying your places in its address
+  demo.ts              sample data for `npm run dev:demo`
   ui/                  the cards with "(B) GAMES ··· 06" headers, and the boxes of figures
   nav/                 the top bar, tabs, the column of cards on the right
   explore/             the Explore tools: atlas search, design and layers; settings
