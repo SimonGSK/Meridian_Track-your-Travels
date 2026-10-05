@@ -19,14 +19,19 @@ type Props = {
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`
 const monthId = (month: number | null) => `year-month-${month ?? 'any'}`
 
-/** "6 countries on 3 continents, 2 of them new." and "8 flights, 21,400 km." Territories count when there are no countries */
+/** "6 countries and 1 territory on 4 continents, 2 of them new." and "8 flights, 21,400 km." */
 function summaryOf({ places, countryCount, firstVisits, continents, flights, km }: YearReview) {
   const lines: string[] = []
   if (places.length > 0) {
-    const total = countryCount || places.length
-    const counted = countryCount > 0 ? plural(countryCount, 'country', 'countries') : plural(places.length, 'place')
-    const firsts = [...firstVisits].filter((c) => countryCount === 0 || c.properties.kind === 'country').length
-    const first = firsts === 0 ? '' : firsts < total ? `, ${firsts} of them new` : total === 1 ? ', a new one' : ', all new'
+    const territories = places.length - countryCount
+    const counted = [
+      countryCount > 0 && plural(countryCount, 'country', 'countries'),
+      territories > 0 && plural(territories, 'territory', 'territories'),
+    ]
+      .filter(Boolean)
+      .join(' and ')
+    const firsts = firstVisits.size
+    const first = firsts === 0 ? '' : firsts < places.length ? `, ${firsts} of them new` : places.length === 1 ? ', a new one' : ', all new'
     lines.push(`${counted} on ${plural(continents.length, 'continent')}${first}.`)
   }
   if (flights.length > 0) lines.push(`${plural(flights.length, 'flight')}, ${formatDistance(km)}.`)

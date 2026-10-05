@@ -85,9 +85,14 @@ describe('YearsPanel', () => {
     expect(screen.getByText(/No visits dated 2023, only flights/)).toBeInTheDocument()
   })
 
-  it('counts a territory as a place, when there are no countries', () => {
+  it('counts territories apart from countries', () => {
     show(2022, travels({ Greenland: ['2022-08'] }))
-    expect(screen.getByText('1 place on 1 continent, a new one.')).toBeInTheDocument()
+    expect(screen.getByText('1 territory on 1 continent, a new one.')).toBeInTheDocument()
+  })
+
+  it('counts countries and territories together where they were both visited', () => {
+    show(2026, travels({ Iceland: ['2026-06'], Greenland: ['2026-06'], Norway: ['2026-07', '2019'] }))
+    expect(screen.getByText('2 countries and 1 territory on 2 continents, 2 of them new.')).toBeInTheDocument()
   })
 
   it('says how to get a review when nothing has a date', () => {
