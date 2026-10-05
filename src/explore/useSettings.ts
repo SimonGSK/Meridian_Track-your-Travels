@@ -4,6 +4,8 @@ import { usePersistentState } from '../storage'
 export type Settings = {
   /** Color the countries you've visited on the globe */
   showVisited: boolean
+  /** Shade visited countries by how many times you've been, instead of one color */
+  showVisitHeat: boolean
   /** Color the countries on your wishlist */
   showWishlist: boolean
   /** Rings around tiny places (islands, microstates) */
@@ -23,6 +25,7 @@ export type Settings = {
 export const SETTINGS_KEY = 'countries-app.settings'
 export const DEFAULT_SETTINGS: Settings = {
   showVisited: true,
+  showVisitHeat: false,
   showWishlist: true,
   showMarkers: true,
   showRegions: true,

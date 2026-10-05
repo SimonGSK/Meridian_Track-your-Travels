@@ -45,6 +45,7 @@ import { useWishlist } from './visited/useWishlist'
 import { ACHIEVEMENTS, earnedIds, type Atlas } from './visited/achievements'
 import AchievementsPanel from './visited/AchievementsPanel'
 import AchievementToast from './visited/AchievementToast'
+import HeatLegend from './visited/HeatLegend'
 import { useNewAchievements } from './visited/useNewAchievements'
 import { describeVisits } from './data/visitDates'
 import { useFlights } from './visited/useFlights'
@@ -71,7 +72,7 @@ import {
   useSmoothAutoRotate,
 } from './globe/hooks'
 import { PIN_FADE, SCREENSAVER_PIN_FADE, pinAt } from './globe/pinLayer'
-import { hoveredRegionColor, visitedRegionColor } from './globe/themes'
+import { heatColors, hoveredRegionColor, visitedRegionColor } from './globe/themes'
 import type { LatLng, Point, Spot } from './globe/interaction'
 import {
   INITIAL_VIEW,
@@ -266,10 +267,20 @@ export default function App() {
   const colorHovered = hoverable ? hovered : null
   const colorVisited = yearShown ? yearShown.names : showsGame(game) || !settings.showVisited ? NO_VISITS : visited
   const colorWishlist = yearShown || showsGame(game) || !settings.showWishlist ? NO_VISITS : wishlist
+  // The heat map shades your places by how many times you've been; one marked visited without dates counts once
+  const heatShown = colorVisited === visited && settings.showVisitHeat
+  const visitsTo = useCallback((name: string) => Math.max(1, datesOf(name).length), [datesOf])
   const colorOf = useCallback(
     (country: CountryFeature) =>
-      countryColor(country, { theme, hovered: colorHovered, visited: colorVisited, wishlist: colorWishlist, highlights }),
-    [theme, colorHovered, colorVisited, colorWishlist, highlights],
+      countryColor(country, {
+        theme,
+        hovered: colorHovered,
+        visited: colorVisited,
+        wishlist: colorWishlist,
+        visits: heatShown ? visitsTo : undefined,
+        highlights,
+      }),
+    [theme, colorHovered, colorVisited, colorWishlist, heatShown, visitsTo, highlights],
   )
   // Game answers on tiny islands get a dot, or they'd be invisible
   const gameColors = useMemo(() => gameHighlights(game, theme), [game, theme])
@@ -662,6 +673,7 @@ export default function App() {
         text={playing ? null : (hoveredCity?.name ?? hoveredRegion?.properties.name ?? hovered?.properties.name ?? null)}
       />
       <FlagCorner country={playing ? null : hovered} />
+      {heatShown && <HeatLegend colors={heatColors(theme)} />}
       <AchievementToast
         achievements={newAchievements}
         onOpen={() => {
