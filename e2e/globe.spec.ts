@@ -659,6 +659,25 @@ test.describe('touch', { tag: '@touch' }, () => {
     expect(box.y + box.height).toBeCloseTo(nav.y, 0)
   })
 
+  test("the sheet's close button stays above what scrolls, never over it", async ({ page }) => {
+    await openGlobe(page)
+    await page.getByRole('button', { name: 'Visited' }).tap()
+    const add = page.getByRole('searchbox', { name: 'Add a country' })
+    for (const name of ['Denmark', 'Norway', 'Sweden', 'Finland', 'Iceland', 'Japan', 'Peru', 'Kenya']) {
+      await add.fill(name)
+      await add.press('Enter')
+    }
+    const close = page.getByRole('button', { name: 'Close panel' })
+    const cards = page.locator('.side-panel-body')
+    await cards.evaluate((el) => el.scrollTo({ top: el.scrollHeight }))
+    const button = (await close.boundingBox())!
+    const scrolling = (await cards.boundingBox())!
+    expect(button.y + button.height).toBeLessThanOrEqual(scrolling.y)
+    // And it still closes the sheet
+    await close.tap()
+    await expect(page.getByRole('region', { name: 'Visited', exact: true })).toHaveCount(0)
+  })
+
   test('tapping a country opens its panel', async ({ page }) => {
     await openGlobe(page)
     const { x, y } = center(page)

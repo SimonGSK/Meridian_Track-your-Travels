@@ -694,14 +694,31 @@ input[type='checkbox'] {
   max-height: calc(100vh - var(--topbar-height) - 24px - 108px);
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  overflow-y: auto;
-  scrollbar-width: thin;
   animation: slide-in 0.22s ease-out;
 }
 
-.side-panel > .card {
+/* The cards, which scroll */
+.side-panel-body {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.side-panel-body > .card {
   flex: none;
+}
+
+/* The tab's name and a close button: only on phones, where the panel is a sheet */
+.sheet-header {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 .sheet-close {
@@ -2115,7 +2132,31 @@ code {
   }
   .side-panel {
     max-height: 55vh;
+  }
+  .side-panel-body {
     gap: 12px;
+  }
+  .sheet-header {
+    position: static;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    clip-path: none;
+    flex: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 10px;
+  }
+  .sheet-title {
+    margin: 0;
+    color: var(--label);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
   }
   /* The selected country's sheet takes the place of the tab's */
   .country-open .side-panel {
@@ -2127,22 +2168,6 @@ code {
   }
   .sheet-close {
     display: grid;
-    position: sticky;
-    top: 0;
-    z-index: 1;
-    align-self: flex-end;
-    margin-bottom: -40px;
-    background: var(--panel-strong);
-  }
-  .side-panel > .card:first-of-type .card-header {
-    padding-right: 40px;
-  }
-  .sheet-close + .atlas-search {
-    margin-right: 44px;
-  }
-  /* Scrolled to, it stops below the sheet's close button */
-  .segmented {
-    scroll-margin-top: 48px;
   }
   .card {
     padding: 14px 14px;
