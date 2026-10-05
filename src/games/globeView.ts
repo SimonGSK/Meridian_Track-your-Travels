@@ -3,6 +3,7 @@ import type { Theme } from '../globe/themes'
 import { currentRound, kindOf } from './games'
 import { missing } from './letterGame'
 import { missingAll } from './allGame'
+import { currentNeighbours, missingNeighbours } from './neighboursGame'
 import type { GameState } from './useGame'
 
 const NONE: ReadonlyMap<CountryFeature, string> = new Map()
@@ -69,6 +70,13 @@ export function gameHighlights(game: GameState | null, theme: Theme): ReadonlyMa
   }
   // Finding a city marks it with a pin, not a country
   if (game.kind === 'city') return NONE
+  if (game.kind === 'neighbours') {
+    // The country asked about, its neighbours named, and once the round is over those missed
+    colors.set(currentNeighbours(game).country, theme.selected)
+    for (const country of game.found) colors.set(country, theme.correct)
+    if (game.roundOver) for (const country of missingNeighbours(game)) colors.set(country, theme.wrong)
+    return colors
+  }
   if (game.kind === 'higher') {
     // The one to beat, and the one to guess about, green or red once guessed
     colors.set(game.known, theme.selected)

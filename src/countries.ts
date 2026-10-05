@@ -213,6 +213,16 @@ export function findCountryAt(lat: number, lng: number): CountryFeature | null {
 export const tinyPlaces: readonly CountryFeature[] = countries.filter((c) => c.properties.tiny)
 
 /**
+ * The places sharing a land border with a place, as the map draws them: a
+ * country's overseas parts count (France borders Brazil, by French Guiana).
+ * The few places added from the finer map have none here.
+ */
+export function neighborsOf(country: CountryFeature): CountryFeature[] {
+  const i = countries.indexOf(country)
+  return i >= 0 && i < adjacent.length ? adjacent[i].map((j) => countries[j]) : []
+}
+
+/**
  * Like findCountryAt, but forgiving, so small islands can be hit with a
  * mouse. Places with a ring are found within `markerRadius` of their middle,
  * and tiny places without one within `unringedRadius` (both even on top of

@@ -1,5 +1,6 @@
 import { maxScore } from './games'
 import { maxCityScore } from './cityGame'
+import { neighboursPercent } from './neighboursGame'
 import type { GameState } from './useGame'
 
 /** The fastest perfect run of each game, in milliseconds, keyed like the best scores */
@@ -17,6 +18,8 @@ export function isPerfect(game: GameState) {
   if (game.kind === 'rounds') return !game.stoppedEarly && game.score === maxScore(game)
   // Every city within spot on
   if (game.kind === 'city') return game.score === maxCityScore(game)
+  // Every neighbour named, none shown, without naming a country that isn't one
+  if (game.kind === 'neighbours') return !game.gaveUp && game.mistakes === 0 && neighboursPercent(game) === 100
   if (game.kind === 'letter') return !game.gaveUp && game.mistakes === 0
   return !game.gaveUp
 }

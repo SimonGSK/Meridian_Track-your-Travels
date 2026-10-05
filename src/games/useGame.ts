@@ -20,9 +20,18 @@ import { guess, newHigherLower, nextPair, type Guess, type HigherLowerState, typ
 import { DAILY_KEY, dayKey, isDailyResults, newDailyGame, squaresOf, type DailyResults } from './daily'
 import { guessCity, newCityGame, nextCity, skipCity, type CityGameState, type CityLevel } from './cityGame'
 import { loadCities } from '../data/cities'
+import {
+  nameNeighbour,
+  neighboursPercent,
+  newNeighboursGame,
+  nextNeighbours,
+  showRest,
+  type NeighboursLevel,
+  type NeighboursState,
+} from './neighboursGame'
 import type { LatLng } from '../globe/interaction'
 
-export type GameState = RoundGameState | LetterGameState | AllGameState | HigherLowerState | CityGameState
+export type GameState = RoundGameState | LetterGameState | AllGameState | HigherLowerState | CityGameState | NeighboursState
 
 export const BEST_SCORES_KEY = 'countries-app.best-scores'
 
@@ -39,11 +48,14 @@ export const scopeKey = (scope: Scope) => `all:${scope}`
 export const measureKey = (measure: Measure) => `higher:${measure}`
 /** "Find the city" keeps a best score (points) per level */
 export const cityKey = (level: CityLevel) => `city:${level}`
+/** Neighbours keeps a best share of the neighbours named, in percent, per level */
+export const neighboursKey = (level: NeighboursLevel) => `neighbours:${level}`
 function keyOf(game: GameState) {
   if (game.kind === 'letter') return letterKey(game.letter)
   if (game.kind === 'all') return scopeKey(game.scope)
   if (game.kind === 'higher') return measureKey(game.measure)
   if (game.kind === 'city') return cityKey(game.level)
+  if (game.kind === 'neighbours') return neighboursKey(game.level)
   return bestKey(game.id, game.difficulty)
 }
 
@@ -53,9 +65,13 @@ export const isBestScores = (value: unknown): value is BestScores =>
   !Array.isArray(value) &&
   Object.values(value).every((n) => typeof n === 'number')
 
-/** Points; for the letter hunt and "name them all" the number of countries found; for higher or lower the streak */
+/**
+ * Points; for the letter hunt and "name them all" the number of countries
+ * found; for higher or lower the streak; for neighbours the share named
+ */
 export function gameScore(game: GameState) {
   if (game.kind === 'rounds' || game.kind === 'city') return game.score
+  if (game.kind === 'neighbours') return neighboursPercent(game)
   if (game.kind === 'higher') return game.streak
   return game.found.length
 }
@@ -111,6 +127,7 @@ export function useGame() {
   const startLetter = useCallback((letter: string) => begin(newLetterGame(letter)), [begin])
   const startHigher = useCallback((measure: Measure) => begin(newHigherLower(measure)), [begin])
   /** The cities load with the app; a game asked for before they're there starts once they are */
+  const startNeighbours = useCallback((level: NeighboursLevel) => begin(newNeighboursGame(level)), [begin])
   const startCity = useCallback(
     (level: CityLevel) => loadCities().then((cities) => begin(newCityGame(level, cities))),
     [begin],
@@ -144,6 +161,7 @@ export function useGame() {
       if (game.kind === 'letter') update(pickCountry(game, country))
       else if (game.kind === 'all') update(nameCountry(game, country, alias))
       else if (game.kind === 'rounds') update(answer(game, country, alias))
+      else if (game.kind === 'neighbours') update(nameNeighbour(game, country, alias))
     },
     [game, update],
   )
@@ -155,6 +173,7 @@ export function useGame() {
     else if (game.kind === 'all') update(giveUpAll(game))
     else if (game.kind === 'higher') update(nextPair(game))
     else if (game.kind === 'city') update(nextCity(game))
+    else if (game.kind === 'neighbours') update(nextNeighbours(game))
     else update(next(game))
   }, [game, update])
 
@@ -162,6 +181,7 @@ export function useGame() {
   const giveUpRound = useCallback(() => {
     if (game?.kind === 'rounds') update(dontKnow(game))
     else if (game?.kind === 'city') update(skipCity(game))
+    else if (game?.kind === 'neighbours') update(showRest(game))
   }, [game, update])
 
   /** End a game played in rounds now, scoring the rounds played */
@@ -184,6 +204,7 @@ export function useGame() {
     startAll,
     startHigher,
     startCity,
+    startNeighbours,
     pick,
     guessAt,
     guessHigher,
