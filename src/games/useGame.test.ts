@@ -6,6 +6,7 @@ import { currentRound, type RoundGameState } from './games'
 import { countries } from '../countries'
 import type { LetterGameState } from './letterGame'
 import { isMore, type HigherLowerState } from './higherLower'
+import { currentCity, type CityGameState } from './cityGame'
 
 type Hook = { current: ReturnType<typeof useGame> }
 const rounds = (result: Hook) => result.current.game as RoundGameState
@@ -218,4 +219,21 @@ describe('useGame', () => {
     act(() => result.current.quit())
     expect(result.current.game).toBeNull()
   })
+
+  it('plays "find the city": starts once the cities are in, scores clicks, and keeps the best per level', async () => {
+    const { result } = renderHook(() => useGame())
+    await act(() => result.current.startCity('easy'))
+    const city = () => currentCity(result.current.game as CityGameState).city
+    expect(result.current.game).toMatchObject({ kind: 'city', level: 'easy', index: 0 })
+
+    act(() => result.current.guessAt({ lat: city().lat, lng: city().lng }))
+    expect((result.current.game as CityGameState).score).toBe(100)
+    act(() => result.current.advance())
+    for (let i = 1; i < 10; i++) {
+      act(() => result.current.giveUpRound())
+      act(() => result.current.advance())
+    }
+    expect(result.current.game?.finished).toBe(true)
+    expect(result.current.best['city:easy']).toBe(100)
+  }, 20_000)
 })

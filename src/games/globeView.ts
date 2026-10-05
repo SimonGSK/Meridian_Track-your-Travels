@@ -45,9 +45,10 @@ export function gameRings(game: GameState | null, ringsOn: boolean) {
   return ringsOn ? TINY_COUNTRIES : NO_RINGS
 }
 
-/** You answer by clicking the globe: finding a country, or hunting for a letter */
+/** You answer by clicking the globe: finding a country or a city, or hunting for a letter */
 export function globeAnswers(game: GameState | null) {
   if (!isPlaying(game)) return false
+  if (game.kind === 'city') return !game.guess
   return game.kind === 'letter' || (game.kind === 'rounds' && kindOf(game) === 'find' && !game.answer)
 }
 
@@ -66,6 +67,8 @@ export function gameHighlights(game: GameState | null, theme: Theme): ReadonlyMa
     else if (game.last?.result === 'wrong-letter') colors.set(game.last.country, theme.wrong)
     return colors
   }
+  // Finding a city marks it with a pin, not a country
+  if (game.kind === 'city') return NONE
   if (game.kind === 'higher') {
     // The one to beat, and the one to guess about, green or red once guessed
     colors.set(game.known, theme.selected)
@@ -99,6 +102,7 @@ export function flightTarget(game: GameState | null): CountryFeature | null {
 export function overviewKey(game: GameState | null): string | null {
   if (!isPlaying(game)) return null
   if (game.kind === 'letter') return `letter-${game.letter}`
+  if (game.kind === 'city') return game.guess ? null : `city-${game.index}`
   if (game.kind === 'all') return `all-${game.scope}`
   return game.kind === 'rounds' && kindOf(game) === 'find' && !game.answer ? `find-${game.index}` : null
 }

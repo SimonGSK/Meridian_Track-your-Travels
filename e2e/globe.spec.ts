@@ -471,6 +471,22 @@ test.describe('games', () => {
     await expect(panel(page)).toBeHidden()
   })
 
+  test('find the city: a click anywhere on the globe is scored by how far off it is', async ({ page }) => {
+    const { errors } = await openGlobe(page)
+    await page.getByRole('button', { name: 'Games', exact: true }).click()
+    await page.getByRole('button', { name: /Find the city/ }).click()
+    await page.getByRole('button', { name: /^Medium/ }).click()
+    await expect(page.getByText('Round 1 of 10')).toBeVisible()
+
+    const box = (await page.locator('.globe canvas').boundingBox())!
+    await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2)
+    await expect(feedback(page)).toHaveText(/^(Off by [\d,]+ km|Spot on! \d+ km away)\. \+\d+ points?$/)
+    await page.getByRole('button', { name: 'Next' }).click()
+    await expect(page.getByText('Round 2 of 10')).toBeVisible()
+    // The pin, the line and the plane drew without complaints
+    expect(errors).toEqual([])
+  })
+
   test('flag quiz: picking a country gives feedback', async ({ page }) => {
     await openGlobe(page)
     await page.getByRole('button', { name: 'Games', exact: true }).click()

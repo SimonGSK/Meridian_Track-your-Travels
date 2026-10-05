@@ -23,6 +23,7 @@ import {
   showsGame,
 } from './games/globeView'
 import { useGame } from './games/useGame'
+import { currentCity, type CityLevel } from './games/cityGame'
 import type { Measure } from './games/higherLower'
 import { useTheme } from './design/useTheme'
 import FlagCorner from './FlagCorner'
@@ -139,7 +140,9 @@ export default function App() {
     startLetter,
     startAll,
     startHigher,
+    startCity,
     pick,
+    guessAt,
     guessHigher,
     giveUpRound,
     advance,
@@ -263,7 +266,10 @@ export default function App() {
 
   // Games get a clean globe: no visited colors, and hover only where the globe is the answer
   // In games only countries are answers, so territories don't light up
-  const hoverable = !!hovered && (!playing || (globeIsAnswer && hovered.properties.kind === 'country'))
+  // Finding a city, countries don't light up: the answer is a point
+  const findingCity = globeIsAnswer && game?.kind === 'city'
+  const hoverable =
+    !!hovered && (!playing || (globeIsAnswer && !findingCity && hovered.properties.kind === 'country'))
   const colorHovered = hoverable ? hovered : null
   const colorVisited = yearShown ? yearShown.names : showsGame(game) || !settings.showVisited ? NO_VISITS : visited
   const colorWishlist = yearShown || showsGame(game) || !settings.showWishlist ? NO_VISITS : wishlist
@@ -347,22 +353,31 @@ export default function App() {
     [visitedCities, visited, addPlace, regions, addRegionId, toggleCityId],
   )
 
-  // A pin on each visited city, standing on the selected country when it's raised
-  const pinned = useMemo(
-    () =>
-      cities && settings.showCities && !showsGame(game) && !yearShown
-        ? cities
-            .filter((c) => visitedCities.has(c.id))
-            .map((city) => ({ city, lat: city.lat, lng: city.lng, raised: !editing && countryOfCity(city) === selected }))
-        : [],
-    [cities, settings.showCities, game, yearShown, visitedCities, editing, selected],
+  // "Find the city": once guessed, the city and where you clicked
+  const cityAnswer = useMemo(
+    () => (game?.kind === 'city' && game.guess && !game.finished ? { ...currentCity(game), guess: game.guess } : null),
+    [game],
   )
-  usePinLayer(globe, pinned, theme.pin, screensaver ? SCREENSAVER_PIN_FADE : PIN_FADE)
+
+  // A pin on each visited city, standing on the selected country when it's raised; in "find the city" the answer's
+  const pinned = useMemo(() => {
+    if (cityAnswer) return [{ city: cityAnswer.city, lat: cityAnswer.city.lat, lng: cityAnswer.city.lng, raised: false }]
+    return cities && settings.showCities && !showsGame(game) && !yearShown
+      ? cities
+          .filter((c) => visitedCities.has(c.id))
+          .map((city) => ({ city, lat: city.lat, lng: city.lng, raised: !editing && countryOfCity(city) === selected }))
+      : []
+  }, [cityAnswer, cities, settings.showCities, game, yearShown, visitedCities, editing, selected])
+  usePinLayer(globe, pinned, cityAnswer ? theme.correct : theme.pin, screensaver ? SCREENSAVER_PIN_FADE : PIN_FADE)
   // Night as it is now, lit by the cities; not in games, where it would hide what to find
   useNightLayer(globe, settings.showDayNight && !showsGame(game), (settings.showCityLights && cities) || NO_LIGHTS)
 
-  // Each route once, with a plane flying it; those picked in the list stand out
+  // Each route once, with a plane flying it; those picked in the list stand out. In "find the city", a plane flies
+  // from where you clicked to the city
   const flightLines = useMemo(() => {
+    if (cityAnswer?.guess.position) {
+      return [{ key: `city-${cityAnswer.city.id}`, from: cityAnswer.guess.position, to: cityAnswer.city, highlighted: true }]
+    }
     if (showsGame(game) || (!yearShown && !settings.showFlights)) return []
     return uniqueRoutes(yearShown ? yearShown.flights : routes).map((route) => ({
       key: route.flight.id,
@@ -370,7 +385,7 @@ export default function App() {
       to: route.to,
       highlighted: !!shownRoutes?.some((picked) => uniqueRoutes([route, picked]).length === 1),
     }))
-  }, [routes, yearShown, settings.showFlights, game, shownRoutes])
+  }, [cityAnswer, routes, yearShown, settings.showFlights, game, shownRoutes])
   useFlightLayer(globe, flightLines, { color: theme.flight, highlight: theme.selected })
   const cityAt = useCallback(
     (point: Point | null) => (globe && point && pinned.length > 0 ? (pinAt(globe, pinned, point)?.city ?? null) : null),
@@ -389,7 +404,10 @@ export default function App() {
   const onGlobeClick = useCallback(
     (country: CountryFeature | null, position: LatLng | null, point: Point) => {
       if (playing) {
-        if (globeIsAnswer && country) pick(country)
+        // Finding a city, anywhere counts, the sea too; otherwise it's a country
+        if (globeIsAnswer && game?.kind === 'city') {
+          if (position) guessAt(position)
+        } else if (globeIsAnswer && country) pick(country)
         return
       }
       // A pin stands for its city's country
@@ -400,7 +418,7 @@ export default function App() {
       if (region && editing) toggleRegion(region, editing)
       else selectCountry(country)
     },
-    [playing, globeIsAnswer, pick, cityAt, regionAt, editing, toggleRegion, selectCountry],
+    [playing, globeIsAnswer, game, guessAt, pick, cityAt, regionAt, editing, toggleRegion, selectCountry],
   )
   const onGlobeHover = useCallback(
     (country: CountryFeature | null, position: LatLng | null, point: Point | null) => {
@@ -421,6 +439,12 @@ export default function App() {
   useEffect(() => {
     if (gameFlight) flyTo(gameFlight, { fit: true })
   }, [gameFlight, flyTo])
+  // "Find the city", once guessed: see where you clicked and the city, or the city if you didn't know
+  useEffect(() => {
+    if (!cityAnswer) return
+    const { city, guess } = cityAnswer
+    flyToSee(guess.position ? spotsOfRoute({ from: guess.position, to: city }) : [{ lat: city.lat, lng: city.lng, radius: 4 }])
+  }, [cityAnswer, flyToSee])
 
   // Searching the globe starts from an overview, not zoomed in on the last answer
   const overview = overviewKey(game)
@@ -439,6 +463,10 @@ export default function App() {
   const playAll = (scope: Scope) => {
     selectCountry(null)
     startAll(scope)
+  }
+  const playCity = (level: CityLevel) => {
+    selectCountry(null)
+    void startCity(level)
   }
   const playHigher = (measure: Measure) => {
     selectCountry(null)
@@ -524,7 +552,7 @@ export default function App() {
         className="globe"
         data-testid="globe"
         aria-busy={!globe}
-        style={{ cursor: hoverable ? 'pointer' : 'grab' }}
+        style={{ cursor: hoverable ? 'pointer' : findingCity ? 'crosshair' : 'grab' }}
         {...pointerHandlers}
       >
         {globeView}
@@ -652,6 +680,7 @@ export default function App() {
                 onStartLetter={playLetter}
                 onStartAll={playAll}
                 onStartHigher={playHigher}
+                onStartCity={playCity}
                 daily={daily}
                 onStartDaily={playDaily}
                 onPick={pick}
