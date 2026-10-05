@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { cityOf, type Airport } from '../data/airports'
-import { byDate, flightStats, formatDistance, type Route } from '../data/flights'
+import { flightStats, formatDistance, type Route } from '../data/flights'
+import { stopsOf, tripsByDate, tripsOf } from '../data/trips'
 import { formatVisitDate, type VisitDate } from '../data/visitDates'
 import { CloseIcon } from '../icons'
 import StatsBox from '../ui/StatsBox'
@@ -18,12 +19,64 @@ type Props = {
   onDate: (id: string, date: VisitDate | null) => void
   /** Shows a flight's route on the globe */
   onShow: (route: Route) => void
+  /** Shows a trip's routes on the globe */
+  onShowTrip: (routes: Route[]) => void
 }
 
 const oneDecimal = new Intl.NumberFormat('en-US', { maximumFractionDigits: 1 })
 
-/** The Visited tab's flights: what they add up to, a form to add one, and the list */
-export default function FlightsPanel({ routes, airports, onAdd, onRemove, onDate, onShow }: Props) {
+type RowProps = {
+  route: Route
+  /** Its date being changed */
+  editing: boolean
+  onEdit: () => void
+  onShow: () => void
+  onRemove: () => void
+  onDate: (date: VisitDate | null) => void
+}
+
+/** A flight in the list: its route, its date (which can be changed) and a button to remove it */
+function FlightRow({ route, editing, onEdit, onShow, onRemove, onDate }: RowProps) {
+  const when = route.flight.date
+  const name = `flight from ${cityOf(route.from)} to ${cityOf(route.to)}`
+  return (
+    <li className={`country-item${editing ? ' editing' : ''}`}>
+      <button type="button" className="country-row" onClick={onShow}>
+        <span className="row-text">
+          <span className="row-name">
+            {cityOf(route.from)} → {cityOf(route.to)}
+          </span>
+          <span className="row-note">
+            {route.from.code} → {route.to.code} · {formatDistance(route.km)}
+          </span>
+        </span>
+      </button>
+      <button
+        type="button"
+        className="link-button flight-date"
+        aria-expanded={editing}
+        aria-label={`${when ? `Change the date, ${formatVisitDate(when)},` : 'Add a date to the'} ${name}`}
+        onClick={onEdit}
+      >
+        {when ? formatVisitDate(when) : 'Add date'}
+      </button>
+      <button type="button" className="icon-button small" onClick={onRemove} aria-label={`Remove ${name}`}>
+        <CloseIcon size={14} />
+      </button>
+      {editing && (
+        <div className="flight-date-editor">
+          <MonthYearSelect label={`When you took the ${name}`} value={when ?? null} onChange={onDate} optional />
+          <button type="button" className="link-button" onClick={onEdit}>
+            Done
+          </button>
+        </div>
+      )}
+    </li>
+  )
+}
+
+/** The Visited tab's flights: what they add up to, a form to add one, and the list, grouped into trips */
+export default function FlightsPanel({ routes, airports, onAdd, onRemove, onDate, onShow, onShowTrip }: Props) {
   const [from, setFrom] = useState<Airport | null>(null)
   const [to, setTo] = useState<Airport | null>(null)
   // Kept for the next leg too, which is likely the same trip
@@ -92,46 +145,30 @@ export default function FlightsPanel({ routes, airports, onAdd, onRemove, onDate
         <p className="muted">None yet. Each flight you add is drawn on the globe.</p>
       ) : (
         <ul className="flight-list" aria-label="Flights">
-          {byDate(routes).map((route) => {
-            const { id, date: when } = route.flight
-            const name = `flight from ${cityOf(route.from)} to ${cityOf(route.to)}`
+          {tripsByDate(tripsOf(routes)).map((trip) => {
+            const row = (route: Route) => (
+              <FlightRow
+                key={route.flight.id}
+                route={route}
+                editing={editing === route.flight.id}
+                onEdit={() => setEditing(editing === route.flight.id ? null : route.flight.id)}
+                onShow={() => onShow(route)}
+                onRemove={() => onRemove(route.flight.id)}
+                onDate={(d) => onDate(route.flight.id, d)}
+              />
+            )
+            if (trip.routes.length === 1) return row(trip.routes[0])
+            const stops = stopsOf(trip).join(' → ')
+            const meta = ['Trip', trip.date && formatVisitDate(trip.date), `${trip.routes.length} flights`, formatDistance(trip.km)]
             return (
-              <li key={id} className={`country-item${editing === id ? ' editing' : ''}`}>
-                <button type="button" className="country-row" onClick={() => onShow(route)}>
-                  <span className="row-text">
-                    <span className="row-name">
-                      {cityOf(route.from)} → {cityOf(route.to)}
-                    </span>
-                    <span className="row-note">
-                      {route.from.code} → {route.to.code} · {formatDistance(route.km)}
-                    </span>
-                  </span>
+              <li key={trip.routes[0].flight.id} className="trip">
+                <button type="button" className="trip-header" onClick={() => onShowTrip(trip.routes)}>
+                  <span className="trip-meta">{meta.filter(Boolean).join(' · ')}</span>
+                  <span className="trip-route">{stops}</span>
                 </button>
-                <button
-                  type="button"
-                  className="link-button flight-date"
-                  aria-expanded={editing === id}
-                  aria-label={`${when ? `Change the date, ${formatVisitDate(when)},` : 'Add a date to the'} ${name}`}
-                  onClick={() => setEditing(editing === id ? null : id)}
-                >
-                  {when ? formatVisitDate(when) : 'Add date'}
-                </button>
-                <button
-                  type="button"
-                  className="icon-button small"
-                  onClick={() => onRemove(id)}
-                  aria-label={`Remove ${name}`}
-                >
-                  <CloseIcon size={14} />
-                </button>
-                {editing === id && (
-                  <div className="flight-date-editor">
-                    <MonthYearSelect label={`When you took the ${name}`} value={when ?? null} onChange={(d) => onDate(id, d)} optional />
-                    <button type="button" className="link-button" onClick={() => setEditing(null)}>
-                      Done
-                    </button>
-                  </div>
-                )}
+                <ul className="flight-list trip-legs" aria-label={`Flights of the trip ${stops}`}>
+                  {trip.routes.map(row)}
+                </ul>
               </li>
             )
           })}

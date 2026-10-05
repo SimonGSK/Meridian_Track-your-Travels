@@ -53,7 +53,7 @@ import VisitedTab, { type VisitedView } from './visited/VisitedTab'
 import YearsPanel from './visited/YearsPanel'
 import { reviewOf, yearsOf } from './visited/yearInReview'
 import { routeOf, uniqueRoutes, type Route } from './data/flights'
-import { geoInterpolate } from 'd3-geo'
+import { viewOfRoutes } from './data/trips'
 import { regionFills, regionOutlines, regionProgress } from './visited/regionsView'
 import Tooltip from './Tooltip'
 import {
@@ -153,8 +153,8 @@ export default function App() {
   const airports = useAirports()
   const { flights, add: addFlight, remove: removeFlight, setDate: setFlightDate } = useFlights(cities, airports)
   const [visitedView, setVisitedView] = useState<VisitedView>('countries')
-  /** A flight picked in the list, shown on the globe (and highlighted) until the view moves on */
-  const [shownRoute, setShownRoute] = useState<Route | null>(null)
+  /** A flight or trip picked in the list, shown on the globe (and highlighted) until the view moves on */
+  const [shownRoutes, setShownRoutes] = useState<Route[] | null>(null)
 
   const globeMaterial = useMemo(
     () => new MeshPhongMaterial({ color: theme.ocean, shininess: theme.oceanShininess }),
@@ -178,7 +178,7 @@ export default function App() {
   const selectCountry = useCallback(
     (country: CountryFeature | null) => {
       setSelected(country)
-      setShownRoute(null)
+      setShownRoutes(null)
       if (country) flyTo(country)
     },
     [flyTo],
@@ -213,15 +213,14 @@ export default function App() {
     [reviewYear, visited, datesOf, routes],
   )
 
-  /** Flies to show a flight's whole route, from above its middle */
-  const showRoute = useCallback(
-    (route: Route) => {
+  /** Flies to show a flight's or a trip's whole route, from above its middle */
+  const showRoutes = useCallback(
+    (picked: Route[]) => {
       selectCountry(null)
-      setShownRoute(route)
+      setShownRoutes(picked)
       if (!globe) return
-      const [lng, lat] = geoInterpolate([route.from.lng, route.from.lat], [route.to.lng, route.to.lat])(0.5)
-      // Wide enough for the route, and for the arc rising above it
-      const altitude = fitAltitude((route.km / 111) * 1.3)
+      const { lat, lng, extent } = viewOfRoutes(picked)
+      const altitude = fitAltitude(extent)
       const from = globe.pointOfView()
       stopGlide(globe)
       globe.pointOfView({ lat, lng, altitude }, flightDuration(from, { lat, lng }))
@@ -335,17 +334,16 @@ export default function App() {
   // Night as it is now, lit by the cities; not in games, where it would hide what to find
   useNightLayer(globe, settings.showDayNight && !showsGame(game), (settings.showCityLights && cities) || NO_LIGHTS)
 
-  // Each route once, with a plane flying it; the one picked in the list stands out
+  // Each route once, with a plane flying it; those picked in the list stand out
   const flightLines = useMemo(() => {
     if (showsGame(game) || (!yearShown && !settings.showFlights)) return []
-    const picked = shownRoute && uniqueRoutes([shownRoute])[0]
     return uniqueRoutes(yearShown ? yearShown.flights : routes).map((route) => ({
       key: route.flight.id,
       from: route.from,
       to: route.to,
-      highlighted: !!picked && uniqueRoutes([route, picked]).length === 1,
+      highlighted: !!shownRoutes?.some((picked) => uniqueRoutes([route, picked]).length === 1),
     }))
-  }, [routes, yearShown, settings.showFlights, game, shownRoute])
+  }, [routes, yearShown, settings.showFlights, game, shownRoutes])
   useFlightLayer(globe, flightLines, { color: theme.flight, highlight: theme.selected })
   const cityAt = useCallback(
     (point: Point | null) => (globe && point && pinned.length > 0 ? (pinAt(globe, pinned, point)?.city ?? null) : null),
@@ -358,7 +356,7 @@ export default function App() {
     [editing, editingRegions],
   )
   useDepthPrecision(globe)
-  useSmoothAutoRotate(globe, !selected && !playing && !shownRoute)
+  useSmoothAutoRotate(globe, !selected && !playing && !shownRoutes)
 
   const onGlobeClick = useCallback(
     (country: CountryFeature | null, position: LatLng | null, point: Point) => {
@@ -446,7 +444,7 @@ export default function App() {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key !== 'Escape') return
       if (selected) selectCountry(null)
-      else if (shownRoute) setShownRoute(null)
+      else if (shownRoutes) setShownRoutes(null)
       else {
         quitGame()
         setView(null)
@@ -454,7 +452,7 @@ export default function App() {
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [selected, shownRoute, selectCountry, quitGame])
+  }, [selected, shownRoutes, selectCountry, quitGame])
 
 
   const globeView = (
@@ -570,7 +568,7 @@ export default function App() {
                   review={review}
                   onYearChange={setPickedYear}
                   onShow={showCountry}
-                  onShowRoute={showRoute}
+                  onShowRoute={(route) => showRoutes([route])}
                 />
               }
               flightsPanel={
@@ -579,11 +577,12 @@ export default function App() {
                   airports={airports}
                   onAdd={addFlight}
                   onRemove={(id) => {
-                    if (shownRoute?.flight.id === id) setShownRoute(null)
+                    if (shownRoutes?.some((route) => route.flight.id === id)) setShownRoutes(null)
                     removeFlight(id)
                   }}
                   onDate={setFlightDate}
-                  onShow={showRoute}
+                  onShow={(route) => showRoutes([route])}
+                  onShowTrip={showRoutes}
                 />
               }
             />

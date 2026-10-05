@@ -246,6 +246,27 @@ test.describe('flights', () => {
     await page.waitForTimeout(1000)
     expect(errors).toEqual([])
   })
+
+  test('the flight back, added next, makes a trip, which shows on the globe', async ({ page }) => {
+    const { errors } = await openGlobe(page)
+    await page.getByRole('button', { name: 'Visited', exact: true }).click()
+    await page.getByRole('tab', { name: 'Flights' }).click()
+    for (const [label, query] of [['From', 'cph'], ['To', 'cdg']]) {
+      await page.getByRole('searchbox', { name: label, exact: true }).fill(query)
+      await page.getByRole('list', { name: `${label} airports` }).getByRole('button').first().click()
+    }
+    await page.getByRole('button', { name: 'Add flight' }).click()
+    // From starts in Paris, where the flight landed
+    await page.getByRole('searchbox', { name: 'To', exact: true }).fill('cph')
+    await page.getByRole('list', { name: 'To airports' }).getByRole('button').first().click()
+    await page.getByRole('button', { name: 'Add flight' }).click()
+
+    const trip = page.getByRole('button', { name: /^Trip · 2 flights/ })
+    await expect(trip).toContainText('Copenhagen → Paris → Copenhagen')
+    await trip.click()
+    await page.waitForTimeout(1000)
+    expect(errors).toEqual([])
+  })
 })
 
 test.describe('screensaver', () => {

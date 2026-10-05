@@ -1161,6 +1161,49 @@ code {
   list-style: none;
 }
 
+/* A trip: its route over its flights, joined by a line */
+.trip {
+  margin: 6px 0;
+}
+
+.trip-header {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  padding: 8px;
+  border: none;
+  border-radius: 8px;
+  background: none;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.trip-header:hover {
+  background: var(--surface-hover);
+}
+
+.trip-meta {
+  color: var(--label);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.trip-route {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.trip-legs {
+  margin-left: 14px;
+  padding-left: 4px;
+  border-left: 1px solid var(--line);
+}
+
 /* Hints and labels over the globe */
 
 .hint {
