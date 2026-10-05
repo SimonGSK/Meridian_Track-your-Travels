@@ -81,6 +81,25 @@ describe('CountryPanel', () => {
     expect(screen.getByRole('button', { name: 'In visited atlas' })).toHaveAttribute('aria-pressed', 'true')
   })
 
+  it('adds a place not visited yet to the wishlist, and shows when it is on it', async () => {
+    const onToggleWish = vi.fn()
+    const { rerender } = render(
+      <CountryPanel country={byName('Peru')} visited={false} onToggleVisited={() => {}} onToggleWish={onToggleWish} onClose={() => {}} />,
+    )
+    const button = screen.getByRole('button', { name: 'Add to wishlist' })
+    expect(button).toHaveAttribute('aria-pressed', 'false')
+    await userEvent.click(button)
+    expect(onToggleWish).toHaveBeenCalledOnce()
+
+    rerender(<CountryPanel country={byName('Peru')} visited={false} wished onToggleVisited={() => {}} onToggleWish={onToggleWish} onClose={() => {}} />)
+    expect(screen.getByRole('button', { name: 'On your wishlist' })).toHaveAttribute('aria-pressed', 'true')
+  })
+
+  it('has no wishlist button once visited', () => {
+    render(<CountryPanel country={byName('Peru')} visited onToggleVisited={() => {}} onToggleWish={() => {}} onClose={() => {}} />)
+    expect(screen.queryByRole('button', { name: /wishlist/ })).not.toBeInTheDocument()
+  })
+
   it('lists the visited cities, when given cities', () => {
     const cities = [{ id: 1, name: 'Copenhagen', place: 'DK', lat: 55.68, lng: 12.57, population: 1153615, capital: true as const }]
     const { rerender } = render(

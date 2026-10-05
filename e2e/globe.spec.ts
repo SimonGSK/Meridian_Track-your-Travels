@@ -326,6 +326,23 @@ test.describe('achievements', () => {
   })
 })
 
+test.describe('wishlist', () => {
+  test('a starred country goes on the wishlist, and "Been there" moves it to the visited atlas', async ({ page }) => {
+    await openGlobe(page)
+    await page.getByRole('button', { name: 'Visited', exact: true }).click()
+    await page.getByRole('searchbox', { name: 'Add a country' }).fill('peru')
+    await page.getByRole('button', { name: 'Add Peru to your wishlist' }).click()
+    const wishlist = page.getByRole('list', { name: 'Wishlist' })
+    await expect(wishlist).toContainText('Peru')
+    await expect(page.getByText('0 visited')).toBeVisible()
+
+    await wishlist.getByRole('button', { name: 'Been to Peru: add it to your visited atlas' }).click()
+    await expect(wishlist).toHaveCount(0)
+    await expect(page.getByRole('list', { name: 'Visited countries' })).toContainText('Peru')
+    await expect(page.getByText('1 visited')).toBeVisible()
+  })
+})
+
 test.describe('year in review', () => {
   test('a dated visit gets its year, with the country under its month', async ({ page }) => {
     await openGlobe(page)

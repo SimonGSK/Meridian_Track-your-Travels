@@ -155,6 +155,57 @@ describe('VisitedPanel', () => {
 })
 
 describe('percentLabel', () => {
+  describe('the wishlist', () => {
+    function withWishlist(wishlist: string[], visited: string[] = []) {
+      const props = {
+        visited: new Set(visited),
+        wishlist: new Set(wishlist),
+        onAdd: vi.fn(),
+        onRemove: vi.fn(),
+        onShow: vi.fn(),
+        onWish: vi.fn(),
+        onUnwish: vi.fn(),
+      }
+      render(<VisitedPanel {...props} />)
+      return props
+    }
+    const wishlist = () => screen.queryByRole('list', { name: 'Wishlist' })
+
+    it('says how to add to it while it is empty', () => {
+      withWishlist([])
+      expect(screen.getByText(/Where do you want to go\? Star a country/)).toBeInTheDocument()
+      expect(wishlist()).not.toBeInTheDocument()
+    })
+
+    it('lists its places by name, with their continent', () => {
+      withWishlist(['Peru', 'Iceland'])
+      const rows = within(wishlist()!).getAllByRole('listitem')
+      expect(rows.map((row) => row.querySelector('.row-text')!.textContent)).toEqual(['IcelandEurope', 'PeruSouth America'])
+    })
+
+    it('stars a search result for the wishlist, or takes it off', async () => {
+      const { onWish, onUnwish, onAdd } = withWishlist(['Peru'])
+      await userEvent.type(search(), 'pe')
+      await userEvent.click(within(results()!).getByRole('button', { name: 'Take Peru off your wishlist' }))
+      expect(onUnwish).toHaveBeenCalledWith('Peru')
+      await userEvent.clear(search())
+      await userEvent.type(search(), 'japan')
+      await userEvent.click(within(results()!).getByRole('button', { name: 'Add Japan to your wishlist' }))
+      expect(onWish).toHaveBeenCalledWith('Japan')
+      expect(onAdd).not.toHaveBeenCalled()
+    })
+
+    it('marks a place as visited, takes one off, or shows it', async () => {
+      const { onAdd, onUnwish, onShow } = withWishlist(['Peru', 'Iceland'])
+      await userEvent.click(screen.getByRole('button', { name: 'Been to Peru: add it to your visited atlas' }))
+      expect(onAdd).toHaveBeenCalledWith('Peru')
+      await userEvent.click(within(wishlist()!).getByRole('button', { name: 'Take Iceland off your wishlist' }))
+      expect(onUnwish).toHaveBeenCalledWith('Iceland')
+      await userEvent.click(within(wishlist()!).getByRole('button', { name: /^Iceland/ }))
+      expect(onShow).toHaveBeenCalledWith(countries.find((c) => c.properties.name === 'Iceland'))
+    })
+  })
+
   it('rounds to whole percents', () => {
     expect(percentLabel(0, 240)).toBe('0%')
     expect(percentLabel(12, 240)).toBe('5%')

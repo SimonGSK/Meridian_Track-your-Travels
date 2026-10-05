@@ -41,6 +41,7 @@ import { useVisited } from './visited/useVisited'
 import { useVisitedRegions } from './visited/useVisitedRegions'
 import { useVisitedCities } from './visited/useVisitedCities'
 import { useVisitDates } from './visited/useVisitDates'
+import { useWishlist } from './visited/useWishlist'
 import { ACHIEVEMENTS, earnedIds, type Atlas } from './visited/achievements'
 import AchievementsPanel from './visited/AchievementsPanel'
 import AchievementToast from './visited/AchievementToast'
@@ -108,6 +109,16 @@ export default function App() {
   /** The game whose setup is open in the Games tab */
   const [chosenGame, setChosenGame] = useState<GameId | null>(null)
   const { visited, add: addVisited, remove: removeVisited, toggle: toggleVisited } = useVisited()
+  const { wishlist: wished, add: addWish, remove: removeWish, toggle: toggleWish } = useWishlist()
+  // Going somewhere takes it off the wishlist; a place still on it from before (a backup) isn't shown there
+  const wishlist = useMemo(() => new Set([...wished].filter((name) => !visited.has(name))), [wished, visited])
+  const addPlace = useCallback(
+    (name: string) => {
+      addVisited(name)
+      removeWish(name)
+    },
+    [addVisited, removeWish],
+  )
   const {
     game,
     best,
@@ -239,10 +250,11 @@ export default function App() {
   const hoverable = !!hovered && (!playing || (globeIsAnswer && hovered.properties.kind === 'country'))
   const colorHovered = hoverable ? hovered : null
   const colorVisited = yearShown ? yearShown.names : showsGame(game) || !settings.showVisited ? NO_VISITS : visited
+  const colorWishlist = yearShown || showsGame(game) || !settings.showWishlist ? NO_VISITS : wishlist
   const colorOf = useCallback(
     (country: CountryFeature) =>
-      countryColor(country, { theme, hovered: colorHovered, visited: colorVisited, highlights }),
-    [theme, colorHovered, colorVisited, highlights],
+      countryColor(country, { theme, hovered: colorHovered, visited: colorVisited, wishlist: colorWishlist, highlights }),
+    [theme, colorHovered, colorVisited, colorWishlist, highlights],
   )
   // Game answers on tiny islands get a dot, or they'd be invisible
   const gameColors = useMemo(() => gameHighlights(game, theme), [game, theme])
@@ -290,23 +302,23 @@ export default function App() {
   const toggleRegion = useCallback(
     (region: RegionFeature, country: CountryFeature) => {
       if (!visitedRegions.has(region.properties.id) && !visited.has(country.properties.name)) {
-        addVisited(country.properties.name)
+        addPlace(country.properties.name)
       }
       toggleRegionId(region.properties.id)
     },
-    [visitedRegions, visited, addVisited, toggleRegionId],
+    [visitedRegions, visited, addPlace, toggleRegionId],
   )
   /** Mark or unmark a city; marking one also marks its country, and its state, as visited */
   const toggleCity = useCallback(
     (city: City, country: CountryFeature) => {
       if (!visitedCities.has(city.id)) {
-        if (!visited.has(country.properties.name)) addVisited(country.properties.name)
+        if (!visited.has(country.properties.name)) addPlace(country.properties.name)
         const region = regions && hasRegions(country) ? findRegionAt(regionsOf(regions, country), city.lat, city.lng) : null
         if (region) addRegionId(region.properties.id)
       }
       toggleCityId(city.id)
     },
-    [visitedCities, visited, addVisited, regions, addRegionId, toggleCityId],
+    [visitedCities, visited, addPlace, regions, addRegionId, toggleCityId],
   )
 
   // A pin on each visited city, standing on the selected country when it's raised
@@ -533,8 +545,11 @@ export default function App() {
               countries={
                 <VisitedPanel
                   visited={visited}
-                  onAdd={addVisited}
+                  onAdd={addPlace}
                   onRemove={removeVisited}
+                  wishlist={wishlist}
+                  onWish={addWish}
+                  onUnwish={removeWish}
                   onShow={showCountry}
                   note={(country) => {
                     const notes = [describeVisits(datesOf(country.properties.name))]
@@ -637,7 +652,12 @@ export default function App() {
         <CountryPanel
           country={selected}
           visited={visited.has(selected.properties.name)}
-          onToggleVisited={() => toggleVisited(selected.properties.name)}
+          onToggleVisited={() => {
+            if (!visited.has(selected.properties.name)) removeWish(selected.properties.name)
+            toggleVisited(selected.properties.name)
+          }}
+          wished={wishlist.has(selected.properties.name)}
+          onToggleWish={() => toggleWish(selected.properties.name)}
           onClose={() => selectCountry(null)}
           regions={
             editing

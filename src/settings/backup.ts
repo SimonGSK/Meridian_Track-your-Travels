@@ -8,10 +8,11 @@ import { VISITED_STORAGE_KEY, isNameList } from '../visited/useVisited'
 import { VISITED_CITIES_KEY, isCityIdList } from '../visited/useVisitedCities'
 import { VISITED_REGIONS_KEY, isRegionIdList } from '../visited/useVisitedRegions'
 import { VISIT_DATES_KEY, isVisitDates } from '../visited/useVisitDates'
+import { WISHLIST_KEY } from '../visited/useWishlist'
 
 /**
  * Everything is saved in this browser only, so a backup is a file with all
- * of it: places and when you went, states, cities, flights, best scores and times, the design
+ * of it: places and when you went, states, cities, flights, the wishlist, best scores and times, the design
  * and the layers. Restoring one replaces what's here, part by part checked
  * as the app checks it when loading.
  */
@@ -23,6 +24,7 @@ const SAVED: { key: string; isValid: (value: unknown) => boolean }[] = [
   { key: VISITED_CITIES_KEY, isValid: isCityIdList },
   { key: VISIT_DATES_KEY, isValid: isVisitDates },
   { key: FLIGHTS_KEY, isValid: isFlightList },
+  { key: WISHLIST_KEY, isValid: isNameList },
   { key: BEST_SCORES_KEY, isValid: isBestScores },
   { key: BEST_TIMES_KEY, isValid: isBestScores },
   { key: DAILY_KEY, isValid: isDailyResults },
@@ -52,6 +54,8 @@ export type BackupSummary = {
   states: number
   cities: number
   flights: number
+  /** Places on the wishlist */
+  wishlist: number
   /** Games and difficulties with a best score */
   records: number
 }
@@ -88,19 +92,21 @@ export function summarize(backup: Backup): BackupSummary {
     states: count(data[VISITED_REGIONS_KEY]),
     cities: count(data[VISITED_CITIES_KEY]),
     flights: count(data[FLIGHTS_KEY]),
+    wishlist: count(data[WISHLIST_KEY]),
     records: Object.keys((data[BEST_SCORES_KEY] as object | undefined) ?? {}).length,
   }
 }
 
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`
 
-/** "30 places, 4 states, 45 cities, 12 flights and 8 best scores", leaving out what there's none of */
-export function describeBackup({ places, states, cities, flights, records }: BackupSummary) {
+/** "30 places, 4 states, 45 cities, 12 flights, 3 on the wishlist and 8 best scores", leaving out what there's none of */
+export function describeBackup({ places, states, cities, flights, wishlist, records }: BackupSummary) {
   const parts = [
     plural(places, 'place'),
     states && plural(states, 'state'),
     cities && plural(cities, 'city', 'cities'),
     flights && plural(flights, 'flight'),
+    wishlist && `${wishlist} on the wishlist`,
     records && plural(records, 'best score'),
   ].filter((part): part is string => !!part)
   return parts.length > 1 ? `${parts.slice(0, -1).join(', ')} and ${parts.at(-1)}` : parts[0]

@@ -6,15 +6,18 @@ export type ColorState = {
   hovered: CountryFeature | null
   /** Names of countries the user has visited */
   visited: ReadonlySet<string>
+  /** Names of countries the user wants to visit */
+  wishlist?: ReadonlySet<string>
   /** Temporary colors, e.g. right/wrong answers in a game */
   highlights: ReadonlyMap<CountryFeature, string>
 }
 
-/** The color a country is drawn in. Highlights (game answers) win, then hover, then visited. */
-export function countryColor(country: CountryFeature, { theme, hovered, visited, highlights }: ColorState) {
+/** The color a country is drawn in. Highlights (game answers) win, then hover, then visited, then the wishlist. */
+export function countryColor(country: CountryFeature, { theme, hovered, visited, wishlist, highlights }: ColorState) {
   const highlight = highlights.get(country)
   if (highlight) return highlight
   if (country === hovered) return theme.hover
   if (visited.has(country.properties.name)) return theme.visited
+  if (wishlist?.has(country.properties.name)) return theme.wishlist
   return landColor(theme, country.properties.mapColor)
 }

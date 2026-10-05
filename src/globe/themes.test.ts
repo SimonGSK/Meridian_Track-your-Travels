@@ -15,10 +15,12 @@ describe('themes', () => {
     for (const color of [...colors, ...land]) expect(() => new Color(color)).not.toThrow()
   })
 
-  it.each(THEMES.map((t) => [t.name, t]))('%s keeps hover, selected and visited distinct from land', (_, theme) => {
+  it.each(THEMES.map((t) => [t.name, t]))('%s keeps hover, selected, visited and the wishlist distinct from land', (_, theme) => {
     const land = new Set(typeof theme.land === 'string' ? [theme.land] : theme.land)
-    for (const color of [theme.hover, theme.selected, theme.visited]) expect(land.has(color)).toBe(false)
-    expect(new Set([theme.hover, theme.selected, theme.visited]).size).toBe(3)
+    const marks = [theme.hover, theme.selected, theme.visited, theme.wishlist]
+    for (const color of marks) expect(land.has(color)).toBe(false)
+    expect(new Set(marks).size).toBe(4)
+    expect(() => new Color(theme.wishlist)).not.toThrow()
   })
 
   it.each(THEMES.map((t) => [t.name, t]))('%s shows game answers in colors distinct from land and hover', (_, theme) => {

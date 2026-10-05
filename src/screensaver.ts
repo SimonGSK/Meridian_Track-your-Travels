@@ -4,6 +4,7 @@ import { FLIGHTS_KEY } from './visited/useFlights'
 import { VISITED_STORAGE_KEY } from './visited/useVisited'
 import { VISITED_CITIES_KEY } from './visited/useVisitedCities'
 import { VISITED_REGIONS_KEY } from './visited/useVisitedRegions'
+import { WISHLIST_KEY } from './visited/useWishlist'
 
 /**
  * The globe as a Mac screensaver: with `?screensaver` in the address the app
@@ -14,8 +15,16 @@ import { VISITED_REGIONS_KEY } from './visited/useVisitedRegions'
 /** Where the screensaver file goes: screensavers can't read Documents, Desktop or Downloads */
 export const SCREENSAVER_FILE = '/Users/Shared/Meridian/index.html'
 
-/** What the screensaver shows: your places, states, cities and flights, the design and the layers */
-const KEYS = [VISITED_STORAGE_KEY, VISITED_REGIONS_KEY, VISITED_CITIES_KEY, FLIGHTS_KEY, THEME_STORAGE_KEY, SETTINGS_KEY]
+/** What the screensaver shows: your places, states, cities, flights and wishlist, the design and the layers */
+const KEYS = [
+  VISITED_STORAGE_KEY,
+  VISITED_REGIONS_KEY,
+  VISITED_CITIES_KEY,
+  FLIGHTS_KEY,
+  WISHLIST_KEY,
+  THEME_STORAGE_KEY,
+  SETTINGS_KEY,
+]
 
 export const isScreensaver = (search = window.location.search) => new URLSearchParams(search).has('screensaver')
 

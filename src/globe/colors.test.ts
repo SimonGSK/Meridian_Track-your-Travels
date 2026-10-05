@@ -21,6 +21,12 @@ describe('countryColor', () => {
     expect(countryColor(denmark, state({ visited: new Set(['Denmark']) }))).toBe(CLASSIC.visited)
   })
 
+  it('marks countries on the wishlist, below visited', () => {
+    expect(countryColor(denmark, state({ wishlist: new Set(['Denmark']) }))).toBe(CLASSIC.wishlist)
+    expect(countryColor(denmark, state({ visited: new Set(['Denmark']), wishlist: new Set(['Denmark']) }))).toBe(CLASSIC.visited)
+    expect(countryColor(denmark, state({ hovered: denmark, wishlist: new Set(['Denmark']) }))).toBe(CLASSIC.hover)
+  })
+
   it('lets hover override visited', () => {
     expect(countryColor(denmark, state({ hovered: denmark, visited: new Set(['Denmark']) }))).toBe(CLASSIC.hover)
   })
