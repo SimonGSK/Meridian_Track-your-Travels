@@ -4,12 +4,14 @@ An interactive 3D globe: spin it, hover a country to see its name and flag, clic
 
 The design (navy and amber, after a mock-up made in Lovable) has a top bar with the four tabs, where the globe is looking and how many places you've visited. The selected country shows on the left: its ISO code, capital, inhabitants and area, the cities you've visited there, its states, and a button to put it in your visited atlas. The open tab's cards are on the right. On phones the tabs move to the bottom and panels open as sheets.
 
-- **Explore**: two round buttons in the corner, so the globe has the room. The magnifying glass opens a search of the whole atlas, countries by any name and cities. The layers button opens the designs as swatches and the layers to show or hide (visited countries, visited states, city pins, flights, rings around small islands, day and night). On phones both are shown in the sheet.
+- **Explore**: two round buttons in the corner, so the globe has the room. The magnifying glass opens a search of the whole atlas, countries by any name and cities. The layers button opens the designs as swatches and the layers to show or hide (visited countries, the wishlist, visited states, city pins, flights, rings around small islands, day and night). On phones both are shown in the sheet.
 
   **Day and night** (off until switched on) darkens the side of the globe where the sun has set, as it is right now, fading through twilight down to 18° below the horizon, and lights the cities there, bigger for more people. **City lights** shows under it while it's on, to have night without the lights. It moves on every minute, and is hidden during games. Where the sun is overhead comes from the Astronomical Almanac's low-precision formulas (`src/globe/sun.ts`), good to about 0.01°.
 - **Visited**: switch between your countries, your flights, your years and your achievements, each with a small box of figures. Keep track of where you've been, out of the world's 197 countries, with the count and percentage for each continent (territories are counted separately). Your places are listed by continent. Search to add places (old names like "Swaziland" work too), or click a country and press "Add to visited atlas". They're colored on the globe.
 
   For the USA, Canada, Australia and Brazil you can also mark the states, provinces and territories you've visited: click "… states explored" in the country's panel and tick them, or click them on the globe. They're drawn over the country in a darker shade.
+
+  Countries you want to visit go on your wishlist: press "Add to wishlist" in a country's panel, or the ☆ next to a search result. They're colored on the globe in their own color (lilac in Midnight), and listed under Wishlist in the Visited tab with their continent. "Been there" moves one to your visited atlas, and visiting a place any other way takes it off the wishlist too.
 
   A visited country's panel has its visits: add each one as a month and year, or just the year if you don't remember the month. The Visited list shows the latest ("3 visits, last May 2023").
 
@@ -24,7 +26,7 @@ The design (navy and amber, after a mock-up made in Lovable) has a top bar with 
   - the flights, how far, and the longest;
   - "Your most travelled year" on the year with the most places.
 
-  The places follow month by month, and those dated only by the year come last; click one to open it, or the longest flight to see its route. While Years is open, the globe shows just that year: its places and its flights, even with those layers off. States and city pins are hidden, as they have no dates. Places and flights without a date aren't in any year.
+  The places follow month by month, and those dated only by the year come last; click one to open it, or the longest flight to see its route. While Years is open, the globe shows just that year: its places and its flights, even with those layers off. States, city pins and the wishlist are hidden, as they have no dates. Places and flights without a date aren't in any year.
 
   Under Achievements, 58 to earn from where you've been, in eight groups: milestones (your first country, then 10 up to all 197), continents (every continent, all of one, Antarctica, all four hemispheres), regions (Scandinavia, the Nordics, the Baltics, Benelux, the Caribbean, the Gulf, the Stans, the G7 and more), islands, states (every US state and D.C., all of Canada, Australia or Brazil), cities and capitals, flights and distance flown (around the world, to the Moon, long haul), and return trips (one country 3 or 5 times). Each shows how far along you are ("3 of 5"), and a note pops up at the bottom when something you add earns one; click it to see them all. They're worked out from what you've saved, so a backup brings them back too.
 - **Games**:
@@ -49,7 +51,7 @@ The globe spins on its own until you touch it, and again once it's been left alo
 
 ## Screensaver
 
-The globe can be your Mac's screensaver, spinning with your places on it. With `?screensaver` in the address the app shows only the globe, and the pointer doesn't stop it. It looks at the globe from just north of the equator, so as it turns you see Europe and Canada but also Australia and New Zealand, and its pins stay until closer to the edge. A screensaver keeps its own storage, so the address carries your places, flights, design and layers in its `#places=…` part.
+The globe can be your Mac's screensaver, spinning with your places on it. With `?screensaver` in the address the app shows only the globe, and the pointer doesn't stop it. It looks at the globe from just north of the equator, so as it turns you see Europe and Canada but also Australia and New Zealand, and its pins stay until closer to the edge. A screensaver keeps its own storage, so the address carries your places, flights, wishlist, design and layers in its `#places=…` part.
 
 1. Run `npm run build:screensaver`. It builds the app into one self-contained file, `screensaver/index.html`, that opens from disk without a server, and copies it to `/Users/Shared/Meridian/` (screensavers can't read Documents, Desktop or Downloads).
 2. Install [WebViewScreenSaver](https://github.com/liquidx/webviewscreensaver) (Apache 2.0), which shows a web page as a screensaver: `brew install --cask webviewscreensaver`. (Its README adds `--no-quarantine`, but current Homebrew no longer has that option; macOS asks you to allow the screensaver instead, below.)
@@ -61,7 +63,7 @@ The screensaver doesn't update by itself. After changing your places or design, 
 
 ## Backup
 
-Visited places and when you went, states, cities and flights, best scores and times, daily challenges, the design and the settings are saved in your browser (`localStorage`). Nothing is sent anywhere, so clearing the browser's site data, or moving to another browser or computer, would leave them behind. In the Settings tab, **Download backup** saves all of it to a file (`meridian-backup-2026-10-04.json`, readable JSON), and shows when you last did. **Restore from a backup…** reads one, says what it holds and when it was made, and only replaces what's in this browser when you confirm. Every part of the file is checked the way the app checks it when loading, so a damaged or foreign file is refused as a whole rather than half restored.
+Visited places and when you went, states, cities and flights, the wishlist, best scores and times, daily challenges, the design and the settings are saved in your browser (`localStorage`). Nothing is sent anywhere, so clearing the browser's site data, or moving to another browser or computer, would leave them behind. In the Settings tab, **Download backup** saves all of it to a file (`meridian-backup-2026-10-04.json`, readable JSON), and shows when you last did. **Restore from a backup…** reads one, says what it holds and when it was made, and only replaces what's in this browser when you confirm. Every part of the file is checked the way the app checks it when loading, so a damaged or foreign file is refused as a whole rather than half restored.
 
 Opening the app never writes over what's saved: something is saved only when you change it. So if the app finds data it can't read (saved by a newer version, or damaged), it leaves it as it is. If you then change that part, the new data is saved and the old is kept beside it, under the same name with `.unreadable` added.
 
@@ -115,8 +117,8 @@ npx playwright install chromium
 
 ## Tests
 
-- **Unit and component tests** (Vitest and Testing Library, in jsdom): the data, the game rules, the globe's layers against a real three.js camera, every panel, and the whole app with a stand-in for the WebGL globe. About 830 tests, covering over 99% of the lines.
-- **End-to-end tests** (Playwright): the real app with its WebGL globe in headless Chromium, on a desktop and a phone (touch, tab bar, sheets): hovering and clicking countries, visited places, states, cities and flights kept after reloading, the settings, a year in review, a backup downloaded and restored, the designs, every game, and the screensaver. In CI they run on the production build, with the service worker.
+- **Unit and component tests** (Vitest and Testing Library, in jsdom): the data, the game rules, the globe's layers against a real three.js camera, every panel, and the whole app with a stand-in for the WebGL globe. About 840 tests, covering over 99% of the lines.
+- **End-to-end tests** (Playwright): the real app with its WebGL globe in headless Chromium, on a desktop and a phone (touch, tab bar, sheets): hovering and clicking countries, visited places, states, cities and flights kept after reloading, the wishlist, the settings, a year in review, a backup downloaded and restored, the designs, every game, and the screensaver. In CI they run on the production build, with the service worker.
 
 `.github/workflows/tests.yml` runs all of it on GitHub for every pull request and every push to `main`: lint, the unit tests, the build (which type-checks), and the end-to-end tests.
 
@@ -148,7 +150,7 @@ src/
   ui/                  the cards with "(B) GAMES ··· 06" headers, and the boxes of figures
   nav/                 the top bar, tabs, the column of cards on the right
   explore/             the Explore tools: atlas search, design and layers; settings
-  visited/             visited countries, states and cities; flights, and the airport search;
+  visited/             visited countries, states and cities; the wishlist; flights, and the airport search;
                        achievements (achievements.ts), their view and the note when one is earned;
                        each year's review (yearInReview.ts) and its view
   design/              design picker, and how to set up the screensaver
