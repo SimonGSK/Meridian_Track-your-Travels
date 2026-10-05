@@ -955,6 +955,27 @@ describe('App', () => {
       expect(pinned()).toEqual(['Copenhagen'])
     })
 
+    it('turns the globe to the year it shows, as the years open, a year is picked, or the tab opens again', async () => {
+      const lastView = () => (globe.pointOfView.mock.calls.at(-1) as [{ lat: number; lng: number }])[0]
+      render(<App />)
+      await openYears()
+      // 2024: Japan, and the flight there from Copenhagen, over Siberia
+      expect(lastView().lng).toBeGreaterThan(60)
+      expect(lastView().lng).toBeLessThan(140)
+
+      await userEvent.click(screen.getByRole('button', { name: 'Earlier year' }))
+      // 2019: France, and the flight to Paris
+      expect(lastView().lat).toBeGreaterThan(40)
+      expect(lastView().lat).toBeLessThan(58)
+      expect(lastView().lng).toBeGreaterThan(-5)
+      expect(lastView().lng).toBeLessThan(15)
+
+      await userEvent.click(screen.getByRole('button', { name: 'Explore' }))
+      globe.pointOfView.mockClear()
+      await userEvent.click(screen.getByRole('button', { name: 'Visited' }))
+      expect(lastView().lng).toBeLessThan(15)
+    })
+
     it('keeps the year picked when the tab is opened again, and shows everything with the panel closed', async () => {
       render(<App />)
       await openYears()

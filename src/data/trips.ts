@@ -1,4 +1,3 @@
-import { geoCentroid, geoDistance, geoInterpolate } from 'd3-geo'
 import { cityOf, type Airport } from './airports'
 import { distanceKm, type Route } from './flights'
 import { newestFirst, partsOf, type VisitDate } from './visitDates'
@@ -63,22 +62,3 @@ export function tripsByDate(trips: readonly Trip[]) {
 
 /** The cities a trip stops at, in order: "Copenhagen", "Seoul", "Tokyo", "Copenhagen" */
 export const stopsOf = (trip: Trip) => [cityOf(trip.routes[0].from), ...trip.routes.map((route) => cityOf(route.to))]
-
-/**
- * Where to look from to see routes whole: the middle of them, and how wide
- * they spread, in degrees, with room for the arcs rising above them
- */
-export function viewOfRoutes(routes: readonly Route[]) {
-  const points = routes.flatMap((route): [number, number][] => {
-    const [from, to]: [number, number][] = [
-      [route.from.lng, route.from.lat],
-      [route.to.lng, route.to.lat],
-    ]
-    return [from, geoInterpolate(from, to)(0.5), to]
-  })
-  const [lng, lat] = geoCentroid({ type: 'MultiPoint', coordinates: points })
-  // Routes all around the world have no middle: look from the first, as far out as it goes
-  if (!Number.isFinite(lng) || !Number.isFinite(lat)) return { lat: points[0][1], lng: points[0][0], extent: 360 }
-  const spread = Math.max(...points.map((point) => geoDistance([lng, lat], point))) * (180 / Math.PI)
-  return { lat, lng, extent: spread * 2 * 1.3 }
-}

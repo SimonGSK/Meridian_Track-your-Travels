@@ -1,4 +1,4 @@
-import { geoDistance } from 'd3-geo'
+import { geoCentroid, geoDistance, geoInterpolate } from 'd3-geo'
 
 export type Point = { x: number; y: number }
 export type LatLng = { lat: number; lng: number }
@@ -41,6 +41,31 @@ export function flightAltitude(currentAltitude: number) {
 /** An altitude that fits a country of this size (in degrees) comfortably in view. */
 export function fitAltitude(extent: number) {
   return clamp(extent * 0.09, MIN_FLIGHT_ALTITUDE, MAX_FLIGHT_ALTITUDE)
+}
+
+/** A place to keep in view: a point, and how far around it the place reaches, in degrees */
+export type Spot = LatLng & { radius?: number }
+
+const DEGREES = 180 / Math.PI
+
+/**
+ * Where to look from to see places whole: the middle of them, and how wide
+ * they spread, in degrees, with some room around (for fitAltitude)
+ */
+export function viewOf(spots: readonly Spot[]) {
+  const [lng, lat] = geoCentroid({ type: 'MultiPoint', coordinates: spots.map((spot) => [spot.lng, spot.lat]) })
+  // Places all around the world have no middle: look from the first, as far out as it goes
+  if (!Number.isFinite(lng) || !Number.isFinite(lat)) return { lat: spots[0].lat, lng: spots[0].lng, extent: 360 }
+  const spread = Math.max(
+    ...spots.map((spot) => geoDistance([lng, lat], [spot.lng, spot.lat]) * DEGREES + (spot.radius ?? 0)),
+  )
+  return { lat, lng, extent: spread * 2 * 1.3 }
+}
+
+/** A route's ends, and its middle, where its arc rises highest */
+export function spotsOfRoute({ from, to }: { from: LatLng; to: LatLng }): Spot[] {
+  const [lng, lat] = geoInterpolate([from.lng, from.lat], [to.lng, to.lat])(0.5)
+  return [{ lat: from.lat, lng: from.lng }, { lat, lng }, { lat: to.lat, lng: to.lng }]
 }
 
 /** Move `current` a fraction of the way to `target`, snapping when close. */
