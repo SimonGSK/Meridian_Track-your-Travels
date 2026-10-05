@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:demo": "vite --mode demo --port 5174 --strictPort",
     "build": "tsc -b && vite build",
     "build:screensaver": "vite build --config vite.screensaver.config.ts && node scripts/install-screensaver.mjs",
     "lint": "oxlint",
