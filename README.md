@@ -17,7 +17,9 @@ The design (navy and amber, after a mock-up made in Lovable) has a top bar with 
 
   Every country's panel also has its visited cities, and a box to add more from its big and well-known cities (focus it to see the biggest). Each city you've visited gets a pin on the globe; point at a pin to see the city's name, or click it to open its country. Adding a city also marks its country, and its state, as visited.
 
-  Under Flights, add the flights you've taken, between airports: every international airport, and the regional ones with airline service (3,244 in all). Search by city, airport name or code ("Copenhagen", "Heathrow", "CPH"); each result shows the airport's name and country. "From" then starts where the last flight landed, and ⇅ swaps them for the flight back. A flight can have a month and year too ("When"), kept for the next leg of the trip, or added later with "Add date" in the list, which is ordered by date, newest first. Each route is drawn on the globe as a thin arc, rising with the distance, with a little plane flying along it from where the flight left, turned the way it's going; a route flown both ways or more than once is drawn once. The figures are how many flights, how far as the plane flies, and how many times around the Earth that makes. Click a flight to see its route from above, highlighted, until you press Escape or click the globe. Adding a flight doesn't mark its cities as visited: changing planes isn't visiting. (The first flights were saved between cities; they move to the city's main airport by themselves.)
+  Under Flights, add the flights you've taken, between airports: every international airport, and the regional ones with airline service (3,244 in all). Search by city, airport name or code ("Copenhagen", "Heathrow", "CPH"); each result shows the airport's name and country. "From" then starts where the last flight landed, and ⇅ swaps them for the flight back. A flight can have a month and year too ("When"), kept for the next leg of the trip, or added later with "Add date" in the list. Each route is drawn on the globe as a thin arc, rising with the distance, with a little plane flying along it from where the flight left, turned the way it's going; a route flown both ways or more than once is drawn once. The figures are how many flights, how far as the plane flies, and how many times around the Earth that makes. Click a flight to see its route from above, highlighted, until you press Escape or click the globe. Adding a flight doesn't mark its cities as visited: changing planes isn't visiting. (The first flights were saved between cities; they move to the city's main airport by themselves.)
+
+  The list groups flights into trips, newest first. A trip is made of legs that each leave from where the last one landed (the same airport, or one within 100 km: in by Narita and out by Haneda is still Tokyo) and are dated within a month of each other, or both undated. It ends once it's back where it started, so the next flight from home starts a new trip. Each trip shows its stops ("Copenhagen → Seoul → Narita → Copenhagen"), when, how many flights and how far, with its legs under it. Click a trip to see all of it on the globe, every leg highlighted. Nothing extra is saved: trips are worked out from your flights, and change as you add flights or dates.
 
   Under Years, a review of each year you've dated a visit or a flight, from the newest, with ‹ › for the others. It has:
 
@@ -117,7 +119,7 @@ npx playwright install chromium
 
 ## Tests
 
-- **Unit and component tests** (Vitest and Testing Library, in jsdom): the data, the game rules, the globe's layers against a real three.js camera, every panel, and the whole app with a stand-in for the WebGL globe. About 840 tests, covering over 99% of the lines.
+- **Unit and component tests** (Vitest and Testing Library, in jsdom): the data, the game rules, the globe's layers against a real three.js camera, every panel, and the whole app with a stand-in for the WebGL globe. About 860 tests, covering over 99% of the lines.
 - **End-to-end tests** (Playwright): the real app with its WebGL globe in headless Chromium, on a desktop and a phone (touch, tab bar, sheets): hovering and clicking countries, visited places, states, cities and flights kept after reloading, the wishlist, the settings, a year in review, a backup downloaded and restored, the designs, every game, and the screensaver. In CI they run on the production build, with the service worker.
 
 `.github/workflows/tests.yml` runs all of it on GitHub for every pull request and every push to `main`: lint, the unit tests, the build (which type-checks), and the end-to-end tests.
@@ -145,6 +147,7 @@ src/
     cities.ts          big and well-known cities: loading, lookup (data in cities.json)
     airports.ts        airports with scheduled flights: loading, search (data in airports.json)
     flights.ts         flights: distances, figures, routes, moving old city flights to airports
+    trips.ts           flights grouped into trips, and where to look from to see them
   storage.ts           state saved in the browser
   screensaver.ts       the screensaver mode, and carrying your places in its address
   ui/                  the cards with "(B) GAMES ··· 06" headers, and the boxes of figures
