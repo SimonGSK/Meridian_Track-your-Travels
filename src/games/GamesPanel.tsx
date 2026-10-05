@@ -9,6 +9,8 @@ import { HigherLowerPlay, HigherLowerResults, MeasureChoice } from './HigherLowe
 import { DailyChoice, DailyResultsView } from './DailyPanel'
 import { CityLevelChoice, CityPlay, CityResults } from './CityPanel'
 import type { CityLevel } from './cityGame'
+import { NeighboursLevelChoice, NeighboursPlay, NeighboursResults } from './NeighboursPanel'
+import type { NeighboursLevel } from './neighboursGame'
 import { dayKey, streaksOf, type DailyResults } from './daily'
 import type { Guess, Measure } from './higherLower'
 import {
@@ -57,6 +59,8 @@ type Props = {
   onStartHigher: (measure: Measure) => void
   /** Find the city, at a level */
   onStartCity?: (level: CityLevel) => void
+  /** Neighbours, at a level */
+  onStartNeighbours?: (level: NeighboursLevel) => void
   /** How each day's challenge went */
   daily?: DailyResults
   onStartDaily?: () => void
@@ -96,6 +100,7 @@ export default function GamesPanel(props: Props) {
   if (game.kind === 'all') return <NameThemAll {...props} game={game} />
   if (game.kind === 'higher') return <HigherLowerPlay {...props} game={game} />
   if (game.kind === 'city') return <CityPlay {...props} game={game} />
+  if (game.kind === 'neighbours') return <NeighboursPlay {...props} game={game} />
   return <RoundPlay {...props} game={game} />
 }
 
@@ -118,6 +123,9 @@ function GameList(props: Props & Chosen) {
   if (chosen === 'all') return <ScopeChoice {...bests} onStartAll={onStartAll} onBack={back} />
   if (chosen === 'higher') return <MeasureChoice best={best} onStart={onStartHigher} onBack={back} />
   if (chosen === 'city') return <CityLevelChoice {...bests} onStart={(level) => props.onStartCity?.(level)} onBack={back} />
+  if (chosen === 'neighbours') {
+    return <NeighboursLevelChoice {...bests} onStart={(level) => props.onStartNeighbours?.(level)} onBack={back} />
+  }
   if (chosen) return <DifficultyChoice id={chosen} {...bests} onStart={onStart} onBack={back} />
   return (
     <>
@@ -424,6 +432,21 @@ function Results(props: Props & Chosen & { game: GameState }) {
         previousBest={previousBest}
         previousTime={props.previousTime}
         onStart={(level) => props.onStartCity?.(level)}
+        onAllGames={allGames}
+      />
+    )
+  }
+  if (game.kind === 'neighbours') {
+    const allGames = () => {
+      setChosen(null)
+      onQuit()
+    }
+    return (
+      <NeighboursResults
+        game={game}
+        previousBest={previousBest}
+        previousTime={props.previousTime}
+        onStart={(level) => props.onStartNeighbours?.(level)}
         onAllGames={allGames}
       />
     )

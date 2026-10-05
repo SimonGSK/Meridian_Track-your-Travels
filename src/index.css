@@ -2141,6 +2141,18 @@ code {
   font-weight: 600;
 }
 
+/* Neighbours missed, shown once the round is over */
+.found-list.missed li {
+  background: rgba(255, 107, 94, 0.14);
+  color: var(--bad);
+}
+
+.neighbour-count {
+  margin: 2px 0 0;
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
 @keyframes slide-from-left {
   from {
     opacity: 0;

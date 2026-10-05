@@ -8,6 +8,7 @@ import { giveUpAll, nameCountry, newAllGame } from './allGame'
 import { guess, newHigherLower } from './higherLower'
 import { newDailyGame } from './daily'
 import { guessCity, newCityGame, nextCity } from './cityGame'
+import { borderingCountries, nameNeighbour, newNeighboursGame, showRest } from './neighboursGame'
 
 const byName = (name: string) => countries.find((c) => c.properties.name === name)!
 const pool = ['Denmark', 'France', 'Brazil', 'Japan', 'Kenya'].map(byName)
@@ -235,5 +236,20 @@ describe('find the city', () => {
     expect(overviewKey(guessed)).toBeNull()
     expect(showsGame(guessed)).toBe(true)
     expect(showsGame(nextCity(guessed))).toBe(false) // the results
+  })
+})
+
+describe('neighbours', () => {
+  const byName = (name: string) => countries.find((c) => c.properties.name === name)!
+  const spain = byName('Spain')
+  const game = { ...newNeighboursGame('easy'), rounds: [{ country: spain, neighbours: borderingCountries(spain) }] }
+
+  it('lights up the country, its neighbours named, and once over those missed; answers are typed', () => {
+    expect(globeAnswers(game)).toBe(false)
+    const named = nameNeighbour(game, byName('France'))
+    expect(gameHighlights(named, CLASSIC)).toEqual(new Map([[spain, CLASSIC.selected], [byName('France'), CLASSIC.correct]]))
+    const over = showRest(named)
+    expect(gameHighlights(over, CLASSIC).get(byName('Portugal'))).toBe(CLASSIC.wrong)
+    expect(gameHighlights(over, CLASSIC).get(byName('Andorra'))).toBe(CLASSIC.wrong)
   })
 })

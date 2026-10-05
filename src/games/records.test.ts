@@ -5,6 +5,7 @@ import { giveUp, newLetterGame, pickCountry } from './letterGame'
 import { giveUpAll, nameCountry, newAllGame } from './allGame'
 import { countries } from '../countries'
 import { guessCity, newCityGame, nextCity, skipCity } from './cityGame'
+import { borderingCountries, nameNeighbour, newNeighboursGame, nextNeighbours, showRest } from './neighboursGame'
 
 const byName = (name: string) => countries.find((c) => c.properties.name === name)!
 const pool = ['Denmark', 'France', 'Brazil'].map(byName)
@@ -81,5 +82,17 @@ describe('isPerfect, finding cities', () => {
     expect(isPerfect(nextCity(guessCity(game, { lat: 48.9, lng: 2.4 })))).toBe(true)
     expect(isPerfect(nextCity(guessCity(game, { lat: 50, lng: 3 })))).toBe(false)
     expect(isPerfect(nextCity(skipCity(game)))).toBe(false)
+  })
+})
+
+describe('isPerfect, naming neighbours', () => {
+  const byName = (name: string) => countries.find((c) => c.properties.name === name)!
+  const haiti = byName('Haiti')
+  const game = { ...newNeighboursGame('easy'), rounds: [{ country: haiti, neighbours: borderingCountries(haiti) }] }
+
+  it('needs every neighbour named, none shown and no country named that is not one', () => {
+    expect(isPerfect(nextNeighbours(nameNeighbour(game, byName('Dominican Republic'))))).toBe(true)
+    expect(isPerfect(nextNeighbours(nameNeighbour(nameNeighbour(game, byName('Cuba')), byName('Dominican Republic'))))).toBe(false)
+    expect(isPerfect(nextNeighbours(showRest(game)))).toBe(false)
   })
 })

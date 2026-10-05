@@ -1233,6 +1233,29 @@ describe('App', () => {
       expect(painted()).toEqual({})
     })
 
+    describe('neighbours', () => {
+      it('lights up the country, then the neighbours named, and those missed once shown', async () => {
+        const { borderingCountries } = await import('./games/neighboursGame')
+        await startGame(/Neighbours/)
+        const name = screen.getByText('Name every country bordering').nextElementSibling!.textContent!
+        const [first, ...rest] = borderingCountries(byName(name))
+        expect(painted()).toEqual({ [name]: DEFAULT_THEME.selected })
+        expect(lastFlight()).toBeDefined() // turned to show it
+
+        await userEvent.type(screen.getByRole('textbox', { name: 'A neighbour' }), `${first.properties.name}{Enter}`)
+        // Naming the only neighbour ends the round
+        expect(feedback()).toHaveTextContent(rest.length ? `${first.properties.name} ✓` : `All of ${name}'s neighbours!`)
+        expect(painted()).toMatchObject({ [name]: DEFAULT_THEME.selected, [first.properties.name]: DEFAULT_THEME.correct })
+
+        if (rest.length) {
+          await userEvent.click(screen.getByRole('button', { name: 'Show the rest' }))
+          expect(painted()).toMatchObject(Object.fromEntries(rest.map((c) => [c.properties.name, DEFAULT_THEME.wrong])))
+        }
+        await userEvent.click(screen.getByRole('button', { name: 'Next country' }))
+        expect(screen.getByText('Country 2 of 5')).toBeInTheDocument()
+      })
+    })
+
     describe('find the city', () => {
       const cityTarget = () => screen.getByText('Click where this city is on the globe').nextElementSibling!.textContent!
       const start = async () => {

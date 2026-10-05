@@ -7,6 +7,7 @@ import { countries } from '../countries'
 import type { LetterGameState } from './letterGame'
 import { isMore, type HigherLowerState } from './higherLower'
 import { currentCity, type CityGameState } from './cityGame'
+import { currentNeighbours, type NeighboursState } from './neighboursGame'
 
 type Hook = { current: ReturnType<typeof useGame> }
 const rounds = (result: Hook) => result.current.game as RoundGameState
@@ -236,4 +237,20 @@ describe('useGame', () => {
     expect(result.current.game?.finished).toBe(true)
     expect(result.current.best['city:easy']).toBe(100)
   }, 20_000)
+
+  it('plays neighbours: names count, the rest can be shown, and the best share is kept per level', () => {
+    const { result } = renderHook(() => useGame())
+    act(() => result.current.startNeighbours('easy'))
+    const game = () => result.current.game as NeighboursState
+    expect(game()).toMatchObject({ kind: 'neighbours', level: 'easy', index: 0 })
+    for (let i = 0; i < 5; i++) {
+      const [first] = currentNeighbours(game()).neighbours
+      act(() => result.current.pick(first))
+      expect(game().found).toContain(first)
+      if (!game().roundOver) act(() => result.current.giveUpRound())
+      act(() => result.current.advance())
+    }
+    expect(game().finished).toBe(true)
+    expect(result.current.best['neighbours:easy']).toBeGreaterThan(0)
+  })
 })

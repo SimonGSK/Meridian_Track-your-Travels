@@ -24,6 +24,7 @@ import {
 } from './games/globeView'
 import { useGame } from './games/useGame'
 import { currentCity, type CityLevel } from './games/cityGame'
+import { currentNeighbours, type NeighboursLevel } from './games/neighboursGame'
 import type { Measure } from './games/higherLower'
 import { useTheme } from './design/useTheme'
 import FlagCorner from './FlagCorner'
@@ -141,6 +142,7 @@ export default function App() {
     startAll,
     startHigher,
     startCity,
+    startNeighbours,
     pick,
     guessAt,
     guessHigher,
@@ -439,6 +441,14 @@ export default function App() {
   useEffect(() => {
     if (gameFlight) flyTo(gameFlight, { fit: true })
   }, [gameFlight, flyTo])
+  // Neighbours: each country with its surroundings in view, where its neighbours are
+  const neighboursRound = game?.kind === 'neighbours' && !game.finished ? currentNeighbours(game) : null
+  useEffect(() => {
+    if (!neighboursRound) return
+    const { country, neighbours } = neighboursRound
+    const spotOf = ({ properties: { centroid } }: CountryFeature) => ({ lng: centroid[0], lat: centroid[1] })
+    flyToSee([{ ...spotOf(country), radius: country.properties.extent / 2 }, ...neighbours.map(spotOf)])
+  }, [neighboursRound, flyToSee])
   // "Find the city", once guessed: see where you clicked and the city, or the city if you didn't know
   useEffect(() => {
     if (!cityAnswer) return
@@ -463,6 +473,10 @@ export default function App() {
   const playAll = (scope: Scope) => {
     selectCountry(null)
     startAll(scope)
+  }
+  const playNeighbours = (level: NeighboursLevel) => {
+    selectCountry(null)
+    startNeighbours(level)
   }
   const playCity = (level: CityLevel) => {
     selectCountry(null)
@@ -681,6 +695,7 @@ export default function App() {
                 onStartAll={playAll}
                 onStartHigher={playHigher}
                 onStartCity={playCity}
+                onStartNeighbours={playNeighbours}
                 daily={daily}
                 onStartDaily={playDaily}
                 onPick={pick}

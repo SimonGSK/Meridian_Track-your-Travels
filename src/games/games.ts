@@ -14,8 +14,9 @@ export type GameId =
   | 'letter'
   | 'all'
   | 'higher'
+  | 'neighbours'
 /** Games played in rounds, at a difficulty (the daily challenge mixes the others) */
-export type RoundGameId = Exclude<GameId, 'letter' | 'all' | 'higher' | 'city'>
+export type RoundGameId = Exclude<GameId, 'letter' | 'all' | 'higher' | 'city' | 'neighbours'>
 /** What a round asks: one of the quizzes */
 export type QuizKind = Exclude<RoundGameId, 'daily'>
 /** "all" goes through every country, instead of 10 rounds */
@@ -27,6 +28,7 @@ export const GAMES: { id: GameId; title: string; description: string }[] = [
   { id: 'city', title: 'Find the city', description: 'We name a city, you click where it is. The closer, the more points.' },
   { id: 'letter', title: 'Letter hunt', description: 'Click every country that starts with a letter.' },
   { id: 'all', title: 'Name them all', description: 'Type every country you can think of, from memory.' },
+  { id: 'neighbours', title: 'Neighbours', description: 'Name every country bordering the one lit up on the globe.' },
   { id: 'flags', title: 'Flag quiz', description: 'Which country has this flag?' },
   { id: 'name', title: 'Name that country', description: 'A country lights up on the globe. Which one is it?' },
   { id: 'shape', title: 'Shape quiz', description: 'Name the country from its outline alone.' },

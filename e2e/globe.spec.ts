@@ -487,6 +487,26 @@ test.describe('games', () => {
     expect(errors).toEqual([])
   })
 
+  test('neighbours: naming countries that border the one lit up', async ({ page }) => {
+    const { errors } = await openGlobe(page)
+    await page.getByRole('button', { name: 'Games', exact: true }).click()
+    await page.getByRole('button', { name: /Neighbours/ }).click()
+    await page.getByRole('button', { name: /^Medium/ }).click()
+    await expect(page.getByText('Country 1 of 5')).toBeVisible()
+
+    // Not a neighbour of any country, being an island far out: always a mistake
+    const answer = page.getByRole('textbox', { name: 'A neighbour' })
+    await answer.fill('New Zealand')
+    await answer.press('Enter')
+    await expect(feedback(page)).toHaveText(/^New Zealand doesn't border .+\.$/)
+    await expect(page.getByText('1 mistake')).toBeVisible()
+    await page.getByRole('button', { name: 'Show the rest' }).click()
+    await expect(page.getByRole('list', { name: 'Missed' })).toBeVisible()
+    await page.getByRole('button', { name: 'Next country' }).click()
+    await expect(page.getByText('Country 2 of 5')).toBeVisible()
+    expect(errors).toEqual([])
+  })
+
   test('flag quiz: picking a country gives feedback', async ({ page }) => {
     await openGlobe(page)
     await page.getByRole('button', { name: 'Games', exact: true }).click()
