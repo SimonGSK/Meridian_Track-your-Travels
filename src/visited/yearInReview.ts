@@ -2,6 +2,7 @@ import { countries, type CountryFeature } from '../countries'
 import { CONTINENTS, type Continent } from '../data/continents'
 import type { Route } from '../data/flights'
 import { partsOf, type VisitDate } from '../data/visitDates'
+import { spotsOfRoute, type Spot } from '../globe/interaction'
 
 /**
  * A year in review: where you went that year and the flights you took, from
@@ -99,3 +100,9 @@ export function reviewOf(year: number, travels: Travels): YearReview {
     mostTravelled: others.size > 0 && [...others].every((y) => placesIn(y).length < places.length),
   }
 }
+
+/** What to keep in view to see a year on the globe: its places, each as wide as it is, and its flights */
+export const spotsOf = ({ places, flights }: YearReview): Spot[] => [
+  ...places.map(({ properties: { centroid, extent } }) => ({ lng: centroid[0], lat: centroid[1], radius: extent / 2 })),
+  ...flights.flatMap(spotsOfRoute),
+]

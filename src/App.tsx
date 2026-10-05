@@ -51,9 +51,8 @@ import { useFlights } from './visited/useFlights'
 import FlightsPanel from './visited/FlightsPanel'
 import VisitedTab, { type VisitedView } from './visited/VisitedTab'
 import YearsPanel from './visited/YearsPanel'
-import { reviewOf, yearsOf } from './visited/yearInReview'
+import { reviewOf, spotsOf, yearsOf, type YearReview } from './visited/yearInReview'
 import { routeOf, uniqueRoutes, type Route } from './data/flights'
-import { viewOfRoutes } from './data/trips'
 import { regionFills, regionOutlines, regionProgress } from './visited/regionsView'
 import Tooltip from './Tooltip'
 import {
@@ -73,8 +72,16 @@ import {
 } from './globe/hooks'
 import { PIN_FADE, SCREENSAVER_PIN_FADE, pinAt } from './globe/pinLayer'
 import { hoveredRegionColor, visitedRegionColor } from './globe/themes'
-import type { LatLng, Point } from './globe/interaction'
-import { INITIAL_VIEW, SCREENSAVER_VIEW, fitAltitude, flightAltitude, flightDuration } from './globe/interaction'
+import type { LatLng, Point, Spot } from './globe/interaction'
+import {
+  INITIAL_VIEW,
+  SCREENSAVER_VIEW,
+  fitAltitude,
+  flightAltitude,
+  flightDuration,
+  spotsOfRoute,
+  viewOf,
+} from './globe/interaction'
 import { countryColor } from './globe/colors'
 
 const RENDERER_CONFIG = { antialias: true, alpha: true, powerPreference: 'high-performance' } as const
@@ -213,21 +220,30 @@ export default function App() {
     [reviewYear, visited, datesOf, routes],
   )
 
-  /** Flies to show a flight's or a trip's whole route, from above its middle */
+  /** Flies to see places whole, from above their middle */
+  const flyToSee = useCallback(
+    (spots: Spot[]) => {
+      if (!globe || spots.length === 0) return
+      const { lat, lng, extent } = viewOf(spots)
+      const from = globe.pointOfView()
+      stopGlide(globe)
+      globe.pointOfView({ lat, lng, altitude: fitAltitude(extent) }, flightDuration(from, { lat, lng }))
+    },
+    [globe],
+  )
+
+  /** Flies to show a flight's or a trip's whole route */
   const showRoutes = useCallback(
     (picked: Route[]) => {
       selectCountry(null)
       setShownRoutes(picked)
-      if (!globe) return
-      const { lat, lng, extent } = viewOfRoutes(picked)
-      const altitude = fitAltitude(extent)
-      const from = globe.pointOfView()
-      stopGlide(globe)
-      globe.pointOfView({ lat, lng, altitude }, flightDuration(from, { lat, lng }))
+      flyToSee(picked.flatMap(spotsOfRoute))
       if (isPhone()) setView(null)
     },
-    [globe, selectCountry],
+    [flyToSee, selectCountry],
   )
+  /** Turns the globe to a year's places and flights, as it shows just them */
+  const showYear = (year: YearReview | null) => year && flyToSee(spotsOf(year))
 
   // A selected country with states isn't raised: it stays flat so its states can be picked on the globe
   const editing = !playing && selected && hasRegions(selected) ? selected : null
@@ -356,7 +372,8 @@ export default function App() {
     [editing, editingRegions],
   )
   useDepthPrecision(globe)
-  useSmoothAutoRotate(globe, !selected && !playing && !shownRoutes)
+  // Not while a year is shown either: it turned to that year's places
+  useSmoothAutoRotate(globe, !selected && !playing && !shownRoutes && !yearShown)
 
   const onGlobeClick = useCallback(
     (country: CountryFeature | null, position: LatLng | null, point: Point) => {
@@ -428,6 +445,7 @@ export default function App() {
       setChosenGame(null)
     }
     setView(next)
+    if (next === 'visited' && visitedView === 'years' && !showsGame(game)) showYear(review)
   }
 
   // From a list in the side panel. On phones the panel covers the country panel, so close it.
@@ -533,7 +551,10 @@ export default function App() {
           {view === 'visited' && (
             <VisitedTab
               view={visitedView}
-              onViewChange={setVisitedView}
+              onViewChange={(next) => {
+                setVisitedView(next)
+                if (next === 'years') showYear(review)
+              }}
               places={visited.size}
               flights={routes.length}
               years={years.length}
@@ -566,7 +587,10 @@ export default function App() {
                 <YearsPanel
                   years={years}
                   review={review}
-                  onYearChange={setPickedYear}
+                  onYearChange={(year) => {
+                    setPickedYear(year)
+                    showYear(reviewOf(year, { visited, datesOf, routes }))
+                  }}
                   onShow={showCountry}
                   onShowRoute={(route) => showRoutes([route])}
                 />

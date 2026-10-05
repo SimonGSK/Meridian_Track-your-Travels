@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest'
+import { countries } from '../countries'
 import type { Airport } from '../data/airports'
 import type { Route } from '../data/flights'
 import type { VisitDate } from '../data/visitDates'
-import { reviewOf, yearsOf, type Travels } from './yearInReview'
+import { reviewOf, spotsOf, yearsOf, type Travels } from './yearInReview'
 
 const airport = (code: string): Airport => ({ code, name: code, city: code, country: 'DK', lat: 0, lng: 0 })
 const route = (id: string, km: number, date?: VisitDate): Route => ({
@@ -88,5 +89,15 @@ describe('reviewOf', () => {
     // A tie, or the only year, isn't
     expect(reviewOf(2023, travels({ Japan: ['2023'], France: ['2022'] })).mostTravelled).toBe(false)
     expect(reviewOf(2024, travels({ Japan: ['2024'] })).mostTravelled).toBe(false)
+  })
+})
+
+describe('spotsOf', () => {
+  it("keeps the year's places in view, each as far as it reaches, and its flights", () => {
+    const japan = countries.find((c) => c.properties.name === 'Japan')!.properties
+    const [lng, lat] = japan.centroid
+    const spots = spotsOf(reviewOf(2024, travels({ Japan: ['2024-04'] }, [route('NRT', 8700, '2024-04')])))
+    expect(spots).toHaveLength(4) // Japan, and the flight's ends and middle
+    expect(spots[0]).toEqual({ lat, lng, radius: japan.extent / 2 })
   })
 })

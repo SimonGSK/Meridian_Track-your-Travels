@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { Airport } from './airports'
 import type { Route } from './flights'
 import type { VisitDate } from './visitDates'
-import { stopsOf, tripsByDate, tripsOf, viewOfRoutes } from './trips'
+import { stopsOf, tripsByDate, tripsOf } from './trips'
 
 const AIRPORTS: Record<string, Airport> = {
   CPH: { code: 'CPH', name: 'Copenhagen Kastrup', city: 'Copenhagen', country: 'DK', lat: 55.6, lng: 12.6 },
@@ -78,23 +78,5 @@ describe('stopsOf', () => {
   it('names the cities in order, without the airport', () => {
     const [trip] = tripsOf([leg('CPH-ICN', '2025-04'), leg('ICN-NRT', '2025-04'), leg('NRT-CPH', '2025-04')])
     expect(stopsOf(trip)).toEqual(['Copenhagen', 'Seoul', 'Tokyo', 'Copenhagen'])
-  })
-})
-
-describe('viewOfRoutes', () => {
-  it('looks from the middle of a route, wide enough for it', () => {
-    const view = viewOfRoutes([leg('CPH-CDG')])
-    expect(view.lat).toBeCloseTo(52.5, 0)
-    expect(view.lng).toBeCloseTo(7.3, 0)
-    // About 10° of arc from end to end
-    expect(view.extent).toBeGreaterThan(10)
-    expect(view.extent).toBeLessThan(16)
-  })
-
-  it('looks from the middle of a whole trip', () => {
-    const view = viewOfRoutes([leg('CPH-ICN'), leg('ICN-NRT'), leg('NRT-CPH')])
-    expect(view.lng).toBeGreaterThan(60)
-    expect(view.lng).toBeLessThan(125)
-    expect(view.extent).toBeGreaterThan(80)
   })
 })
