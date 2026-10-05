@@ -39,6 +39,7 @@ The design (navy and amber, after a mock-up made in Lovable) has a top bar with 
   - *Find the city*: a city is named with its country and flag, and you click where it is on the globe, land or sea, zooming in to be precise. Within 20 km is spot on, for 100 points; fewer the farther off (90 at 100 km, 55 at 500, 29 at 1,000). A pin marks the city, and a plane flies from your click to it, both in view. Easy is the capitals of big countries, Medium every country's capital, Hard the cities of a million people or more that aren't capitals. Ten cities, out of 1,000 points, with the points for each city on the results.
   - *Letter hunt*: click every country starting with a letter. Each letter belongs to one difficulty (easy D F H J K R U V Z, medium A E G I L N P T, hard B C M S); pick any letter, or a random one, and see your best for each. Every small island country and tiny country gets a ring, so the ones out in the ocean can be found (all of them, so the rings give nothing away); a ring turns green once found.
   - *Name them all*: type every country you can from memory, for the whole world or one continent, against the clock.
+  - *Neighbours*: a country lights up on the globe, and you name every country it shares a land border with, from memory (any known spelling). Each one named turns green; a country that doesn't border it counts as a mistake. "Show the rest" marks those missed in red. Five countries a game, scored by the share of neighbours named. Easy is big countries with up to four neighbours, Medium countries with up to six, Hard those with five or more. Borders are the map's: territories and borders at sea don't count, a country's overseas parts do (France borders Brazil, by French Guiana), and Spain and Morocco don't border here, as Ceuta and Melilla are too small for the map.
   - *Flag quiz*: which country has this flag?
   - *Name that country*: a country lights up on the globe; which one is it?
   - *Shape quiz*: name the country from its outline.
@@ -48,7 +49,7 @@ The design (navy and amber, after a mock-up made in Lovable) has a top bar with 
 
   Games played in rounds (all but the letter hunt, "name them all" and higher or lower) are Easy (big countries, four answers to pick from), Medium (all but the smallest), Hard (all 197) or All countries (every one of the 197, one after another; stop whenever you like). Beyond Easy you type answers with no suggestions; any known spelling counts ("East Timor", "Burma", "Ceylon"), punctuation and spacing don't matter, and the answer shows the name used today. Tiny countries that are answers get a dot so you can see them. Rounds have an "I don't know" button that shows the answer; the round counts as wrong. Every game is about the 197 countries only: clicking or typing a territory (Greenland, Puerto Rico…) counts neither way, and territories don't light up under the pointer or get a ring.
 
-  A clock runs while you play. Perfect runs set a time record to beat, next to the best score: every point (in *Find the country*, every country on the first try; in *Find the city*, every city spot on), no wrong letters in the letter hunt, and played to the end. Being fast with a mistake doesn't count. The clock stops at the last answer, not when you look at the results. Higher or lower keeps its longest streak instead.
+  A clock runs while you play. Perfect runs set a time record to beat, next to the best score: every point (in *Find the country*, every country on the first try; in *Find the city*, every city spot on; in *Neighbours*, every neighbour without a mistake), no wrong letters in the letter hunt, and played to the end. Being fast with a mistake doesn't count. The clock stops at the last answer, not when you look at the results. Higher or lower keeps its longest streak instead.
 - **Design**: switch the globe between Midnight (the default), Classic, Vintage, Political (neighbors always in different colors), Night and Minimal. The layers are here too.
 - **Settings**: back up everything to a file, or restore a backup (below); install Meridian as an app that works offline (below); and how to make the globe your Mac's screensaver.
 
@@ -125,7 +126,7 @@ npx playwright install chromium
 
 ## Tests
 
-- **Unit and component tests** (Vitest and Testing Library, in jsdom): the data, the game rules, the globe's layers against a real three.js camera, every panel, and the whole app with a stand-in for the WebGL globe. About 910 tests, covering over 99% of the lines.
+- **Unit and component tests** (Vitest and Testing Library, in jsdom): the data, the game rules, the globe's layers against a real three.js camera, every panel, and the whole app with a stand-in for the WebGL globe. About 930 tests, covering over 99% of the lines.
 - **End-to-end tests** (Playwright): the real app with its WebGL globe in headless Chromium, on a desktop and a phone (touch, tab bar, sheets): hovering and clicking countries, visited places, states, cities and flights kept after reloading, the wishlist, the settings, a year in review, a backup downloaded and restored, the designs, every game, and the screensaver. In CI they run on the production build, with the service worker.
 
 `.github/workflows/tests.yml` runs all of it on GitHub for every pull request and every push to `main`: lint, the unit tests, the build (which type-checks), and the end-to-end tests.
@@ -167,7 +168,7 @@ src/
   settings/            backups: making, checking and restoring them, and their card; installing the app
   pwa/                 the service worker (serviceWorker.ts, written into the build by vite.offline.ts),
                        starting it, and the browser's offer to install
-  games/               game rules (games.ts, letterGame.ts, higherLower.ts, daily.ts, cityGame.ts), what the globe shows (globeView.ts),
+  games/               game rules (games.ts, letterGame.ts, higherLower.ts, daily.ts, cityGame.ts, neighboursGame.ts), what the globe shows (globeView.ts),
                        state and best scores (useGame.ts), perfect runs and their times (records.ts),
                        the panel, answer box and outlines
   globe/
