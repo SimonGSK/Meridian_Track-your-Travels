@@ -7,6 +7,7 @@ import { giveUp, newLetterGame, pickCountry } from './letterGame'
 import { giveUpAll, nameCountry, newAllGame } from './allGame'
 import { guess, newHigherLower } from './higherLower'
 import { newDailyGame } from './daily'
+import { guessCity, newCityGame, nextCity } from './cityGame'
 
 const byName = (name: string) => countries.find((c) => c.properties.name === name)!
 const pool = ['Denmark', 'France', 'Brazil', 'Japan', 'Kenya'].map(byName)
@@ -217,5 +218,22 @@ describe('name them all', () => {
     expect(colors.Fiji).toBe(CLASSIC.correct)
     expect(colors.Australia).toBe(CLASSIC.selected)
     expect(Object.keys(colors)).toHaveLength(14)
+  })
+})
+
+describe('find the city', () => {
+  const tokyo = { id: 1850147, name: 'Tokyo', place: 'JP', lat: 35.69, lng: 139.69, population: 8_336_599, capital: true as const }
+  const game = newCityGame('medium', [tokyo])
+
+  it('answers on the globe until guessed, from an overview each city, and colors no country', () => {
+    expect(globeAnswers(game)).toBe(true)
+    expect(overviewKey(game)).toBe('city-0')
+    expect(gameHighlights(game, CLASSIC).size).toBe(0)
+    expect(flightTarget(game)).toBeNull()
+    const guessed = guessCity(game, { lat: 35, lng: 139 })
+    expect(globeAnswers(guessed)).toBe(false)
+    expect(overviewKey(guessed)).toBeNull()
+    expect(showsGame(guessed)).toBe(true)
+    expect(showsGame(nextCity(guessed))).toBe(false) // the results
   })
 })

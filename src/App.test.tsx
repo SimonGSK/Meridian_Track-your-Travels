@@ -122,6 +122,18 @@ vi.mock('./games/games', async (importOriginal) => {
   }
 })
 const PLACE_OF: Record<string, number> = { Denmark: 100, France: 200, Brazil: 500, Japan: 600, Kenya: 700 }
+// "Find the city" asks about the capitals of those countries, in a fixed order
+vi.mock('./games/cityGame', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('./games/cityGame')>()
+  const capitals = ['Copenhagen', 'Paris', 'Brasília', 'Tokyo', 'Nairobi']
+  return {
+    ...actual,
+    newCityGame: (level: import('./games/cityGame').CityLevel, cities: import('./data/cities').City[]) =>
+      actual.newCityGame(level, cities.filter((c) => c.capital && capitals.includes(c.name)), () => 0.5),
+  }
+})
+/** Where on the stand-in globe each capital's country is */
+const CAPITAL_AT: Record<string, number> = { Copenhagen: 100, Paris: 200, Brasília: 500, Tokyo: 600, Nairobi: 700 }
 
 const at = (x: number) => ({ clientX: x, clientY: 0 })
 const surface = () => screen.getByTestId('globe')
@@ -1219,6 +1231,71 @@ describe('App', () => {
       await userEvent.click(screen.getByRole('button', { name: /Flag quiz/ }))
       await userEvent.click(screen.getByRole('button', { name: /^Easy/ }))
       expect(painted()).toEqual({})
+    })
+
+    describe('find the city', () => {
+      const cityTarget = () => screen.getByText('Click where this city is on the globe').nextElementSibling!.textContent!
+      const start = async () => {
+        await startGame(/Find the city/, 'Medium')
+        await screen.findByText('Click where this city is on the globe')
+      }
+      type Line = { from: { lat: number; lng: number }; to: { name: string }; highlighted: boolean }
+      const lines = () => (flightLayer.show.mock.calls.at(-1)?.[0] ?? []) as Line[]
+      const pins = () => ((pinLayer.show.mock.calls.at(-1)?.[0] ?? []) as { city: { name: string } }[]).map((p) => p.city.name)
+
+      it('scores a click by how far off it is, then shows the city, a line from the click, and both in view', async () => {
+        await start()
+        // Countries don't light up: the answer is a point
+        hover(100)
+        await act(() => new Promise((r) => setTimeout(r, 50)))
+        expect(painted()).toEqual({})
+        expect(surface()).toHaveStyle({ cursor: 'crosshair' })
+
+        const city = cityTarget()
+        globe.pointOfView.mockClear()
+        click(CAPITAL_AT[city])
+        expect(feedback()).toHaveTextContent(/^Off by [\d,]+ km\. \+\d+ points$/)
+        expect(pins()).toEqual([city])
+        expect(pinLayer.setColor).toHaveBeenLastCalledWith(DEFAULT_THEME.correct)
+        expect(lines()).toEqual([expect.objectContaining({ to: expect.objectContaining({ name: city }), highlighted: true })])
+        expect(lastFlight()).toBeDefined()
+
+        // Clicking again does nothing; the next city clears the globe
+        click(CAPITAL_AT[city])
+        await userEvent.click(screen.getByRole('button', { name: 'Next' }))
+        expect(cityTarget()).not.toBe(city)
+        expect(pins()).toEqual([])
+        expect(lines()).toEqual([])
+      })
+
+      it("shows the city after \"I don't know\", with no points", async () => {
+        await start()
+        const city = cityTarget()
+        await userEvent.click(screen.getByRole('button', { name: "I don't know" }))
+        expect(feedback()).toHaveTextContent(`${city} is marked on the globe`)
+        expect(pins()).toEqual([city])
+        expect(lines()).toEqual([])
+        expect(screen.getByText('0 points')).toBeInTheDocument()
+      })
+
+      it('ignores a click off the globe', async () => {
+        await start()
+        click(0) // outer space
+        expect(feedback()).toHaveTextContent('')
+        expect(screen.getByRole('button', { name: "I don't know" })).toBeInTheDocument()
+      })
+
+      it('scores the game, and keeps the best', async () => {
+        await start()
+        for (let i = 0; i < 5; i++) {
+          click(CAPITAL_AT[cityTarget()])
+          await userEvent.click(screen.getByRole('button', { name: i < 4 ? 'Next' : 'See results' }))
+        }
+        expect(screen.getByRole('list', { name: 'Your cities' }).children).toHaveLength(5)
+        const score = Number(screen.getByText(/ \/ 500$/).textContent!.split(' ')[0])
+        expect(score).toBeGreaterThan(250)
+        expect(JSON.parse(localStorage.getItem('countries-app.best-scores')!)).toEqual({ 'city:medium': score })
+      })
     })
 
     describe('find the country', () => {

@@ -18,8 +18,11 @@ import { giveUpAll, nameCountry, newAllGame, type AllGameState, type Scope } fro
 import { BEST_TIMES_KEY, isPerfect, runTime } from './records'
 import { guess, newHigherLower, nextPair, type Guess, type HigherLowerState, type Measure } from './higherLower'
 import { DAILY_KEY, dayKey, isDailyResults, newDailyGame, squaresOf, type DailyResults } from './daily'
+import { guessCity, newCityGame, nextCity, skipCity, type CityGameState, type CityLevel } from './cityGame'
+import { loadCities } from '../data/cities'
+import type { LatLng } from '../globe/interaction'
 
-export type GameState = RoundGameState | LetterGameState | AllGameState | HigherLowerState
+export type GameState = RoundGameState | LetterGameState | AllGameState | HigherLowerState | CityGameState
 
 export const BEST_SCORES_KEY = 'countries-app.best-scores'
 
@@ -34,10 +37,13 @@ export const letterKey = (letter: string) => `letter:${letter}`
 export const scopeKey = (scope: Scope) => `all:${scope}`
 /** Higher or lower keeps the longest streak for people, and for area */
 export const measureKey = (measure: Measure) => `higher:${measure}`
+/** "Find the city" keeps a best score (points) per level */
+export const cityKey = (level: CityLevel) => `city:${level}`
 function keyOf(game: GameState) {
   if (game.kind === 'letter') return letterKey(game.letter)
   if (game.kind === 'all') return scopeKey(game.scope)
   if (game.kind === 'higher') return measureKey(game.measure)
+  if (game.kind === 'city') return cityKey(game.level)
   return bestKey(game.id, game.difficulty)
 }
 
@@ -49,7 +55,7 @@ export const isBestScores = (value: unknown): value is BestScores =>
 
 /** Points; for the letter hunt and "name them all" the number of countries found; for higher or lower the streak */
 export function gameScore(game: GameState) {
-  if (game.kind === 'rounds') return game.score
+  if (game.kind === 'rounds' || game.kind === 'city') return game.score
   if (game.kind === 'higher') return game.streak
   return game.found.length
 }
@@ -104,11 +110,24 @@ export function useGame() {
   const startAll = useCallback((scope: Scope) => begin(newAllGame(scope)), [begin])
   const startLetter = useCallback((letter: string) => begin(newLetterGame(letter)), [begin])
   const startHigher = useCallback((measure: Measure) => begin(newHigherLower(measure)), [begin])
+  /** The cities load with the app; a game asked for before they're there starts once they are */
+  const startCity = useCallback(
+    (level: CityLevel) => loadCities().then((cities) => begin(newCityGame(level, cities))),
+    [begin],
+  )
   /** Today's challenge, unless it's been played */
   const startDaily = useCallback(() => {
     const today = dayKey(new Date())
     if (!(today in daily)) begin(newDailyGame(today))
   }, [begin, daily])
+
+  /** Find the city: clicked here on the globe */
+  const guessAt = useCallback(
+    (position: LatLng) => {
+      if (game?.kind === 'city') update(guessCity(game, position))
+    },
+    [game, update],
+  )
 
   /** Higher or lower: more, or fewer */
   const guessHigher = useCallback(
@@ -135,12 +154,14 @@ export function useGame() {
     if (game.kind === 'letter') update(giveUp(game))
     else if (game.kind === 'all') update(giveUpAll(game))
     else if (game.kind === 'higher') update(nextPair(game))
+    else if (game.kind === 'city') update(nextCity(game))
     else update(next(game))
   }, [game, update])
 
   /** "I don't know": lose the round and see the answer */
   const giveUpRound = useCallback(() => {
     if (game?.kind === 'rounds') update(dontKnow(game))
+    else if (game?.kind === 'city') update(skipCity(game))
   }, [game, update])
 
   /** End a game played in rounds now, scoring the rounds played */
@@ -162,7 +183,9 @@ export function useGame() {
     startLetter,
     startAll,
     startHigher,
+    startCity,
     pick,
+    guessAt,
     guessHigher,
     giveUpRound,
     advance,

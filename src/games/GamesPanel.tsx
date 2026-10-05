@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { flagUrl } from '../flags'
 import type { CountryFeature } from '../countries'
 import CountryInput from './CountryInput'
@@ -7,6 +7,8 @@ import CountryShape from './CountryShape'
 import { capitalOf } from '../data/capitals'
 import { HigherLowerPlay, HigherLowerResults, MeasureChoice } from './HigherLowerPanel'
 import { DailyChoice, DailyResultsView } from './DailyPanel'
+import { CityLevelChoice, CityPlay, CityResults } from './CityPanel'
+import type { CityLevel } from './cityGame'
 import { dayKey, streaksOf, type DailyResults } from './daily'
 import type { Guess, Measure } from './higherLower'
 import {
@@ -29,11 +31,11 @@ import {
 } from './games'
 import { countriesStartingWith, lettersOf, missing, randomLetter, type LetterGameState } from './letterGame'
 import { bestKey, gameScore, letterKey, scopeKey, type BestScores, type GameState } from './useGame'
-import { formatRunTime, isPerfect, runTime } from './records'
+import { formatRunTime } from './records'
+import { Elapsed, RecordTime, RunTime } from './timing'
 import {
   SCOPES,
   countriesIn,
-  formatDuration,
   missingAll,
   scopeLabel,
   type AllGameState,
@@ -53,6 +55,8 @@ type Props = {
   onStartLetter: (letter: string) => void
   onStartAll: (scope: Scope) => void
   onStartHigher: (measure: Measure) => void
+  /** Find the city, at a level */
+  onStartCity?: (level: CityLevel) => void
   /** How each day's challenge went */
   daily?: DailyResults
   onStartDaily?: () => void
@@ -91,6 +95,7 @@ export default function GamesPanel(props: Props) {
   if (game.kind === 'letter') return <LetterHunt {...props} game={game} />
   if (game.kind === 'all') return <NameThemAll {...props} game={game} />
   if (game.kind === 'higher') return <HigherLowerPlay {...props} game={game} />
+  if (game.kind === 'city') return <CityPlay {...props} game={game} />
   return <RoundPlay {...props} game={game} />
 }
 
@@ -112,6 +117,7 @@ function GameList(props: Props & Chosen) {
   if (chosen === 'letter') return <LetterChoice {...bests} onStartLetter={onStartLetter} onBack={back} />
   if (chosen === 'all') return <ScopeChoice {...bests} onStartAll={onStartAll} onBack={back} />
   if (chosen === 'higher') return <MeasureChoice best={best} onStart={onStartHigher} onBack={back} />
+  if (chosen === 'city') return <CityLevelChoice {...bests} onStart={(level) => props.onStartCity?.(level)} onBack={back} />
   if (chosen) return <DifficultyChoice id={chosen} {...bests} onStart={onStart} onBack={back} />
   return (
     <>
@@ -200,37 +206,6 @@ function GameHeader({ game }: { game: RoundGameState | LetterGameState | AllGame
         </span>
       )}
     </p>
-  )
-}
-
-/** " · record 0:42.3", after a best score */
-function RecordTime({ time }: { time: number | undefined }) {
-  if (time === undefined) return null
-  return <span className="record-time"> · record {formatRunTime(time)}</span>
-}
-
-/** A perfect run's time, and whether it's a record; otherwise why the time doesn't count */
-function RunTime({ game, previousTime }: { game: GameState; previousTime: number | undefined }) {
-  const time = formatRunTime(runTime(game))
-  if (!isPerfect(game)) {
-    return (
-      <p className="muted run-time">
-        Time {time}. Only perfect runs, with every point and no mistakes, set a time record.
-      </p>
-    )
-  }
-  const record = previousTime === undefined || runTime(game) < previousTime
-  return (
-    <>
-      <p className="run-time">
-        Perfect run in <strong>{time}</strong>
-      </p>
-      {record ? (
-        <p className="new-best">{previousTime === undefined ? 'Your first time record!' : 'New time record!'}</p>
-      ) : (
-        <p className="muted">Your record is {formatRunTime(previousTime)}</p>
-      )}
-    </>
   )
 }
 
@@ -438,6 +413,21 @@ function Results(props: Props & Chosen & { game: GameState }) {
     }
     return <HigherLowerResults game={game} previousBest={previousBest} onStart={props.onStartHigher} onAllGames={allGames} />
   }
+  if (game.kind === 'city') {
+    const allGames = () => {
+      setChosen(null)
+      onQuit()
+    }
+    return (
+      <CityResults
+        game={game}
+        previousBest={previousBest}
+        previousTime={props.previousTime}
+        onStart={(level) => props.onStartCity?.(level)}
+        onAllGames={allGames}
+      />
+    )
+  }
   if (game.kind === 'rounds' && game.id === 'daily') {
     const allGames = () => {
       setChosen(null)
@@ -611,17 +601,6 @@ function ScopeChoice({ best, bestTimes, onStartAll, onBack }: {
       </ul>
     </div>
   )
-}
-
-/** Counts up from `since`, or shows the time taken once `until` is set. */
-function Elapsed({ since, until }: { since: number; until: number | null }) {
-  const [now, setNow] = useState(() => Date.now())
-  useEffect(() => {
-    if (until !== null) return
-    const timer = setInterval(() => setNow(Date.now()), 1000)
-    return () => clearInterval(timer)
-  }, [until])
-  return <span className="elapsed">{formatDuration((until ?? now) - since)}</span>
 }
 
 function NameThemAll({ game, onPick, onNext, onQuit }: Props & { game: AllGameState }) {

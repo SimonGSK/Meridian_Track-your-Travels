@@ -4,6 +4,7 @@ import { answer, currentRound, dontKnow, newRoundGame, next, stopEarly, type Rou
 import { giveUp, newLetterGame, pickCountry } from './letterGame'
 import { giveUpAll, nameCountry, newAllGame } from './allGame'
 import { countries } from '../countries'
+import { guessCity, newCityGame, nextCity, skipCity } from './cityGame'
 
 const byName = (name: string) => countries.find((c) => c.properties.name === name)!
 const pool = ['Denmark', 'France', 'Brazil'].map(byName)
@@ -69,5 +70,16 @@ describe('formatRunTime', () => {
     expect(formatRunTime(42_380)).toBe('0:42.3')
     expect(formatRunTime(5_000)).toBe('0:05.0')
     expect(formatRunTime(754_999)).toBe('12:34.9')
+  })
+})
+
+describe('isPerfect, finding cities', () => {
+  const paris = { id: 2988507, name: 'Paris', place: 'FR', lat: 48.85, lng: 2.35, population: 2_138_551, capital: true as const }
+
+  it('needs every city spot on', () => {
+    const game = newCityGame('medium', [paris])
+    expect(isPerfect(nextCity(guessCity(game, { lat: 48.9, lng: 2.4 })))).toBe(true)
+    expect(isPerfect(nextCity(guessCity(game, { lat: 50, lng: 3 })))).toBe(false)
+    expect(isPerfect(nextCity(skipCity(game)))).toBe(false)
   })
 })
