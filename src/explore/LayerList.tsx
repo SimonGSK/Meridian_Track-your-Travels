@@ -5,13 +5,14 @@ type Layer = {
   key: keyof Settings
   label: string
   description: string
-  dot: 'accent' | 'blue'
+  dot: 'accent' | 'blue' | 'wish'
   /** Only offered while this layer is on, indented under it */
   under?: keyof Settings
 }
 
 const LAYERS: Layer[] = [
   { key: 'showVisited', label: 'Visited countries', description: "Color the countries you've visited", dot: 'accent' },
+  { key: 'showWishlist', label: 'Wishlist', description: 'Color the countries you want to visit', dot: 'wish' },
   { key: 'showRegions', label: 'Visited states', description: "Color the states you've visited, a shade darker", dot: 'accent' },
   { key: 'showCities', label: 'City pins', description: "A pin on each city you've visited", dot: 'accent' },
   { key: 'showFlights', label: 'Flights', description: "A line for each flight you've taken", dot: 'blue' },

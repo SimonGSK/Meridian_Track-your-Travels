@@ -26,6 +26,8 @@
   --accent-ink: #1d1407;
   --accent-soft: rgba(232, 163, 61, 0.14);
   --blue: #8ec3e6;
+  /* The wishlist, as on the Midnight globe */
+  --wish: #9b8cf2;
   --good: #8fd694;
   --bad: #ff6b5e;
 
@@ -436,6 +438,10 @@ input:focus-visible {
   background: #5fb3ff;
 }
 
+.dot.wish {
+  background: var(--wish);
+}
+
 .city-list .dot {
   background: #e5553a;
 }
@@ -644,6 +650,36 @@ input[type='checkbox'] {
 
 .atlas-button.on:hover {
   filter: brightness(1.06);
+}
+
+.wish-button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 9px 16px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: none;
+  color: var(--text-muted);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    color 0.15s;
+}
+
+.wish-button:hover {
+  background: var(--surface-hover);
+  color: var(--wish);
+}
+
+.wish-button.on {
+  border-color: var(--wish);
+  color: var(--wish);
 }
 
 /* The column on the right */
@@ -1018,6 +1054,18 @@ code {
   font-family: var(--font-mono);
   font-size: 12px;
   white-space: nowrap;
+}
+
+.been-there {
+  flex: none;
+  padding: 4px 6px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.icon-button.wish-star.on,
+.icon-button.wish-star:hover {
+  color: var(--wish);
 }
 
 .country-item.editing {

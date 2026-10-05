@@ -1,7 +1,7 @@
 import type { ComponentProps } from 'react'
 import type { CountryFeature } from './countries'
 import { factsOf, formatArea, formatAreaShort, formatPopulation, formatPopulationShort } from './data/facts'
-import { CheckIcon, CloseIcon, PlusIcon } from './icons'
+import { CheckIcon, CloseIcon, PlusIcon, StarIcon } from './icons'
 import CityPicker from './CityPicker'
 import RegionPicker from './RegionPicker'
 import VisitsCard from './visited/VisitsCard'
@@ -10,6 +10,9 @@ type Props = {
   country: CountryFeature
   visited: boolean
   onToggleVisited: () => void
+  /** On the wishlist, for places not visited yet */
+  wished?: boolean
+  onToggleWish?: () => void
   onClose: () => void
   /** For countries with states or provinces */
   regions?: ComponentProps<typeof RegionPicker>
@@ -20,7 +23,8 @@ type Props = {
 }
 
 /** The selected country, on the left: "(A) SELECTED COUNTRY", its facts, cities and states. */
-export default function CountryPanel({ country, visited, onToggleVisited, onClose, regions, cities, visits }: Props) {
+export default function CountryPanel(props: Props) {
+  const { country, visited, onToggleVisited, wished = false, onToggleWish, onClose, regions, cities, visits } = props
   const { name, kind, continent, areaKm2: mapArea, isoCode, isoAlpha2 } = country.properties
   const facts = factsOf(country)
   const code = isoCode ?? isoAlpha2
@@ -52,6 +56,12 @@ export default function CountryPanel({ country, visited, onToggleVisited, onClos
         {visited ? <CheckIcon size={18} /> : <PlusIcon size={18} />}
         {visited ? 'In visited atlas' : 'Add to visited atlas'}
       </button>
+      {!visited && onToggleWish && (
+        <button type="button" className={`wish-button${wished ? ' on' : ''}`} aria-pressed={wished} onClick={onToggleWish}>
+          <StarIcon size={16} filled={wished} />
+          {wished ? 'On your wishlist' : 'Add to wishlist'}
+        </button>
+      )}
     </aside>
   )
 }

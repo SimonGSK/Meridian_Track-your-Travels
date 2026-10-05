@@ -500,6 +500,69 @@ describe('App', () => {
     })
   })
 
+  describe('wishlist', () => {
+    const wishes = () => JSON.parse(localStorage.getItem('countries-app.wishlist') ?? '[]')
+
+    it('colors a country put on the wishlist from its panel, and takes it off once visited', async () => {
+      render(<App />)
+      click(100)
+      await userEvent.click(within(countryPanel()!).getByRole('button', { name: 'Add to wishlist' }))
+      expect(painted()).toEqual({ Denmark: DEFAULT_THEME.wishlist })
+      expect(within(countryPanel()!).getByRole('button', { name: 'On your wishlist' })).toBeInTheDocument()
+
+      await userEvent.click(within(countryPanel()!).getByRole('button', { name: 'Add to visited atlas' }))
+      expect(painted()).toEqual({ Denmark: DEFAULT_THEME.visited })
+      expect(wishes()).toEqual([])
+      expect(within(countryPanel()!).queryByRole('button', { name: /wishlist/ })).not.toBeInTheDocument()
+    })
+
+    it('lists the wishlist in the Visited tab, where "Been there" moves a place to the visited atlas', async () => {
+      localStorage.setItem('countries-app.wishlist', JSON.stringify(['Japan', 'Peru']))
+      render(<App />)
+      await userEvent.click(screen.getByRole('button', { name: 'Visited' }))
+      const list = within(screen.getByRole('list', { name: 'Wishlist' }))
+      expect(list.getAllByRole('listitem').map((li) => li.querySelector('.row-name')!.textContent)).toEqual(['Japan', 'Peru'])
+
+      await userEvent.click(list.getByRole('button', { name: 'Been to Japan: add it to your visited atlas' }))
+      expect(within(sidePanel()!).getByRole('list', { name: 'Visited countries' })).toHaveTextContent('Japan')
+      expect(painted()).toEqual({ Japan: DEFAULT_THEME.visited, Peru: DEFAULT_THEME.wishlist })
+      expect(wishes()).toEqual(['Peru'])
+    })
+
+    it('takes a place off when it is added from the search', async () => {
+      localStorage.setItem('countries-app.wishlist', JSON.stringify(['Denmark']))
+      render(<App />)
+      await userEvent.click(screen.getByRole('button', { name: 'Visited' }))
+      await userEvent.type(screen.getByRole('searchbox', { name: 'Add a country' }), 'denmark{Enter}')
+      expect(wishes()).toEqual([])
+      expect(screen.queryByRole('list', { name: 'Wishlist' })).not.toBeInTheDocument()
+    })
+
+    it('is hidden with its layer off, while a year is shown, and in games', async () => {
+      localStorage.setItem('countries-app.wishlist', JSON.stringify(['Peru']))
+      localStorage.setItem('countries-app.visited', JSON.stringify(['Japan']))
+      localStorage.setItem('countries-app.visit-dates', JSON.stringify({ Japan: ['2024'] }))
+      render(<App />)
+      expect(painted()).toEqual({ Japan: DEFAULT_THEME.visited, Peru: DEFAULT_THEME.wishlist })
+
+      await userEvent.click(screen.getByRole('button', { name: 'Visited' }))
+      await userEvent.click(screen.getByRole('tab', { name: 'Years' }))
+      expect(painted()).toEqual({ Japan: DEFAULT_THEME.visited })
+      await userEvent.click(screen.getByRole('tab', { name: 'Countries' }))
+
+      await userEvent.click(screen.getByRole('button', { name: 'Design' }))
+      await userEvent.click(within(sidePanel()!).getByRole('switch', { name: /Wishlist/ }))
+      expect(painted()).toEqual({ Japan: DEFAULT_THEME.visited })
+      await userEvent.click(within(sidePanel()!).getByRole('switch', { name: /Wishlist/ }))
+      expect(painted()).toEqual({ Japan: DEFAULT_THEME.visited, Peru: DEFAULT_THEME.wishlist })
+
+      await userEvent.click(screen.getByRole('button', { name: 'Games' }))
+      await userEvent.click(screen.getByRole('button', { name: /Flag quiz/ }))
+      await userEvent.click(screen.getByRole('button', { name: /^Easy/ }))
+      expect(painted()).toEqual({})
+    })
+  })
+
   describe('achievements', () => {
     // The note waits for the cities and airports, so what they make count isn't taken for something you did
     const loaded = async () => {

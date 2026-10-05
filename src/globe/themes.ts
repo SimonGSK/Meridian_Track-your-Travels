@@ -16,6 +16,8 @@ export type Theme = {
   hover: string
   selected: string
   visited: string
+  /** Countries on your wishlist */
+  wishlist: string
   /** Pins on visited cities */
   pin: string
   /** Lines for flights taken */
@@ -40,6 +42,7 @@ export const MIDNIGHT: Theme = {
   hover: '#f2843a',
   selected: '#f5be5b',
   visited: '#e1a03e',
+  wishlist: '#9b8cf2',
   pin: '#e5553a',
   flight: '#9fd3ff',
   correct: '#8fd694',
@@ -61,6 +64,7 @@ export const CLASSIC: Theme = {
   hover: '#ffc850',
   selected: '#ff7846',
   visited: '#5b8def',
+  wishlist: '#c084fc',
   pin: '#ff4757',
   flight: '#ffffff',
   correct: '#b4f25c',
@@ -82,6 +86,7 @@ export const POLITICAL: Theme = {
   hover: '#ff8a00',
   selected: '#e63946',
   visited: '#2f6fdb',
+  wishlist: '#8e44c9',
   pin: '#b5179e',
   flight: '#1d3557',
   correct: '#15803d',
@@ -103,6 +108,7 @@ export const NIGHT: Theme = {
   hover: '#ff4fd8',
   selected: '#ffd166',
   visited: '#7b5cff',
+  wishlist: '#20b8a0',
   pin: '#ff9f1c',
   flight: '#ffd166',
   correct: '#39ff88',
@@ -124,6 +130,7 @@ export const VINTAGE: Theme = {
   hover: '#d9824b',
   selected: '#9c3d22',
   visited: '#5f8f6e',
+  wishlist: '#7189b8',
   pin: '#a4161a',
   flight: '#6b3a1d',
   correct: '#2f7d3a',
@@ -145,6 +152,7 @@ export const MINIMAL: Theme = {
   hover: '#1f2937',
   selected: '#2563eb',
   visited: '#0ea5a4',
+  wishlist: '#f0a33b',
   pin: '#e11d48',
   flight: '#1f2937',
   correct: '#16a34a',

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { countries, searchCountries, type CountryFeature } from '../countries'
 import { CONTINENTS, type Continent } from '../data/continents'
 import { flagUrl } from '../flags'
+import { StarIcon } from '../icons'
 import { percentLabel } from './percentLabel'
 import StatsBox from '../ui/StatsBox'
 
@@ -14,6 +15,10 @@ type Props = {
   note?: (country: CountryFeature) => string | null
   /** Cities visited, all over the world */
   cityCount?: number
+  /** Places you want to go, not visited yet, by name */
+  wishlist?: ReadonlySet<string>
+  onWish?: (name: string) => void
+  onUnwish?: (name: string) => void
 }
 
 const byName = (a: CountryFeature, b: CountryFeature) => a.properties.name.localeCompare(b.properties.name)
@@ -35,7 +40,10 @@ export function Flag({ country }: { country: CountryFeature }) {
   return url ? <img className="mini-flag" src={url} alt="" /> : <span className="mini-flag" />
 }
 
-export default function VisitedPanel({ visited, onAdd, onRemove, onShow, note, cityCount = 0 }: Props) {
+const NO_WISHES: ReadonlySet<string> = new Set()
+
+export default function VisitedPanel(props: Props) {
+  const { visited, onAdd, onRemove, onShow, note, cityCount = 0, wishlist = NO_WISHES, onWish, onUnwish } = props
   const [query, setQuery] = useState('')
 
   const visitedList = countries.filter((c) => visited.has(c.properties.name)).sort(byName)
@@ -44,6 +52,7 @@ export default function VisitedPanel({ visited, onAdd, onRemove, onShow, note, c
   const visitedCountries = visitedList.filter(isCountry).length
   const visitedTerritories = visitedList.length - visitedCountries
   const visitedIn = (continent: Continent) => visitedList.filter((c) => c.properties.continent === continent)
+  const wishes = countries.filter((c) => wishlist.has(c.properties.name)).sort(byName)
   // A second line under the name: "Territory", and states and cities visited
   const noteFor = (c: CountryFeature) =>
     [isCountry(c) ? null : 'Territory', note?.(c)].filter(Boolean).join(' · ') || null
@@ -125,21 +134,77 @@ export default function VisitedPanel({ visited, onAdd, onRemove, onShow, note, c
 
       {matches.length > 0 && (
         <ul className="country-list" aria-label="Search results">
-          {matches.map(({ country: c, matchedAlias }) => (
-            <li key={c.properties.name}>
-              <button type="button" className="country-row" onClick={() => add(c)}>
-                <Flag country={c} />
-                <span className="row-name">
-                  {c.properties.name}
-                  {matchedAlias && <span className="muted"> ({matchedAlias})</span>}
-                </span>
-                <span className="row-action">Add</span>
-              </button>
-            </li>
-          ))}
+          {matches.map(({ country: c, matchedAlias }) => {
+            const { name } = c.properties
+            const wished = wishlist.has(name)
+            return (
+              <li key={name} className="country-item">
+                <button type="button" className="country-row" onClick={() => add(c)}>
+                  <Flag country={c} />
+                  <span className="row-name">
+                    {name}
+                    {matchedAlias && <span className="muted"> ({matchedAlias})</span>}
+                  </span>
+                  <span className="row-action">Add</span>
+                </button>
+                {onWish && onUnwish && (
+                  <button
+                    type="button"
+                    className={`icon-button small wish-star${wished ? ' on' : ''}`}
+                    aria-label={wished ? `Take ${name} off your wishlist` : `Add ${name} to your wishlist`}
+                    onClick={() => (wished ? onUnwish(name) : onWish(name))}
+                  >
+                    <StarIcon size={15} filled={wished} />
+                  </button>
+                )}
+              </li>
+            )
+          })}
         </ul>
       )}
       {query.trim() && matches.length === 0 && <p className="muted">No matching countries.</p>}
+
+      {onWish && onUnwish && (
+        <>
+          <h3>Wishlist</h3>
+          {wishes.length === 0 ? (
+            <p className="muted">
+              Where do you want to go? Star a country in the search above, or in its panel, and it's colored on the
+              globe.
+            </p>
+          ) : (
+            <ul className="country-list" aria-label="Wishlist">
+              {wishes.map((c) => (
+                <li key={c.properties.name} className="country-item">
+                  <button type="button" className="country-row" onClick={() => onShow(c)}>
+                    <Flag country={c} />
+                    <span className="row-text">
+                      <span className="row-name">{c.properties.name}</span>
+                      <span className="row-note">{c.properties.continent}</span>
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    className="link-button been-there"
+                    aria-label={`Been to ${c.properties.name}: add it to your visited atlas`}
+                    onClick={() => onAdd(c.properties.name)}
+                  >
+                    Been there
+                  </button>
+                  <button
+                    type="button"
+                    className="icon-button small"
+                    onClick={() => onUnwish(c.properties.name)}
+                    aria-label={`Take ${c.properties.name} off your wishlist`}
+                  >
+                    ×
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </>
+      )}
 
       <h3>Your countries</h3>
       {visitedList.length === 0 ? (

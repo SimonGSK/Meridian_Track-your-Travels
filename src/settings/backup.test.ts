@@ -16,6 +16,7 @@ const saved = {
   'countries-app.visited-cities': [2618425],
   'countries-app.visit-dates': { Denmark: ['2023-05', '2019'] },
   'countries-app.flights': [{ id: 'a', from: 'CPH', to: 'NRT' }],
+  'countries-app.wishlist': ['Peru', 'Iceland'],
   'countries-app.best-scores': { 'flags:easy': 9, 'letter:Z': 2 },
   'countries-app.best-times': { 'letter:Z': 8100 },
   'countries-app.daily': { '2026-10-05': { score: 6, max: 7, squares: '🟩🟩🟨🟩🟥' } },
@@ -91,10 +92,11 @@ describe('describing a backup', () => {
   it('counts what it holds, leaving out what there is none of', () => {
     fill()
     const summary = summarize(createBackup(localStorage, new Date('2026-10-04T10:00:00Z')))
-    expect(summary).toMatchObject({ places: 2, states: 1, cities: 1, flights: 1, records: 2 })
-    expect(describeBackup(summary)).toBe('2 places, 1 state, 1 city, 1 flight and 2 best scores')
-    expect(describeBackup({ ...summary, states: 0, cities: 0, flights: 0, records: 0 })).toBe('2 places')
-    expect(describeBackup({ ...summary, places: 1, states: 0, cities: 3, flights: 0, records: 0 })).toBe('1 place and 3 cities')
+    expect(summary).toMatchObject({ places: 2, states: 1, cities: 1, flights: 1, wishlist: 2, records: 2 })
+    expect(describeBackup(summary)).toBe('2 places, 1 state, 1 city, 1 flight, 2 on the wishlist and 2 best scores')
+    const none = { states: 0, cities: 0, flights: 0, wishlist: 0, records: 0 }
+    expect(describeBackup({ ...summary, ...none })).toBe('2 places')
+    expect(describeBackup({ ...summary, ...none, places: 1, cities: 3 })).toBe('1 place and 3 cities')
   })
 
   it('names the file by the date', () => {
