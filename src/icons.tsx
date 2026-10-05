@@ -89,6 +89,15 @@ export const PlusIcon = ({ size = 16 }: Props) => svg(size, <path d="M12 5v14M5 
 
 export const CloseIcon = ({ size = 16 }: Props) => svg(size, <path d="m6 6 12 12M18 6 6 18" />)
 
+export const PencilIcon = ({ size = 16 }: Props) =>
+  svg(
+    size,
+    <>
+      <path d="M4 20h4L19.5 8.5a2.1 2.1 0 0 0-4-4L4 16z" />
+      <path d="m13.5 6.5 4 4" />
+    </>,
+  )
+
 const STAR = 'M12 3.5l2.6 5.3 5.9.9-4.25 4.1 1 5.8L12 16.9l-5.25 2.7 1-5.8L3.5 9.7l5.9-.9z'
 
 /** Outlined, or filled when `filled` */

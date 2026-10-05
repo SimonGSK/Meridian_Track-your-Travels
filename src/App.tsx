@@ -155,7 +155,7 @@ export default function App() {
   const [hoveredRegion, setHoveredRegion] = useState<RegionFeature | null>(null)
   const cities = useCities()
   const { visitedCities, toggle: toggleCityId } = useVisitedCities()
-  const { datesOf, addVisit, removeVisit } = useVisitDates()
+  const { datesOf, addVisit, removeVisit, noteOf, setNote } = useVisitDates()
   const [hoveredCity, setHoveredCity] = useState<City | null>(null)
   const airports = useAirports()
   const { flights, add: addFlight, remove: removeFlight, setDate: setFlightDate } = useFlights(cities, airports)
@@ -587,6 +587,7 @@ export default function App() {
                 <YearsPanel
                   years={years}
                   review={review}
+                  noteOf={noteOf}
                   onYearChange={(year) => {
                     setPickedYear(year)
                     showYear(reviewOf(year, { visited, datesOf, routes }))
@@ -707,6 +708,8 @@ export default function App() {
                   dates: datesOf(selected.properties.name),
                   onAdd: (date) => addVisit(selected.properties.name, date),
                   onRemove: (date) => removeVisit(selected.properties.name, date),
+                  noteOf: (date) => noteOf(selected.properties.name, date),
+                  onNote: (date, note) => setNote(selected.properties.name, date, note),
                 }
               : undefined
           }

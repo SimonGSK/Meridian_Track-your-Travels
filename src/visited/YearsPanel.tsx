@@ -1,7 +1,7 @@
 import type { CountryFeature } from '../countries'
 import { cityOf } from '../data/airports'
 import { formatDistance, type Route } from '../data/flights'
-import { MONTHS } from '../data/visitDates'
+import { MONTHS, visitDate, type VisitDate } from '../data/visitDates'
 import StatsBox from '../ui/StatsBox'
 import { Flag } from './VisitedPanel'
 import type { YearReview } from './yearInReview'
@@ -12,6 +12,8 @@ type Props = {
   /** The year shown, or null when nothing has a date */
   review: YearReview | null
   onYearChange: (year: number) => void
+  /** The note on a visit, if it has one */
+  noteOf?: (name: string, date: VisitDate) => string | undefined
   onShow: (country: CountryFeature) => void
   onShowRoute: (route: Route) => void
 }
@@ -39,7 +41,7 @@ function summaryOf({ places, countryCount, firstVisits, continents, flights, km 
 }
 
 /** The Visited tab's years: a year's places month by month, and its flights; the globe shows just that year */
-export default function YearsPanel({ years, review, onYearChange, onShow, onShowRoute }: Props) {
+export default function YearsPanel({ years, review, onYearChange, noteOf, onShow, onShowRoute }: Props) {
   if (!review) {
     return (
       <p className="muted">
@@ -112,17 +114,23 @@ export default function YearsPanel({ years, review, onYearChange, onShow, onShow
             <li key={month ?? 'any'}>
               <h4 id={monthId(month)}>{month ? MONTHS[month - 1] : `Sometime in ${year}`}</h4>
               <ul className="country-list" aria-labelledby={monthId(month)}>
-                {places.map((c) => (
-                  <li key={c.properties.name} className="country-item">
-                    <button type="button" className="country-row" onClick={() => onShow(c)}>
-                      <Flag country={c} />
-                      <span className="row-text">
-                        <span className="row-name">{c.properties.name}</span>
-                        {firstVisits.has(c) && <span className="row-note">First visit</span>}
-                      </span>
-                    </button>
-                  </li>
-                ))}
+                {places.map((c) => {
+                  // The visit's own note, after "First visit"
+                  const note = [firstVisits.has(c) && 'First visit', noteOf?.(c.properties.name, visitDate(year, month))]
+                    .filter(Boolean)
+                    .join(' · ')
+                  return (
+                    <li key={c.properties.name} className="country-item">
+                      <button type="button" className="country-row" onClick={() => onShow(c)}>
+                        <Flag country={c} />
+                        <span className="row-text">
+                          <span className="row-name">{c.properties.name}</span>
+                          {note && <span className="row-note">{note}</span>}
+                        </span>
+                      </button>
+                    </li>
+                  )
+                })}
               </ul>
             </li>
           ))}

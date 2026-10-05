@@ -3,8 +3,8 @@ import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import VisitsCard from './VisitsCard'
 
-function setup(dates: string[] = []) {
-  const props = { dates, onAdd: vi.fn(), onRemove: vi.fn() }
+function setup(dates: string[] = [], notes: Record<string, string> = {}) {
+  const props = { dates, onAdd: vi.fn(), onRemove: vi.fn(), noteOf: (date: string) => notes[date], onNote: vi.fn() }
   render(<VisitsCard {...props} />)
   return props
 }
@@ -26,6 +26,34 @@ describe('VisitsCard', () => {
     ])
     await userEvent.click(screen.getByRole('button', { name: 'Remove the visit in May 2023' }))
     expect(onRemove).toHaveBeenCalledWith('2023-05')
+  })
+
+  it('shows the note on a visit under its date', () => {
+    setup(['2023-05', '2019'], { '2023-05': 'Honeymoon in Kyoto' })
+    const [may] = within(screen.getByRole('list', { name: 'Visits' })).getAllByRole('listitem')
+    expect(may).toHaveTextContent('May 2023Honeymoon in Kyoto')
+    expect(screen.getByRole('button', { name: 'Change the note on the visit in May 2023' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Add a note to the visit in 2019' })).toBeInTheDocument()
+  })
+
+  it('writes a note on a visit, as it is typed, until Done', async () => {
+    const { onNote } = setup(['2019'])
+    await userEvent.click(screen.getByRole('button', { name: 'Add a note to the visit in 2019' }))
+    const note = screen.getByRole('textbox', { name: 'Note on the visit in 2019' })
+    expect(note).toHaveFocus()
+    expect(note).toHaveAttribute('maxlength', '200')
+    await userEvent.type(note, 'Rain')
+    expect(onNote).toHaveBeenLastCalledWith('2019', 'n') // each key, as the field is the saved note
+    await userEvent.click(screen.getByRole('button', { name: 'Done' }))
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
+  })
+
+  it('closes the note with Enter', async () => {
+    setup(['2019'], { '2019': 'Rain' })
+    await userEvent.click(screen.getByRole('button', { name: 'Change the note on the visit in 2019' }))
+    expect(screen.getByRole('textbox', { name: 'Note on the visit in 2019' })).toHaveValue('Rain')
+    await userEvent.keyboard('{Enter}')
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
   })
 
   it('adds a visit in a month of a year, or just a year', async () => {
