@@ -34,8 +34,8 @@ const LINE_OPACITY = 0.5
 /** On-screen size of the planes, in pixels */
 export const PLANE_SIZE_PX = 18
 
-/** A plane takes a few seconds, more for long flights, then sets off again */
-export const flightSeconds = (radians: number) => 4 + radians * 4
+/** A plane takes a few seconds, more for long flights, then sets off again: Copenhagen to Bangkok about 14 */
+export const flightSeconds = (radians: number) => 6 + radians * 6
 
 /** Points along the great circle from `from` to `to`, rising in an arc that's higher for longer flights */
 export function flightPath(from: LatLng, to: LatLng, globeRadius: number, samples = SAMPLES) {

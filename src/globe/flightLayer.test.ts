@@ -114,6 +114,10 @@ describe('flightSeconds', () => {
     expect(flightSeconds(1)).toBeGreaterThan(flightSeconds(0.1))
     expect(flightSeconds(0)).toBeGreaterThan(0)
   })
+
+  it('takes its time: Copenhagen to Bangkok, about 1.35 radians, in about 14 seconds', () => {
+    expect(flightSeconds(1.35)).toBeCloseTo(14.1, 1)
+  })
 })
 
 describe('plane texture', () => {
