@@ -118,11 +118,11 @@ input:focus-visible {
   background: linear-gradient(rgba(8, 19, 30, 0.94), rgba(8, 19, 30, 0.78));
 }
 
+/* Never narrower than itself, so the tabs can't slide over it */
 .brand {
   display: flex;
   align-items: center;
   gap: 14px;
-  min-width: 0;
 }
 
 .brand-mark {
@@ -2253,8 +2253,33 @@ code {
   }
 }
 
-@media (max-width: 860px) {
+/* Where the globe looks needs room beside the full-size tabs */
+@media (max-width: 1140px) {
+  .view-center,
+  .status-dot {
+    display: none;
+  }
+}
+
+/* The name beside the logo needs the room the five tabs take */
+@media (max-width: 1000px) {
   .brand-text {
+    display: none;
+  }
+}
+
+/* Narrower tabs, so they fit between the logo and the count */
+@media (max-width: 800px) {
+  .tab {
+    gap: 6px;
+    padding: 8px 10px;
+    font-size: 13px;
+  }
+}
+
+/* Narrower still, just their names */
+@media (max-width: 720px) {
+  .topbar .tab svg {
     display: none;
   }
 }
@@ -2268,6 +2293,10 @@ code {
   }
   .topbar {
     grid-template-columns: 1fr auto;
+  }
+  /* The tabs are at the bottom here: the name may give way to the count */
+  .brand {
+    min-width: 0;
   }
   .brand-mark {
     width: 36px;
