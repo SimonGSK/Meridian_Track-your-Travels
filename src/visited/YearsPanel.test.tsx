@@ -5,7 +5,7 @@ import type { Airport } from '../data/airports'
 import type { Route } from '../data/flights'
 import type { VisitDate } from '../data/visitDates'
 import YearsPanel from './YearsPanel'
-import { reviewOf, yearsOf, type Travels } from './yearInReview'
+import { reviewOf, timelineOf, yearsOf, type Travels } from './yearInReview'
 
 const airport = (code: string, city: string): Airport => ({ code, name: city, city, country: 'DK', lat: 0, lng: 0 })
 const CPH = airport('CPH', 'Copenhagen')
@@ -113,5 +113,59 @@ describe('YearsPanel', () => {
   it('says how to get a review when nothing has a date', () => {
     render(<YearsPanel years={[]} review={null} onYearChange={vi.fn()} onShow={vi.fn()} onShowRoute={vi.fn()} />)
     expect(screen.getByText(/No dates yet\. Open a country you've been to and add when you went/)).toBeInTheDocument()
+  })
+
+  describe('the time-lapse', () => {
+    const steps = timelineOf(TRAVELS) // 2019, then 2024
+    const controls = () => ({ onPlay: vi.fn(), onPause: vi.fn(), onStop: vi.fn() })
+    function showLapse(shown: { step: number; playing: boolean } | null) {
+      const lapse = { steps, shown, ...controls() }
+      render(
+        <YearsPanel years={yearsOf(TRAVELS)} review={reviewOf(2024, TRAVELS)} onYearChange={vi.fn()} onShow={vi.fn()} onShowRoute={vi.fn()} lapse={lapse} />,
+      )
+      return lapse
+    }
+
+    it('offers to replay the years, from the first to the last', async () => {
+      const { onPlay } = showLapse(null)
+      await userEvent.click(screen.getByRole('button', { name: '▶ Replay your travels, 2019–2024' }))
+      expect(onPlay).toHaveBeenCalled()
+    })
+
+    it('shows a year: all so far, and the places new that year', async () => {
+      const { onPause } = showLapse({ step: 1, playing: true })
+      expect(screen.getByRole('heading', { name: '2024' })).toBeInTheDocument()
+      expect(screen.getByLabelText('By the end of 2024')).toHaveTextContent(/Countries\s*5\s*Continents\s*4\s*Flights\s*2/)
+      expect(screen.getByRole('list', { name: 'New in 2024' })).toHaveTextContent('JapanKenyaSouth Korea') // France came in 2019
+      expect(screen.getByRole('progressbar', { name: 'Years played' })).toHaveAttribute('aria-valuenow', '2')
+      expect(screen.queryByRole('list', { name: 'Month by month' })).not.toBeInTheDocument()
+      await userEvent.click(screen.getByRole('button', { name: 'Pause' }))
+      expect(onPause).toHaveBeenCalled()
+    })
+
+    it('plays on when paused, replays at the end, and goes back to the years', async () => {
+      const { onPlay, onStop } = showLapse({ step: 1, playing: false })
+      await userEvent.click(screen.getByRole('button', { name: 'Replay' }))
+      expect(onPlay).toHaveBeenCalled()
+      await userEvent.click(screen.getByRole('button', { name: 'Back to the years' }))
+      expect(onStop).toHaveBeenCalled()
+    })
+
+    it('says when a year has only flights', () => {
+      const flightsOnly = timelineOf(travels({ Peru: ['2019-11'] }, [route(airport('LHR', 'London'), 950, '2022-02')]))
+      render(
+        <YearsPanel
+          years={[2022, 2019]}
+          review={null}
+          onYearChange={vi.fn()}
+          onShow={vi.fn()}
+          onShowRoute={vi.fn()}
+          lapse={{ steps: flightsOnly, shown: { step: 1, playing: false }, ...controls() }}
+        />,
+      )
+      expect(screen.getByText('No new places, only 1 flight.')).toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: 'Play on' })).not.toBeInTheDocument() // the last year
+      expect(screen.getByRole('button', { name: 'Replay' })).toBeInTheDocument()
+    })
   })
 })

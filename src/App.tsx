@@ -54,7 +54,8 @@ import { useFlights } from './visited/useFlights'
 import FlightsPanel from './visited/FlightsPanel'
 import VisitedTab, { type VisitedView } from './visited/VisitedTab'
 import YearsPanel from './visited/YearsPanel'
-import { reviewOf, spotsOf, yearsOf, type YearReview } from './visited/yearInReview'
+import { reviewOf, spotsOf, spotsOfStep, timelineOf, yearsOf, type YearReview } from './visited/yearInReview'
+import { useTimeLapse } from './visited/useTimeLapse'
 import { routeOf, uniqueRoutes, type Route } from './data/flights'
 import { regionFills, regionOutlines, regionProgress } from './visited/regionsView'
 import Tooltip from './Tooltip'
@@ -257,14 +258,28 @@ export default function App() {
 
   const selectedCities = useMemo(() => (selected && cities ? citiesOf(cities, selected) : []), [selected, cities])
 
-  const highlights = useMemo(() => {
-    const colors = gameHighlights(game, theme)
-    return editing ? new Map([...colors, [editing, theme.selected]]) : colors
-  }, [game, theme, editing])
-
   // While a year is open in the Visited tab, the globe shows just that year: its places and flights, which have
   // dates (states and cities don't)
-  const yearShown = view === 'visited' && visitedView === 'years' && !showsGame(game) ? review : null
+  const yearsOpen = view === 'visited' && visitedView === 'years' && !showsGame(game)
+  const yearShown = yearsOpen ? review : null
+
+  // The time-lapse plays through the years in the Years view: all you'd been to by each, the new places in green
+  const timeline = useMemo(() => timelineOf({ visited, datesOf, routes }), [visited, datesOf, routes])
+  const { lapse, play: playLapse, pause: pauseLapse, stop: stopLapse } = useTimeLapse(timeline.length)
+  const lapseStep = yearsOpen && lapse ? timeline[lapse.step] : null
+  // Leaving the years ends it
+  useEffect(() => {
+    if (!yearsOpen) stopLapse()
+  }, [yearsOpen, stopLapse])
+  useEffect(() => {
+    if (lapseStep) flyToSee(spotsOfStep(lapseStep))
+  }, [lapseStep, flyToSee])
+
+  const highlights = useMemo(() => {
+    const colors = gameHighlights(game, theme)
+    if (lapseStep) return new Map([...colors, ...lapseStep.newPlaces.map((c) => [c, theme.correct] as const)])
+    return editing ? new Map([...colors, [editing, theme.selected]]) : colors
+  }, [game, theme, editing, lapseStep])
 
   // Games get a clean globe: no visited colors, and hover only where the globe is the answer
   // In games only countries are answers, so territories don't light up
@@ -273,7 +288,13 @@ export default function App() {
   const hoverable =
     !!hovered && (!playing || (globeIsAnswer && !findingCity && hovered.properties.kind === 'country'))
   const colorHovered = hoverable ? hovered : null
-  const colorVisited = yearShown ? yearShown.names : showsGame(game) || !settings.showVisited ? NO_VISITS : visited
+  const colorVisited = lapseStep
+    ? lapseStep.names
+    : yearShown
+      ? yearShown.names
+      : showsGame(game) || !settings.showVisited
+        ? NO_VISITS
+        : visited
   const colorWishlist = yearShown || showsGame(game) || !settings.showWishlist ? NO_VISITS : wishlist
   // The heat map shades your places by how many times you've been; one marked visited without dates counts once
   const heatShown = colorVisited === visited && settings.showVisitHeat
@@ -381,13 +402,15 @@ export default function App() {
       return [{ key: `city-${cityAnswer.city.id}`, from: cityAnswer.guess.position, to: cityAnswer.city, highlighted: true }]
     }
     if (showsGame(game) || (!yearShown && !settings.showFlights)) return []
-    return uniqueRoutes(yearShown ? yearShown.flights : routes).map((route) => ({
+    // In the time-lapse, the flights so far, that year's standing out
+    const picked = lapseStep ? lapseStep.newFlights : (shownRoutes ?? [])
+    return uniqueRoutes(lapseStep ? lapseStep.flights : yearShown ? yearShown.flights : routes).map((route) => ({
       key: route.flight.id,
       from: route.from,
       to: route.to,
-      highlighted: !!shownRoutes?.some((picked) => uniqueRoutes([route, picked]).length === 1),
+      highlighted: picked.some((p) => uniqueRoutes([route, p]).length === 1),
     }))
-  }, [cityAnswer, routes, yearShown, settings.showFlights, game, shownRoutes])
+  }, [cityAnswer, routes, lapseStep, yearShown, settings.showFlights, game, shownRoutes])
   useFlightLayer(globe, flightLines, { color: theme.flight, highlight: theme.selected })
   const cityAt = useCallback(
     (point: Point | null) => (globe && point && pinned.length > 0 ? (pinAt(globe, pinned, point)?.city ?? null) : null),
@@ -641,6 +664,16 @@ export default function App() {
                   years={years}
                   review={review}
                   noteOf={noteOf}
+                  lapse={{
+                    steps: timeline,
+                    shown: lapse,
+                    onPlay: playLapse,
+                    onPause: pauseLapse,
+                    onStop: () => {
+                      stopLapse()
+                      showYear(review)
+                    },
+                  }}
                   onYearChange={(year) => {
                     setPickedYear(year)
                     showYear(reviewOf(year, { visited, datesOf, routes }))

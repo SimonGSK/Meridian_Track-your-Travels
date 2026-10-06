@@ -4,7 +4,7 @@ import { formatDistance, type Route } from '../data/flights'
 import { MONTHS, visitDate, type VisitDate } from '../data/visitDates'
 import StatsBox from '../ui/StatsBox'
 import { Flag } from './VisitedPanel'
-import type { YearReview } from './yearInReview'
+import type { TimelineStep, YearReview } from './yearInReview'
 
 type Props = {
   /** The years with dated visits or flights, newest first */
@@ -16,6 +16,75 @@ type Props = {
   noteOf?: (name: string, date: VisitDate) => string | undefined
   onShow: (country: CountryFeature) => void
   onShowRoute: (route: Route) => void
+  /** The time-lapse of all the years: its steps, the one shown if it's on, and its controls */
+  lapse?: Lapse
+}
+
+type Lapse = {
+  steps: readonly TimelineStep[]
+  shown: { step: number; playing: boolean } | null
+  onPlay: () => void
+  onPause: () => void
+  onStop: () => void
+}
+
+/** Your travels year by year, as the globe fills in: the year, all so far, and what was new */
+function TimeLapse({ steps, shown, onPlay, onPause, onStop }: Lapse & { shown: NonNullable<Lapse['shown']> }) {
+  const step = steps[shown.step]
+  const atEnd = shown.step === steps.length - 1
+  return (
+    <div className="years lapse">
+      <p className="year-badge">Your travels, year by year</p>
+      <h3 className="year-heading lapse-year" aria-live="polite">
+        {step.year}
+      </h3>
+      <div
+        className="progress"
+        role="progressbar"
+        aria-label="Years played"
+        aria-valuemin={1}
+        aria-valuemax={steps.length}
+        aria-valuenow={shown.step + 1}
+      >
+        <div style={{ width: `${((shown.step + 1) / steps.length) * 100}%` }} />
+      </div>
+      <StatsBox
+        label={`By the end of ${step.year}`}
+        stats={[
+          { label: 'Countries', value: step.countryCount },
+          { label: 'Continents', value: step.continents },
+          { label: 'Flights', value: step.flights.length },
+        ]}
+      />
+      <h3>New in {step.year}</h3>
+      {step.newPlaces.length > 0 ? (
+        <ul className="country-list" aria-label={`New in ${step.year}`}>
+          {step.newPlaces.map((c) => (
+            <li key={c.properties.name} className="lapse-place">
+              <Flag country={c} />
+              <span className="row-name">{c.properties.name}</span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="muted">No new places, only {plural(step.newFlights.length, 'flight')}.</p>
+      )}
+      <div className="lapse-controls">
+        {shown.playing ? (
+          <button type="button" className="primary-button secondary" onClick={onPause}>
+            Pause
+          </button>
+        ) : (
+          <button type="button" className="primary-button" onClick={onPlay}>
+            {atEnd ? 'Replay' : 'Play on'}
+          </button>
+        )}
+        <button type="button" className="text-button" onClick={onStop}>
+          Back to the years
+        </button>
+      </div>
+    </div>
+  )
 }
 
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`
@@ -41,7 +110,8 @@ function summaryOf({ places, countryCount, firstVisits, continents, flights, km 
 }
 
 /** The Visited tab's years: a year's places month by month, and its flights; the globe shows just that year */
-export default function YearsPanel({ years, review, onYearChange, noteOf, onShow, onShowRoute }: Props) {
+export default function YearsPanel({ years, review, onYearChange, noteOf, onShow, onShowRoute, lapse }: Props) {
+  if (lapse?.shown) return <TimeLapse {...lapse} shown={lapse.shown} />
   if (!review) {
     return (
       <p className="muted">
@@ -83,6 +153,11 @@ export default function YearsPanel({ years, review, onYearChange, noteOf, onShow
           <span key={line}>{line}</span>
         ))}
       </p>
+      {lapse && lapse.steps.length > 1 && (
+        <button type="button" className="primary-button secondary lapse-play" onClick={lapse.onPlay}>
+          ▶ Replay your travels, {lapse.steps[0].year}–{lapse.steps.at(-1)!.year}
+        </button>
+      )}
 
       <StatsBox
         label={`Places in ${year}`}

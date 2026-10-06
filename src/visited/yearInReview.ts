@@ -106,3 +106,46 @@ export const spotsOf = ({ places, flights }: YearReview): Spot[] => [
   ...places.map(({ properties: { centroid, extent } }) => ({ lng: centroid[0], lat: centroid[1], radius: extent / 2 })),
   ...flights.flatMap(spotsOfRoute),
 ]
+
+/** A year of the time-lapse: all you'd been to by its end, and what was new that year */
+export type TimelineStep = {
+  year: number
+  /** Places first visited by the end of the year, by name */
+  names: ReadonlySet<string>
+  /** Of those, the countries */
+  countryCount: number
+  continents: number
+  /** Places first visited that year, by name */
+  newPlaces: CountryFeature[]
+  /** Flights dated by the end of the year, and those that year */
+  flights: Route[]
+  newFlights: Route[]
+}
+
+/**
+ * Your travels year by year, oldest first, for the time-lapse: each year
+ * with a dated visit or flight. A place joins in the year of its first
+ * dated visit; places and flights without dates aren't in it.
+ */
+export function timelineOf(travels: Travels): TimelineStep[] {
+  const firsts = datedPlaces(travels).map(({ country, dates }) => ({ country, year: Math.min(...dates.map(yearOf)) }))
+  const dated = travels.routes.filter(({ flight }) => flight.date)
+  return [...yearsOf(travels)].reverse().map((year) => {
+    const places = firsts.filter((p) => p.year <= year).map((p) => p.country)
+    return {
+      year,
+      names: new Set(places.map((c) => c.properties.name)),
+      countryCount: places.filter(isCountry).length,
+      continents: CONTINENTS.filter((continent) => places.some((c) => c.properties.continent === continent)).length,
+      newPlaces: firsts.filter((p) => p.year === year).map((p) => p.country).sort(byName),
+      flights: dated.filter(({ flight }) => yearOf(flight.date!) <= year),
+      newFlights: dated.filter(({ flight }) => yearOf(flight.date!) === year),
+    }
+  })
+}
+
+/** What to keep in view in a year of the time-lapse: its new places, and its flights */
+export const spotsOfStep = ({ newPlaces, newFlights }: TimelineStep): Spot[] => [
+  ...newPlaces.map(({ properties: { centroid, extent } }) => ({ lng: centroid[0], lat: centroid[1], radius: extent / 2 })),
+  ...newFlights.flatMap(spotsOfRoute),
+]

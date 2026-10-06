@@ -365,6 +365,25 @@ test.describe('wishlist', () => {
 })
 
 test.describe('year in review', () => {
+  test('the time-lapse plays the years in order on the globe', async ({ page }) => {
+    await page.addInitScript(() => {
+      if (localStorage.getItem('countries-app.visited')) return
+      localStorage.setItem('countries-app.visited', JSON.stringify(['France', 'Japan']))
+      localStorage.setItem('countries-app.visit-dates', JSON.stringify({ France: ['2019-07'], Japan: ['2024-04'] }))
+    })
+    const { errors } = await openGlobe(page)
+    await page.getByRole('button', { name: 'Visited', exact: true }).click()
+    await page.getByRole('tab', { name: 'Years' }).click()
+    await page.getByRole('button', { name: '▶ Replay your travels, 2019–2024' }).click()
+    await expect(page.getByRole('heading', { name: '2019', exact: true })).toBeVisible()
+    await expect(page.getByRole('list', { name: 'New in 2019' })).toContainText('France')
+    await expect(page.getByRole('heading', { name: '2024', exact: true })).toBeVisible({ timeout: 5_000 })
+    await expect(page.getByRole('list', { name: 'New in 2024' })).toContainText('Japan')
+    await page.getByRole('button', { name: 'Back to the years' }).click()
+    await expect(page.getByRole('list', { name: 'Month by month' })).toBeVisible()
+    expect(errors).toEqual([])
+  })
+
   test('a dated visit gets its year, with the country under its month', async ({ page }) => {
     await openGlobe(page)
     await page.getByRole('button', { name: 'Visited', exact: true }).click()
