@@ -220,7 +220,7 @@ input:focus-visible {
   background: var(--accent);
 }
 
-/* Cards and their headers: "(B) GAMES ··· 06" */
+/* Cards and their headers: "GAMES ··· 06" */
 
 .card {
   padding: 16px 18px;

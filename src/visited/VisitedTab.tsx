@@ -55,7 +55,7 @@ export default function VisitedTab(props: Props) {
   }, [view])
 
   return (
-    <Card letter="B" label="Visited atlas" meta={meta}>
+    <Card label="Visited atlas" meta={meta}>
       <div ref={tabs} className="segmented" role="tablist" aria-label="Show">
         {VIEWS.map(({ id, label }) => (
           <button

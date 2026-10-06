@@ -14,7 +14,7 @@ describe('CountryPanel', () => {
   it('shows the name, its ISO code, whether it is a country or a territory, and where', () => {
     show('Denmark')
     expect(screen.getByRole('heading', { name: 'Denmark' })).toBeInTheDocument()
-    expect(screen.getByText('(A) Selected country')).toBeInTheDocument()
+    expect(screen.getByText('Selected country')).toBeInTheDocument()
     expect(screen.getByText('ISO 208')).toBeInTheDocument()
     expect(screen.getByText('Europe')).toBeInTheDocument()
   })
@@ -48,7 +48,7 @@ describe('CountryPanel', () => {
 
   it('marks estimates and territories, and notes places without people', () => {
     show('Antarctica')
-    expect(screen.getByText('(A) Selected territory')).toBeInTheDocument()
+    expect(screen.getByText('Selected territory')).toBeInTheDocument()
     expect(fact('Capital')).toHaveTextContent('None')
     expect(fact('Inhabitants')).toHaveTextContent('None')
     expect(screen.getByText(/No permanent population/)).toBeInTheDocument()

@@ -63,7 +63,7 @@ export default function BackupCard({ onRestored = () => window.location.reload()
   }
 
   return (
-    <Card letter="B" label="Backup" className="backup">
+    <Card label="Backup" className="backup">
       <p className="muted">
         Your places, flights and records are saved in this browser only. Download a backup to keep them safe, or to
         move them to another browser.
