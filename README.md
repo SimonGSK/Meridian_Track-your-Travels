@@ -79,6 +79,8 @@ The globe can be your Mac's screensaver, spinning with your places on it. With `
 
 The screensaver doesn't update by itself. After changing your places or design, copy the address again and paste it in Options; after changing the app, run `npm run build:screensaver` again.
 
+"Preview", next to the address in Settings, shows the screensaver right there in the app, to have a look: everything but the spinning globe steps aside, and the globe turns to the screensaver's view. An "Exit preview" button shows in the corner as it opens, and again when you move the mouse (with the pointer) or tap the screen on a phone; it and Escape bring everything back, with Settings still open. The real screensaver has neither.
+
 ## Backup
 
 Visited places, when you went and your notes, states, cities and flights, the wishlist, a friend you compare with, best scores and times, daily challenges, the design and the settings are saved in your browser (`localStorage`). Nothing is sent anywhere, so clearing the browser's site data, or moving to another browser or computer, would leave them behind. In the Settings tab, **Download backup** saves all of it to a file (`meridian-backup-2026-10-04.json`, readable JSON), and shows when you last did. **Restore from a backup…** reads one, says what it holds and when it was made, and only replaces what's in this browser when you confirm. Every part of the file is checked the way the app checks it when loading, so a damaged or foreign file is refused as a whole rather than half restored.
