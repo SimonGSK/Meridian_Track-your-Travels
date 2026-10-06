@@ -290,6 +290,43 @@ test.describe('screensaver', () => {
   })
 })
 
+test.describe('screensaver preview on a phone', { tag: '@touch' }, () => {
+  test('shows its way out on a tap, and the button goes back to Settings', async ({ page }) => {
+    await openGlobe(page)
+    await page.getByRole('button', { name: 'Settings' }).tap()
+    await page.getByRole('button', { name: 'Preview' }).tap()
+    await expect(page.getByRole('navigation', { name: 'Main' })).toBeHidden()
+    const exit = page.getByRole('button', { name: 'Exit preview' }) // no Esc on a phone
+    await expect(exit).toHaveCSS('opacity', '0', { timeout: 10_000 })
+    await page.touchscreen.tap(180, 400)
+    await expect(exit).toHaveCSS('opacity', '1')
+    await exit.tap()
+    await expect(page.getByRole('region', { name: 'Screensaver' })).toBeVisible()
+  })
+})
+
+test.describe('screensaver preview', () => {
+  test('opened from Settings, shows just the globe with a way out, and Escape goes back', async ({ page }) => {
+    const { errors } = await openGlobe(page)
+    await page.getByRole('button', { name: 'Settings', exact: true }).click()
+    await page.getByRole('button', { name: 'Preview' }).click()
+    await expect(page.getByRole('navigation', { name: 'Main' })).toBeHidden()
+    const exit = page.getByRole('button', { name: /^Exit preview/ })
+    // Shown as it opens, then gone until the mouse moves
+    await expect(exit).toHaveCSS('opacity', '1')
+    await expect(exit).toHaveCSS('opacity', '0', { timeout: 10_000 })
+    await page.mouse.move(200, 200)
+    await page.mouse.move(260, 240)
+    await expect(exit).toHaveCSS('opacity', '1')
+    // The app's own Escape handler runs first; the preview's must still get the key, which only a real browser shows
+    await page.keyboard.press('Escape')
+    await expect(page.getByRole('region', { name: 'Screensaver' })).toBeVisible()
+    await expect(page.getByRole('navigation', { name: 'Main' })).toBeVisible()
+    expect(page.isClosed()).toBe(false)
+    expect(errors).toEqual([])
+  })
+})
+
 test.describe('explore', () => {
   test('layers switch off, and stay off after reloading', async ({ page }) => {
     await openGlobe(page)

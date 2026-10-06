@@ -27,7 +27,9 @@ function setup(allowed = true) {
   }) as FakeControls
   const canvas = document.createElement('canvas')
   const globe = { controls: () => controls, renderer: () => ({ domElement: canvas }) } as unknown as GlobeMethods
-  const hook = renderHook(({ allowed }) => useSmoothAutoRotate(globe, allowed), { initialProps: { allowed } })
+  const hook = renderHook(({ allowed, always }) => useSmoothAutoRotate(globe, allowed, always), {
+    initialProps: { allowed, always: false },
+  })
   const movePointer = () => act(() => canvas.dispatchEvent(new Event('pointermove')))
   return { controls, movePointer, ...hook }
 }
@@ -55,17 +57,28 @@ describe('useSmoothAutoRotate', () => {
     const { controls, rerender } = setup()
     advance(5000)
 
-    rerender({ allowed: false })
+    rerender({ allowed: false, always: false })
     expect(controls.autoRotateSpeed).toBe(0)
     expect(controls.autoRotate).toBe(false)
     advance(5000)
     expect(controls.autoRotateSpeed).toBe(0)
 
     // And eases back in when allowed again
-    rerender({ allowed: true })
+    rerender({ allowed: true, always: false })
     advance(100)
     expect(controls.autoRotateSpeed).toBeGreaterThan(0)
     expect(controls.autoRotateSpeed).toBeLessThan(SPIN_SPEED)
+  })
+
+  it('spins at once when asked to always, without waiting to be left alone: the screensaver\'s preview', () => {
+    const { controls, movePointer, rerender } = setup()
+    advance(5000)
+    movePointer()
+    advance(5000)
+    expect(controls.autoRotateSpeed).toBe(0)
+    rerender({ allowed: true, always: true })
+    advance(5000)
+    expect(controls.autoRotateSpeed).toBe(SPIN_SPEED)
   })
 
   it('stops when the pointer moves over the globe, and resumes 30 s after it last moved', () => {

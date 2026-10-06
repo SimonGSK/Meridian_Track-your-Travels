@@ -388,9 +388,46 @@ describe('App', () => {
     })
   })
 
+  describe("the screensaver's preview", () => {
+    const openPreview = async () => {
+      await userEvent.click(screen.getByRole('button', { name: 'Settings' }))
+      await userEvent.click(screen.getByRole('button', { name: 'Preview' }))
+    }
+
+    it('shows just the globe, from the screensaver\'s view, with a way out shown as it opens', async () => {
+      render(<App />)
+      await openPreview()
+      expect(screen.queryByRole('navigation')).not.toBeInTheDocument()
+      expect(sidePanel()).not.toBeInTheDocument()
+      expect(screen.getByTestId('globe').parentElement).toHaveClass('screensaver')
+      expect(globe.pointOfView).toHaveBeenLastCalledWith(SCREENSAVER_VIEW, 1000)
+      expect(pinLayer.setFade).toHaveBeenLastCalledWith(SCREENSAVER_PIN_FADE)
+      expect(screen.getByRole('button', { name: /^Exit preview/ })).toHaveClass('shown')
+    })
+
+    it('goes back to Settings, as it was, with the button or Escape, and closes nothing', async () => {
+      const close = vi.spyOn(window, 'close')
+      render(<App />)
+      await openPreview()
+      await userEvent.click(screen.getByRole('button', { name: /^Exit preview/ }))
+      expect(sidePanel()).toHaveAccessibleName('Settings')
+      expect(screen.getByRole('region', { name: 'Screensaver' })).toBeInTheDocument()
+
+      await userEvent.click(screen.getByRole('button', { name: 'Preview' }))
+      fireEvent.keyDown(window, { key: 'Escape' })
+      expect(sidePanel()).toHaveAccessibleName('Settings') // Escape left the preview, not the panel
+      expect(close).not.toHaveBeenCalled()
+    })
+  })
+
   describe('as a screensaver', () => {
     beforeEach(() => window.history.replaceState(null, '', '/?screensaver'))
     afterEach(() => window.history.replaceState(null, '', '/'))
+
+    it('has no way out, as a real screensaver', () => {
+      render(<App />)
+      expect(screen.queryByRole('button', { name: /Exit preview/ })).not.toBeInTheDocument()
+    })
 
     it('looks at a balanced view, just north of the equator, so the far south shows too', () => {
       render(<App />)
@@ -1107,7 +1144,7 @@ describe('App', () => {
 
       // 2024 comes after a moment: Japan new, France from before
       await waitFor(() => expect(screen.getByRole('heading', { name: '2024' })).toBeInTheDocument(), { timeout: 4_000 })
-      expect(painted()).toEqual({ France: DEFAULT_THEME.visited, Japan: DEFAULT_THEME.correct })
+      await waitFor(() => expect(painted()).toEqual({ France: DEFAULT_THEME.visited, Japan: DEFAULT_THEME.correct }))
       expect(drawn()).toEqual(['CPH-NRT', 'CPH-CDG'])
       expect(lit()).toEqual(['CPH-NRT'])
       expect(screen.getByRole('button', { name: 'Replay' })).toBeInTheDocument()
