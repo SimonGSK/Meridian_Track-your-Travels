@@ -191,7 +191,7 @@ export function stopGlide(globe: GlobeMethods) {
  * zooming) stops it; it resumes once the globe has been left alone for
  * IDLE_DELAY_MS. It spins right away when the page opens.
  */
-export function useSmoothAutoRotate(globe: GlobeMethods | null, allowed: boolean) {
+export function useSmoothAutoRotate(globe: GlobeMethods | null, allowed: boolean, always = false) {
   const [idle, setIdle] = useState(true)
 
   useEffect(() => {
@@ -231,7 +231,8 @@ export function useSmoothAutoRotate(globe: GlobeMethods | null, allowed: boolean
     }
   }, [globe])
 
-  const targetSpeed = allowed && idle ? SPIN_SPEED : 0
+  // `always`: spin now, not after being left alone a while (the screensaver's preview)
+  const targetSpeed = allowed && (idle || always) ? SPIN_SPEED : 0
 
   useEffect(() => {
     const controls = globe?.controls()

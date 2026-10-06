@@ -3,7 +3,8 @@ import { SCREENSAVER_FILE, packPlaces, screensaverAddress } from '../screensaver
 import Card from '../ui/Card'
 
 /** How to make the globe your Mac's screensaver, and its address with your places in it */
-export default function ScreensaverCard() {
+/** `onPreview` shows it in the app, to have a look */
+export default function ScreensaverCard({ onPreview }: { onPreview: () => void }) {
   const [copied, setCopied] = useState(false)
   // Read when shown, so it has the places added since
   const places = packPlaces()
@@ -41,9 +42,9 @@ export default function ScreensaverCard() {
         <button type="button" className="primary-button" onClick={copy}>
           {copied ? 'Copied' : 'Copy address'}
         </button>
-        <a className="link-button" href={`?screensaver#places=${places}`} target="_blank" rel="noreferrer">
+        <button type="button" className="link-button" onClick={onPreview}>
           Preview
-        </a>
+        </button>
       </div>
       <p className="muted small">
         It doesn't update by itself. The address carries your places and design: after changing them, copy it again

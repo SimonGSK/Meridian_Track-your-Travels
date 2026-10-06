@@ -36,6 +36,7 @@ import SidePanel from './nav/SidePanel'
 import Card from './ui/Card'
 import { isScreensaver } from './screensaver'
 import ScreensaverCard from './design/ScreensaverCard'
+import PreviewExit from './design/PreviewExit'
 import BackupCard from './settings/BackupCard'
 import AppCard from './settings/AppCard'
 import VisitedPanel from './visited/VisitedPanel'
@@ -119,6 +120,8 @@ export default function App({ compareOnOpen = false }: { compareOnOpen?: boolean
   const [hovered, setHovered] = useState<CountryFeature | null>(null)
   const [selected, setSelected] = useState<CountryFeature | null>(null)
   const [screensaver] = useState(() => isScreensaver())
+  /** The screensaver shown in the app, from Settings, to have a look: only the globe, until left */
+  const [previewing, setPreviewing] = useState(false)
   // Big screens start with Explore open; phones with just the globe
   const [view, setView] = useState<ViewId | null>(() => (compareOnOpen ? 'visited' : isPhone() ? null : 'explore'))
   /** The game whose setup is open in the Games tab */
@@ -304,7 +307,8 @@ export default function App({ compareOnOpen = false }: { compareOnOpen?: boolean
         ? NO_VISITS
         : visited
   // Comparing with a friend: where you've both been, and where only they have, over your places
-  const compareShown = !!comparison && friendShown && colorVisited === visited
+  // Not in the screensaver's preview: the real one doesn't know your friend
+  const compareShown = !!comparison && friendShown && colorVisited === visited && !previewing
   const marked = useMemo(
     () =>
       compareShown && comparison
@@ -412,7 +416,7 @@ export default function App({ compareOnOpen = false }: { compareOnOpen?: boolean
           .map((city) => ({ city, lat: city.lat, lng: city.lng, raised: !editing && countryOfCity(city) === selected }))
       : []
   }, [cityAnswer, cities, settings.showCities, game, yearShown, visitedCities, editing, selected])
-  usePinLayer(globe, pinned, cityAnswer ? theme.correct : theme.pin, screensaver ? SCREENSAVER_PIN_FADE : PIN_FADE)
+  usePinLayer(globe, pinned, cityAnswer ? theme.correct : theme.pin, screensaver || previewing ? SCREENSAVER_PIN_FADE : PIN_FADE)
   // Night as it is now, lit by the cities; not in games, where it would hide what to find
   useNightLayer(globe, settings.showDayNight && !showsGame(game), (settings.showCityLights && cities) || NO_LIGHTS)
 
@@ -445,7 +449,8 @@ export default function App({ compareOnOpen = false }: { compareOnOpen?: boolean
   )
   useDepthPrecision(globe)
   // Not while a year is shown either: it turned to that year's places
-  useSmoothAutoRotate(globe, !selected && !playing && !shownRoutes && !yearShown)
+  // The preview spins at once, as the real screensaver does
+  useSmoothAutoRotate(globe, !selected && !playing && !shownRoutes && !yearShown, previewing)
 
   const onGlobeClick = useCallback(
     (country: CountryFeature | null, position: LatLng | null, point: Point) => {
@@ -557,7 +562,8 @@ export default function App({ compareOnOpen = false }: { compareOnOpen?: boolean
   // Escape closes the country panel first, then the side panel
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape') return
+      // The preview's own Escape leaves it, back to the panels as they were
+      if (e.key !== 'Escape' || previewing) return
       if (selected) selectCountry(null)
       else if (shownRoutes) setShownRoutes(null)
       else {
@@ -567,7 +573,17 @@ export default function App({ compareOnOpen = false }: { compareOnOpen?: boolean
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [selected, shownRoutes, selectCountry, quitGame])
+  }, [selected, shownRoutes, selectCountry, quitGame, previewing])
+
+  /** The screensaver's preview, from Settings: nothing picked, from the screensaver's view */
+  const startPreview = () => {
+    selectCountry(null)
+    setShownRoutes(null)
+    setPreviewing(true)
+    globe?.pointOfView(SCREENSAVER_VIEW, 1000)
+  }
+  // The same function each time, so the preview's Escape listener isn't replaced mid key press
+  const leavePreview = useCallback(() => setPreviewing(false), [])
 
 
   const globeView = (
@@ -602,7 +618,8 @@ export default function App({ compareOnOpen = false }: { compareOnOpen?: boolean
 
   return (
     <div
-      className={`app${view ? ' panel-open' : ''}${selected ? ' country-open' : ''}`}
+      // Previewing the screensaver: just the globe, as the screensaver shows it
+      className={previewing ? 'app screensaver' : `app${view ? ' panel-open' : ''}${selected ? ' country-open' : ''}`}
       // The page behind the globe, with a glow drawn in CSS
       style={{ '--scene': theme.background } as CSSProperties}
     >
@@ -610,11 +627,16 @@ export default function App({ compareOnOpen = false }: { compareOnOpen?: boolean
         className="globe"
         data-testid="globe"
         aria-busy={!globe}
-        style={{ cursor: hoverable ? 'pointer' : findingCity ? 'crosshair' : 'grab' }}
-        {...pointerHandlers}
+        style={previewing ? undefined : { cursor: hoverable ? 'pointer' : findingCity ? 'crosshair' : 'grab' }}
+        {...(previewing ? {} : pointerHandlers)}
       >
         {globeView}
       </div>
+
+      {previewing ? (
+        <PreviewExit onExit={leavePreview} />
+      ) : (
+        <>
 
       <TopBar
         tabs={<Tabs view={view} onChange={changeView} />}
@@ -746,7 +768,7 @@ export default function App({ compareOnOpen = false }: { compareOnOpen?: boolean
             <>
               <BackupCard />
               <AppCard />
-              <ScreensaverCard />
+              <ScreensaverCard onPreview={startPreview} />
             </>
           )}
           {view === 'games' && (
@@ -852,6 +874,8 @@ export default function App({ compareOnOpen = false }: { compareOnOpen?: boolean
               : undefined
           }
         />
+      )}
+        </>
       )}
     </div>
   )

@@ -683,6 +683,50 @@ input[type='checkbox'] {
   color: var(--wish);
 }
 
+/* The screensaver's preview: the way out, while the mouse moves */
+.preview-exit {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 14px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: var(--panel-strong);
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s;
+}
+
+.preview-exit.shown,
+.preview-exit:focus-visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.preview-exit kbd {
+  padding: 1px 6px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+/* Touch screens have no Escape key to press */
+@media (hover: none) {
+  .preview-exit kbd {
+    display: none;
+  }
+}
+
 /* The column on the right */
 
 .side-panel {
@@ -876,6 +920,11 @@ input[type='checkbox'] {
 /* The screensaver: just the globe */
 .screensaver {
   cursor: none;
+}
+
+/* Its preview shows the pointer with the way out, so it can be clicked */
+.screensaver:has(.preview-exit.shown) {
+  cursor: auto;
 }
 
 .screensaver .globe {
