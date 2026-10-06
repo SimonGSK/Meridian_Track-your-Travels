@@ -160,7 +160,7 @@ src/
   storage.ts           state saved in the browser
   screensaver.ts       the screensaver mode, and carrying your places in its address
   demo.ts              sample data for `npm run dev:demo`
-  ui/                  the cards with "(B) GAMES ··· 06" headers, and the boxes of figures
+  ui/                  the cards with "GAMES ··· 06" headers, and the boxes of figures
   nav/                 the top bar, tabs, the column of cards on the right
   explore/             the Explore tools: atlas search, design and layers; settings
   visited/             visited countries, states and cities; the wishlist; flights, and the airport search;

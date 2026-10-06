@@ -90,7 +90,7 @@ export default function ExplorePanel({ compact = true, ...props }: Props) {
 
 function LayersCard({ settings, onChange, theme, onThemeChange }: Props) {
   return (
-    <Card letter="B" label="Design & layers" meta={theme.name.toUpperCase()}>
+    <Card label="Design & layers" meta={theme.name.toUpperCase()}>
       <div className="swatches" role="group" aria-label="Design">
         {THEMES.map((t) => (
           <button

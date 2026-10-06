@@ -22,7 +22,7 @@ type Props = {
   visits?: ComponentProps<typeof VisitsCard>
 }
 
-/** The selected country, on the left: "(A) SELECTED COUNTRY", its facts, cities and states. */
+/** The selected country, on the left: "SELECTED COUNTRY", its facts, cities and states. */
 export default function CountryPanel(props: Props) {
   const { country, visited, onToggleVisited, wished = false, onToggleWish, onClose, regions, cities, visits } = props
   const { name, kind, continent, areaKm2: mapArea, isoCode, isoAlpha2 } = country.properties
@@ -33,7 +33,7 @@ export default function CountryPanel(props: Props) {
   return (
     <aside className="panel country-panel" aria-labelledby="country-panel-title">
       <header className="card-header">
-        <span className="card-label">(A) Selected {kind === 'country' ? 'country' : 'territory'}</span>
+        <span className="card-label">Selected {kind === 'country' ? 'country' : 'territory'}</span>
         {code && <span className="card-meta">ISO {code}</span>}
         <button type="button" className="close-button" onClick={onClose} aria-label="Close">
           <CloseIcon />

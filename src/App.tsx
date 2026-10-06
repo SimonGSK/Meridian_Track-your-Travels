@@ -700,10 +700,10 @@ export default function App() {
           )}
           {view === 'design' && (
             <>
-              <Card letter="B" label="Design" meta={theme.name.toUpperCase()}>
+              <Card label="Design" meta={theme.name.toUpperCase()}>
                 <DesignPanel theme={theme} onChange={setTheme} />
               </Card>
-              <Card letter="C" label="Layers">
+              <Card label="Layers">
                 <LayerList settings={settings} onChange={changeSettings} />
               </Card>
             </>
@@ -716,7 +716,7 @@ export default function App() {
             </>
           )}
           {view === 'games' && (
-            <Card letter="B" label="Games" meta={String(GAMES.length).padStart(2, '0')}>
+            <Card label="Games" meta={String(GAMES.length).padStart(2, '0')}>
               <GamesPanel
                 game={game}
                 best={best}

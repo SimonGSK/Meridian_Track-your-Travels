@@ -19,7 +19,7 @@ export default function ScreensaverCard() {
   }
 
   return (
-    <Card letter="D" label="Screensaver" meta="MAC">
+    <Card label="Screensaver" meta="MAC">
       <p className="muted">Your Mac can show the spinning globe, with your places on it, as its screensaver.</p>
       <ol className="steps">
         <li>

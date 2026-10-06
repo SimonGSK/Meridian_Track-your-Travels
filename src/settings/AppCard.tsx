@@ -6,7 +6,7 @@ import Card from '../ui/Card'
 export default function AppCard() {
   const { canInstall, installed, install } = useInstall()
   return (
-    <Card letter="C" label="App" meta="OFFLINE">
+    <Card label="App" meta="OFFLINE">
       <p className="muted">
         Install Meridian as an app: it opens in its own window, from your home screen or dock. Once opened, it works
         without internet too: the globe, your places and the games.
