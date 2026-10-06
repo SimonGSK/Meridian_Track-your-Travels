@@ -1047,6 +1047,42 @@ describe('App', () => {
       expect(lastView().lng).toBeLessThan(15)
     })
 
+    it('replays the years on the globe: all so far, the new places in green, and that year\'s flights standing out', async () => {
+      const lit = () =>
+        ((flightLayer.show.mock.calls.at(-1)?.[0] ?? []) as { from: { code: string }; to: { code: string }; highlighted: boolean }[])
+          .filter((line) => line.highlighted)
+          .map((line) => `${line.from.code}-${line.to.code}`)
+      render(<App />)
+      await openYears()
+      await userEvent.click(screen.getByRole('button', { name: /^▶ Replay your travels, 2019–2024/ }))
+      // 2019: France, new, and the flight to Paris
+      expect(screen.getByRole('heading', { name: '2019' })).toBeInTheDocument()
+      expect(painted()).toEqual({ France: DEFAULT_THEME.correct })
+      expect(drawn()).toEqual(['CPH-CDG'])
+      expect(lit()).toEqual(['CPH-CDG'])
+
+      // 2024 comes after a moment: Japan new, France from before
+      await waitFor(() => expect(screen.getByRole('heading', { name: '2024' })).toBeInTheDocument(), { timeout: 4_000 })
+      expect(painted()).toEqual({ France: DEFAULT_THEME.visited, Japan: DEFAULT_THEME.correct })
+      expect(drawn()).toEqual(['CPH-NRT', 'CPH-CDG'])
+      expect(lit()).toEqual(['CPH-NRT'])
+      expect(screen.getByRole('button', { name: 'Replay' })).toBeInTheDocument()
+
+      // Back to the years: the year picked, as before
+      await userEvent.click(screen.getByRole('button', { name: 'Back to the years' }))
+      expect(screen.getByRole('list', { name: 'Month by month' })).toBeInTheDocument()
+      expect(painted()).toEqual({ Japan: DEFAULT_THEME.visited })
+    }, 10_000)
+
+    it('ends the time-lapse on leaving the years', async () => {
+      render(<App />)
+      await openYears()
+      await userEvent.click(screen.getByRole('button', { name: /^▶ Replay your travels/ }))
+      await userEvent.click(screen.getByRole('tab', { name: 'Countries' }))
+      await userEvent.click(screen.getByRole('tab', { name: 'Years' }))
+      expect(screen.getByRole('list', { name: 'Month by month' })).toBeInTheDocument()
+    })
+
     it('keeps the year picked when the tab is opened again, and shows everything with the panel closed', async () => {
       render(<App />)
       await openYears()
