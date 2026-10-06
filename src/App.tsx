@@ -44,10 +44,13 @@ import { useVisitedRegions } from './visited/useVisitedRegions'
 import { useVisitedCities } from './visited/useVisitedCities'
 import { useVisitDates } from './visited/useVisitDates'
 import { useWishlist } from './visited/useWishlist'
+import { useFriend } from './visited/useFriend'
+import { comparisonOf } from './visited/friend'
+import CompareCard from './visited/CompareCard'
 import { ACHIEVEMENTS, earnedIds, type Atlas } from './visited/achievements'
 import AchievementsPanel from './visited/AchievementsPanel'
 import AchievementToast from './visited/AchievementToast'
-import HeatLegend from './visited/HeatLegend'
+import GlobeKey from './ui/GlobeKey'
 import { useNewAchievements } from './visited/useNewAchievements'
 import { describeVisits } from './data/visitDates'
 import { useFlights } from './visited/useFlights'
@@ -109,18 +112,23 @@ function useWindowSize() {
   return size
 }
 
-export default function App() {
+/** `compareOnOpen`: a friend's link was opened, so show the comparison */
+export default function App({ compareOnOpen = false }: { compareOnOpen?: boolean } = {}) {
   const globeRef = useRef<GlobeMethods | undefined>(undefined)
   const [globe, setGlobe] = useState<GlobeMethods | null>(null)
   const [hovered, setHovered] = useState<CountryFeature | null>(null)
   const [selected, setSelected] = useState<CountryFeature | null>(null)
   const [screensaver] = useState(() => isScreensaver())
   // Big screens start with Explore open; phones with just the globe
-  const [view, setView] = useState<ViewId | null>(() => (isPhone() ? null : 'explore'))
+  const [view, setView] = useState<ViewId | null>(() => (compareOnOpen ? 'visited' : isPhone() ? null : 'explore'))
   /** The game whose setup is open in the Games tab */
   const [chosenGame, setChosenGame] = useState<GameId | null>(null)
   const { visited, add: addVisited, remove: removeVisited, toggle: toggleVisited } = useVisited()
   const { wishlist: wished, add: addWish, remove: removeWish, toggle: toggleWish } = useWishlist()
+  // A friend to compare with, shown on the globe until switched off (at once, when their link was opened)
+  const [friend, setFriend] = useFriend()
+  const [friendShown, setFriendShown] = useState(compareOnOpen)
+  const comparison = useMemo(() => (friend ? comparisonOf(visited, friend) : null), [friend, visited])
   // Going somewhere takes it off the wishlist; a place still on it from before (a backup) isn't shown there
   const wishlist = useMemo(() => new Set([...wished].filter((name) => !visited.has(name))), [wished, visited])
   const addPlace = useCallback(
@@ -295,9 +303,21 @@ export default function App() {
       : showsGame(game) || !settings.showVisited
         ? NO_VISITS
         : visited
-  const colorWishlist = yearShown || showsGame(game) || !settings.showWishlist ? NO_VISITS : wishlist
+  // Comparing with a friend: where you've both been, and where only they have, over your places
+  const compareShown = !!comparison && friendShown && colorVisited === visited
+  const marked = useMemo(
+    () =>
+      compareShown && comparison
+        ? new Map([
+            ...comparison.both.map((c) => [c.properties.name, theme.correct] as const),
+            ...comparison.onlyFriend.map((c) => [c.properties.name, theme.wishlist] as const),
+          ])
+        : undefined,
+    [compareShown, comparison, theme],
+  )
+  const colorWishlist = yearShown || compareShown || showsGame(game) || !settings.showWishlist ? NO_VISITS : wishlist
   // The heat map shades your places by how many times you've been; one marked visited without dates counts once
-  const heatShown = colorVisited === visited && settings.showVisitHeat
+  const heatShown = colorVisited === visited && settings.showVisitHeat && !compareShown
   const visitsTo = useCallback((name: string) => Math.max(1, datesOf(name).length), [datesOf])
   const colorOf = useCallback(
     (country: CountryFeature) =>
@@ -307,9 +327,10 @@ export default function App() {
         visited: colorVisited,
         wishlist: colorWishlist,
         visits: heatShown ? visitsTo : undefined,
+        marked,
         highlights,
       }),
-    [theme, colorHovered, colorVisited, colorWishlist, heatShown, visitsTo, highlights],
+    [theme, colorHovered, colorVisited, colorWishlist, heatShown, visitsTo, marked, highlights],
   )
   // Game answers on tiny islands get a dot, or they'd be invisible
   const gameColors = useMemo(() => gameHighlights(game, theme), [game, theme])
@@ -698,6 +719,19 @@ export default function App() {
               }
             />
           )}
+          {view === 'visited' && (
+            <CompareCard
+              visited={visited}
+              friend={friend}
+              comparison={comparison}
+              onFriend={setFriend}
+              shown={friendShown}
+              onShownChange={setFriendShown}
+              wishlist={wishlist}
+              onWish={addWish}
+              onShow={showCountry}
+            />
+          )}
           {view === 'design' && (
             <>
               <Card label="Design" meta={theme.name.toUpperCase()}>
@@ -750,7 +784,22 @@ export default function App() {
         text={playing ? null : (hoveredCity?.name ?? hoveredRegion?.properties.name ?? hovered?.properties.name ?? null)}
       />
       <FlagCorner country={playing ? null : hovered} />
-      {heatShown && <HeatLegend colors={heatColors(theme)} />}
+      {compareShown && friend && (
+        <GlobeKey
+          title="Compare"
+          items={[
+            { label: 'You', color: theme.visited },
+            { label: 'Both', color: theme.correct },
+            { label: friend.name, color: theme.wishlist },
+          ]}
+        />
+      )}
+      {heatShown && (
+        <GlobeKey
+          title="Visits"
+          items={heatColors(theme).map((color, i, all) => ({ label: i === all.length - 1 ? `${i + 1}+` : String(i + 1), color }))}
+        />
+      )}
       <AchievementToast
         achievements={newAchievements}
         onOpen={() => {

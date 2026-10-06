@@ -9,6 +9,7 @@ import { VISITED_CITIES_KEY, isCityIdList } from '../visited/useVisitedCities'
 import { VISITED_REGIONS_KEY, isRegionIdList } from '../visited/useVisitedRegions'
 import { VISIT_DATES_KEY, VISIT_NOTES_KEY, isVisitDates, isVisitNotes } from '../visited/useVisitDates'
 import { WISHLIST_KEY } from '../visited/useWishlist'
+import { FRIEND_KEY, isFriendOrNone } from '../visited/friend'
 
 /**
  * Everything is saved in this browser only, so a backup is a file with all
@@ -26,6 +27,7 @@ const SAVED: { key: string; isValid: (value: unknown) => boolean }[] = [
   { key: VISIT_NOTES_KEY, isValid: isVisitNotes },
   { key: FLIGHTS_KEY, isValid: isFlightList },
   { key: WISHLIST_KEY, isValid: isNameList },
+  { key: FRIEND_KEY, isValid: isFriendOrNone },
   { key: BEST_SCORES_KEY, isValid: isBestScores },
   { key: BEST_TIMES_KEY, isValid: isBestScores },
   { key: DAILY_KEY, isValid: isDailyResults },
