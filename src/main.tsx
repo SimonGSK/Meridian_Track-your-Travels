@@ -9,6 +9,7 @@ import App from './App.tsx'
 import { isScreensaver, unpackPlaces } from './screensaver'
 import { registerServiceWorker } from './pwa/register'
 import { listenForInstall } from './pwa/install'
+import { takeFriendFromAddress } from './visited/friend'
 
 // The sample data, with `npm run dev:demo` only: it's left out of the build
 if (import.meta.env.MODE === 'demo') {
@@ -19,12 +20,14 @@ if (import.meta.env.MODE === 'demo') {
 }
 // As a screensaver, show the places the address brings (it has its own storage)
 if (isScreensaver()) unpackPlaces(window.location.hash)
+// A friend's link opened: compare with them straight away
+const compareOnOpen = !isScreensaver() && takeFriendFromAddress()
 // Installable, and kept for offline use
 listenForInstall()
 registerServiceWorker()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
+    <App compareOnOpen={compareOnOpen} />
   </StrictMode>,
 )

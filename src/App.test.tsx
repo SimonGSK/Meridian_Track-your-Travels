@@ -571,6 +571,50 @@ describe('App', () => {
     })
   })
 
+  describe('comparing with a friend', () => {
+    const key = () => screen.queryByRole('figure', { name: 'Compare' })
+    beforeEach(() => {
+      localStorage.setItem('countries-app.visited', JSON.stringify(['Denmark', 'France']))
+      localStorage.setItem('countries-app.wishlist', JSON.stringify(['Brazil']))
+    })
+
+    it("colors where you've both been, and only your friend, from their link pasted in; switches off", async () => {
+      const { shareLink } = await import('./visited/friend')
+      render(<App />)
+      expect(painted()).toMatchObject({ Brazil: DEFAULT_THEME.wishlist })
+      await userEvent.click(screen.getByRole('button', { name: 'Visited' }))
+      await userEvent.type(
+        screen.getByRole('textbox', { name: "Your friend's link" }),
+        shareLink('Anna', ['Denmark', 'Japan'], 'https://m.test/'),
+      )
+      await userEvent.click(screen.getByRole('button', { name: 'Compare' }))
+      // Both: green; only Anna: her color; only you: yours. Your wishlist steps aside
+      expect(painted()).toEqual({ Denmark: DEFAULT_THEME.correct, Japan: DEFAULT_THEME.wishlist, France: DEFAULT_THEME.visited })
+      expect(key()).toBeInTheDocument()
+      expect(JSON.parse(localStorage.getItem('countries-app.friend')!)).toEqual({ name: 'Anna', places: ['Denmark', 'Japan'] })
+
+      await userEvent.click(screen.getByRole('switch', { name: 'Show Anna on the globe' }))
+      expect(painted()).toEqual({ Denmark: DEFAULT_THEME.visited, France: DEFAULT_THEME.visited, Brazil: DEFAULT_THEME.wishlist })
+      expect(key()).not.toBeInTheDocument()
+    })
+
+    it("opens on the comparison when a friend's link was opened", () => {
+      localStorage.setItem('countries-app.friend', JSON.stringify({ name: 'Anna', places: ['Japan'] }))
+      render(<App compareOnOpen />)
+      expect(sidePanel()).toHaveAccessibleName('Visited')
+      expect(screen.getByRole('region', { name: 'Compare with a friend' })).toHaveTextContent('ANNA')
+      expect(painted()).toMatchObject({ Japan: DEFAULT_THEME.wishlist, Denmark: DEFAULT_THEME.visited })
+      expect(key()).toBeInTheDocument()
+    })
+
+    it('keeps your friend after a reload, but off the globe until switched on', () => {
+      localStorage.setItem('countries-app.friend', JSON.stringify({ name: 'Anna', places: ['Japan'] }))
+      render(<App />)
+      expect(painted().Japan).toBeUndefined()
+      expect(key()).not.toBeInTheDocument()
+    })
+  })
+
   describe('wishlist', () => {
     const wishes = () => JSON.parse(localStorage.getItem('countries-app.wishlist') ?? '[]')
 

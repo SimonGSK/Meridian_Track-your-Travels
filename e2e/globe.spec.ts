@@ -347,6 +347,23 @@ test.describe('achievements', () => {
   })
 })
 
+test.describe('comparing with a friend', () => {
+  test("opening a friend's link shows how you compare, and keeps them", async ({ page }) => {
+    const code = Buffer.from(JSON.stringify({ v: 1, name: 'Anna', places: ['Japan', 'Peru'] })).toString('base64url')
+    await page.goto(`/#compare=${code}`)
+    await expect(page.getByTestId('globe')).toHaveAttribute('aria-busy', 'false')
+    const card = page.getByRole('region', { name: 'Compare with a friend' })
+    await expect(card).toContainText('ANNA')
+    await expect(page.getByRole('list', { name: 'Only Anna' })).toContainText('Japan')
+    await expect(page.getByRole('figure', { name: 'Compare' })).toBeVisible()
+    expect(page.url()).not.toContain('compare=') // the address is tidied
+    expect(await page.evaluate(() => JSON.parse(localStorage.getItem('countries-app.friend')!))).toEqual({
+      name: 'Anna',
+      places: ['Japan', 'Peru'],
+    })
+  })
+})
+
 test.describe('wishlist', () => {
   test('a starred country goes on the wishlist, and "Been there" moves it to the visited atlas', async ({ page }) => {
     await openGlobe(page)

@@ -1,3 +1,4 @@
+import { fromBase64Url, toBase64Url } from './base64url'
 import { THEME_STORAGE_KEY } from './design/useTheme'
 import { SETTINGS_KEY } from './explore/useSettings'
 import { FLIGHTS_KEY } from './visited/useFlights'
@@ -27,17 +28,6 @@ const KEYS = [
 ]
 
 export const isScreensaver = (search = window.location.search) => new URLSearchParams(search).has('screensaver')
-
-const toBase64Url = (text: string) =>
-  btoa(String.fromCharCode(...new TextEncoder().encode(text)))
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_')
-    .replace(/=+$/, '')
-
-const fromBase64Url = (data: string) =>
-  new TextDecoder().decode(
-    Uint8Array.from(atob(data.replace(/-/g, '+').replace(/_/g, '/')), (c) => c.charCodeAt(0)),
-  )
 
 /** Your saved places, design and layers, packed for an address */
 export function packPlaces(storage: Storage = localStorage) {

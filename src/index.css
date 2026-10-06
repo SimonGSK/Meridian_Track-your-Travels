@@ -475,7 +475,8 @@ input:focus-visible {
 .city-adder input,
 .regions-filter,
 .search input,
-.country-input input {
+.country-input input,
+.compare input {
   width: 100%;
   padding: 9px 12px;
   border: 1px solid var(--line);
@@ -1271,8 +1272,8 @@ code {
 
 /* Hints and labels over the globe */
 
-/* What the heat map's shades mean, in the corner */
-.heat-legend {
+/* What the colors on the globe mean, in the corner: the heat map, or a friend */
+.globe-key {
   position: fixed;
   left: var(--gutter);
   bottom: 22px;
@@ -1290,14 +1291,14 @@ code {
   pointer-events: none;
 }
 
-.heat-legend figcaption {
+.globe-key figcaption {
   color: var(--label);
   font-size: 11px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
 
-.heat-legend ol {
+.globe-key ol {
   display: flex;
   gap: 10px;
   margin: 0;
@@ -1305,18 +1306,18 @@ code {
   list-style: none;
 }
 
-.heat-legend li {
+.globe-key li {
   display: flex;
   align-items: center;
   gap: 5px;
 }
 
 /* The selected country's panel reaches down to that corner */
-.country-open .heat-legend {
+.country-open .globe-key {
   display: none;
 }
 
-.heat-swatch {
+.key-swatch {
   width: 12px;
   height: 12px;
   border-radius: 3px;
@@ -1498,7 +1499,8 @@ code {
 }
 
 .search label,
-.country-input label {
+.country-input label,
+.compare-paste label {
   display: block;
   margin-bottom: 6px;
   color: var(--text-muted);
@@ -2259,10 +2261,10 @@ code {
     display: none;
   }
   /* Above the tab bar, while no sheet covers it */
-  .heat-legend {
+  .globe-key {
     bottom: calc(var(--tab-bar-height) + 12px);
   }
-  .panel-open .heat-legend {
+  .panel-open .globe-key {
     display: none;
   }
   .panel-open .globe,
@@ -2396,6 +2398,44 @@ code {
 .year-note {
   margin: 18px 0 0;
   font-size: 13px;
+}
+
+/* Comparing with a friend */
+.compare-paste {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.compare-paste label,
+.compare-paste .input-hint {
+  grid-column: 1 / -1;
+  margin-bottom: 0;
+}
+
+.compare-paste .primary-button,
+.compare-share .primary-button {
+  padding: 8px 14px;
+}
+
+.compare-share {
+  display: flex;
+  gap: 8px;
+}
+
+.compare-share input {
+  flex: 1;
+  min-width: 0;
+}
+
+.compare-note {
+  margin: 6px 0 0;
+  font-size: 12px;
+}
+
+.compare .layer {
+  margin: 4px 0 6px;
 }
 
 /* The time-lapse */

@@ -38,6 +38,12 @@ describe('countryColor', () => {
     expect(countryColor(denmark, state({ visits: () => 3 }))).toBe(CLASSIC.land)
   })
 
+  it('colors by name over visited, under hover: comparing with a friend', () => {
+    const marked = new Map([['Denmark', '#123456']])
+    expect(countryColor(denmark, state({ visited: new Set(['Denmark']), marked }))).toBe('#123456')
+    expect(countryColor(denmark, state({ hovered: denmark, marked }))).toBe(CLASSIC.hover)
+  })
+
   it('lets hover override visited', () => {
     expect(countryColor(denmark, state({ hovered: denmark, visited: new Set(['Denmark']) }))).toBe(CLASSIC.hover)
   })
