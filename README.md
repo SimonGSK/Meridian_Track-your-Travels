@@ -34,6 +34,8 @@ The design (navy and amber, after a mock-up made in Lovable) has a top bar with 
 
   "▶ Replay your travels" plays the years as a time-lapse, from the first with a date to the last, about two seconds each. Each year the globe shows everywhere you'd been by its end: the places first visited that year in green, the others in the visited color, and that year's flights standing out among those before. It turns to each year's new places, and the panel shows the year, the countries, continents and flights so far, and what was new. Pause, play on, replay, or go back to the years; leaving the Years view ends it.
 
+  Below the Visited atlas, "Compare with a friend" puts your places and a friend's on one globe. Each of you copies your link ("Copy my link", with your name if you like) and sends it in any chat. The other pastes it into their card, or opens it, if you both use Meridian at the same address. Only your places go in the link (not your cities, flights or dates), packed into its `#compare=…` part, so nothing goes through a server. The globe then colors where you've both been green, where only you have been in your color, and where only your friend has been in theirs (the wishlist's color, as the wishlist steps aside meanwhile), with a key in the corner. The card shows "You 42 · Both 18 · Anna 24" and the places in each group, and a star puts a place only your friend has been on your wishlist. Your friend stays until you remove them, off the globe until switched on.
+
   Under Achievements, 58 to earn from where you've been, in eight groups: milestones (your first country, then 10 up to all 197), continents (every continent, all of one, Antarctica, all four hemispheres), regions (Scandinavia, the Nordics, the Baltics, Benelux, the Caribbean, the Gulf, the Stans, the G7 and more), islands, states (every US state and D.C., all of Canada, Australia or Brazil), cities and capitals, flights and distance flown (around the world, to the Moon, long haul), and return trips (one country 3 or 5 times). Each shows how far along you are ("3 of 5"), and a note pops up at the bottom when something you add earns one; click it to see them all. They're worked out from what you've saved, so a backup brings them back too.
 - **Games**:
   - *Daily challenge*: five countries, one of each quiz: find it on the globe, then its flag, its capital, its shape, and a country lit up on the globe (picked from four answers after the first). They're picked from the date, so everyone gets the same ones that day, and there's one go a day. The score is out of 7 (3, 2 or 1 for finding it, by try), shown as squares to share like Wordle's (🟩 right, 🟨/🟧 on a later try, 🟥 wrong), with "Copy result". It keeps your streak of days in a row, the longest, and how many you've played, and counts down to the next one.
@@ -71,7 +73,7 @@ The screensaver doesn't update by itself. After changing your places or design, 
 
 ## Backup
 
-Visited places, when you went and your notes, states, cities and flights, the wishlist, best scores and times, daily challenges, the design and the settings are saved in your browser (`localStorage`). Nothing is sent anywhere, so clearing the browser's site data, or moving to another browser or computer, would leave them behind. In the Settings tab, **Download backup** saves all of it to a file (`meridian-backup-2026-10-04.json`, readable JSON), and shows when you last did. **Restore from a backup…** reads one, says what it holds and when it was made, and only replaces what's in this browser when you confirm. Every part of the file is checked the way the app checks it when loading, so a damaged or foreign file is refused as a whole rather than half restored.
+Visited places, when you went and your notes, states, cities and flights, the wishlist, a friend you compare with, best scores and times, daily challenges, the design and the settings are saved in your browser (`localStorage`). Nothing is sent anywhere, so clearing the browser's site data, or moving to another browser or computer, would leave them behind. In the Settings tab, **Download backup** saves all of it to a file (`meridian-backup-2026-10-04.json`, readable JSON), and shows when you last did. **Restore from a backup…** reads one, says what it holds and when it was made, and only replaces what's in this browser when you confirm. Every part of the file is checked the way the app checks it when loading, so a damaged or foreign file is refused as a whole rather than half restored.
 
 Opening the app never writes over what's saved: something is saved only when you change it. So if the app finds data it can't read (saved by a newer version, or damaged), it leaves it as it is. If you then change that part, the new data is saved and the old is kept beside it, under the same name with `.unreadable` added.
 
@@ -128,8 +130,8 @@ npx playwright install chromium
 
 ## Tests
 
-- **Unit and component tests** (Vitest and Testing Library, in jsdom): the data, the game rules, the globe's layers against a real three.js camera, every panel, and the whole app with a stand-in for the WebGL globe. About 950 tests, covering over 99% of the lines.
-- **End-to-end tests** (Playwright): the real app with its WebGL globe in headless Chromium, on a desktop and a phone (touch, tab bar, sheets): hovering and clicking countries, visited places, states, cities and flights kept after reloading, the wishlist, the settings, a year in review, a backup downloaded and restored, the designs, every game, and the screensaver. In CI they run on the production build, with the service worker.
+- **Unit and component tests** (Vitest and Testing Library, in jsdom): the data, the game rules, the globe's layers against a real three.js camera, every panel, and the whole app with a stand-in for the WebGL globe. About 970 tests, covering over 99% of the lines.
+- **End-to-end tests** (Playwright): the real app with its WebGL globe in headless Chromium, on a desktop and a phone (touch, tab bar, sheets): hovering and clicking countries, visited places, states, cities and flights kept after reloading, the wishlist, a friend's link, the settings, a year in review, a backup downloaded and restored, the designs, every game, and the screensaver. In CI they run on the production build, with the service worker.
 
 `.github/workflows/tests.yml` runs all of it on GitHub for every pull request and every push to `main`: lint, the unit tests, the build (which type-checks), and the end-to-end tests.
 
@@ -163,7 +165,7 @@ src/
   ui/                  the cards with "GAMES ··· 06" headers, and the boxes of figures
   nav/                 the top bar, tabs, the column of cards on the right
   explore/             the Explore tools: atlas search, design and layers; settings
-  visited/             visited countries, states and cities; the wishlist; flights, and the airport search;
+  visited/             visited countries, states and cities; the wishlist; a friend to compare with; flights, and the airport search;
                        achievements (achievements.ts), their view and the note when one is earned;
                        each year's review (yearInReview.ts) and its view
   design/              design picker, and how to set up the screensaver
