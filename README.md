@@ -17,7 +17,7 @@ The design (navy and amber, after a mock-up made in Lovable) has a top bar with 
 
   The heat map, a switch under "Visited countries" in the layers, shades your places by how many times you've been instead of one color. The shades go from near the land color for one visit to the full visited color for four or more, with a key in the corner. A place marked visited without dates counts once. It gives way to a year shown in the Years view.
 
-  Every country's panel also has its visited cities, and a box to add more from its big and well-known cities (focus it to see the biggest). Each city you've visited gets a pin on the globe; point at a pin to see the city's name, or click it to open its country. Adding a city also marks its country, and its state, as visited.
+  Every country's panel also has its visited cities, and a box to add more from its big and well-known cities (focus it to see the biggest). Each city you've visited gets a pin on the globe; point at a pin to see the city's name, or click it to open its country. Adding a city also marks its country, and its state, as visited. The state comes with the city (from GeoNames), so a city on a coast or a border gets its own even where the map's simplified outline leaves it just outside (New York City's point is in the harbour).
 
   Under Flights, add the flights you've taken, between airports: every international airport, and the regional ones with airline service (3,244 in all). Search by city, airport name or code ("Copenhagen", "Heathrow", "CPH"); each result shows the airport's name and country. "From" then starts where the last flight landed, and ⇅ swaps them for the flight back. A flight can have a month and year too ("When"), kept for the next leg of the trip, or added later with "Add date" in the list. Each route is drawn on the globe as a thin arc, rising with the distance, with a little plane flying along it from where the flight left, turned the way it's going; a route flown both ways or more than once is drawn once. The figures are how many flights, how far as the plane flies, and how many times around the Earth that makes. Click a flight to see its route from above, highlighted, until you press Escape or click the globe. Adding a flight doesn't mark its cities as visited: changing planes isn't visiting. (The first flights were saved between cities; they move to the city's main airport by themselves.)
 
@@ -128,7 +128,7 @@ To see the app with someone's travels already in it, run `npm run dev:demo` and 
 | `npm run data:extra` | Regenerate `src/data/extra-countries.json` (places too small for the 1:50m map) |
 | `npm run data:regions` | Regenerate `src/data/regions.json` (states and provinces) |
 | `npm run data:facts` | Download capitals, population and area from the World Bank into `src/data/country-facts.json` |
-| `npm run data:cities` | Regenerate `src/data/cities.json` (each place's big and well-known cities) |
+| `npm run data:cities` | Regenerate `src/data/cities.json` (each place's big and well-known cities, with their states where the map has them) |
 | `npm run data:airports` | Download the airports with scheduled flights from OurAirports into `src/data/airports.json` |
 | `npm run data:icons` | Draw the app icons in `public/icons/` (192, 512, and 180 for iPhone) from `public/icon.svg` |
 
