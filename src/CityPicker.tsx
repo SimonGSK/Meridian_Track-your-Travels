@@ -3,6 +3,7 @@ import type { City } from './data/cities'
 import { normalizeName } from './data/names'
 import { CloseIcon } from './icons'
 import Card from './ui/Card'
+import { noAutofill } from './ui/noAutofill'
 
 type Props = {
   /** The country's cities, capital first then biggest, or null while they load */
@@ -70,12 +71,12 @@ function CityAdder({ cities, onAdd }: { cities: City[]; onAdd: (city: City) => v
   return (
     <div className="city-adder" onBlur={(e) => !e.currentTarget.contains(e.relatedTarget) && setOpen(false)}>
       <input
+        {...noAutofill('city')}
         type="search"
         aria-label="Add a city"
         aria-controls={listId}
         aria-expanded={open}
         placeholder={`Add a city (${cities.length} to pick from)…`}
-        autoComplete="off"
         value={query}
         onFocus={() => setOpen(true)}
         onChange={(e) => {

@@ -7,6 +7,7 @@ import { LayersIcon, SearchIcon } from '../icons'
 import Card from '../ui/Card'
 import LayerList from './LayerList'
 import type { Settings } from './useSettings'
+import { noAutofill } from '../ui/noAutofill'
 
 type Props = {
   settings: Settings
@@ -156,10 +157,10 @@ function AtlasSearch({
     >
       {!onClose && <SearchIcon />}
       <input
+        {...noAutofill('atlas')}
         type="search"
         aria-label="Search the atlas"
         placeholder="Search the atlas"
-        autoComplete="off"
         autoFocus={autoFocus}
         value={query}
         onChange={(e) => setQuery(e.target.value)}

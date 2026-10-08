@@ -1,6 +1,7 @@
 import { useId, useState } from 'react'
 import type { CountryFeature } from '../countries'
 import { countryOfCapital } from '../data/capitals'
+import { noAutofill } from '../ui/noAutofill'
 
 type Props = {
   /** The country whose capital was typed, and the capital as typed */
@@ -30,9 +31,9 @@ export default function CapitalInput({ onAnswer }: Props) {
     <div className="country-input">
       <label htmlFor={id}>Your answer</label>
       <input
+        {...noAutofill('capital')}
         id={id}
         type="text"
-        autoComplete="off"
         autoCorrect="off"
         autoCapitalize="words"
         spellCheck={false}

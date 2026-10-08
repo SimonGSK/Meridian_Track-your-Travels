@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { RegionFeature } from './data/regions'
 import { normalizeName } from './data/names'
 import { percentLabel } from './visited/percentLabel'
+import { noAutofill } from './ui/noAutofill'
 
 type Props = {
   /** The country's regions, or null while they load */
@@ -51,6 +52,7 @@ export default function RegionPicker({ regions, label, visited, onToggle }: Prop
           <p className="muted">Tick them here, or click them on the globe.</p>
           {regions.length > 12 && (
             <input
+              {...noAutofill('region')}
               type="search"
               className="regions-filter"
               aria-label={`Filter ${name}`}
