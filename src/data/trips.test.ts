@@ -68,6 +68,24 @@ describe('tripsOf', () => {
 })
 
 describe('tripsByDate', () => {
+  it('puts a trip that started the same month but ended later first, whatever order they were added in', () => {
+    const trips = tripsOf([
+      leg('CPH-JFK', '2024-04'),
+      leg('JFK-CPH', '2024-05'), // back in May
+      leg('CPH-LHR', '2024-04'),
+      leg('LHR-CPH', '2024-04'), // back in April
+    ])
+    expect(paths(tripsByDate(trips))).toEqual(['CPH-JFK JFK-CPH', 'CPH-LHR LHR-CPH'])
+    expect(trips[0]).toMatchObject({ date: '2024-04', endDate: '2024-05' })
+  })
+
+  it('puts the one added last first, of trips that started and ended the same months', () => {
+    const trips = tripsOf([leg('CPH-LHR', '2024-04'), leg('LHR-CPH', '2024-04'), leg('CPH-CDG', '2024-04'), leg('CDG-CPH', '2024-04')])
+    expect(paths(tripsByDate(trips))).toEqual(['CPH-CDG CDG-CPH', 'CPH-LHR LHR-CPH'])
+    // A single flight is a trip too
+    expect(paths(tripsByDate(tripsOf([leg('CPH-LHR', '2024-04'), leg('CPH-CDG', '2024-04')])))).toEqual(['CPH-CDG', 'CPH-LHR'])
+  })
+
   it('puts the newest first, then the undated, the last added first', () => {
     const trips = tripsOf([leg('CPH-LHR'), leg('CPH-CDG', '2019-05'), leg('CPH-JFK'), leg('CPH-NRT', '2024')])
     expect(paths(tripsByDate(trips))).toEqual(['CPH-NRT', 'CPH-CDG', 'CPH-JFK', 'CPH-LHR'])
