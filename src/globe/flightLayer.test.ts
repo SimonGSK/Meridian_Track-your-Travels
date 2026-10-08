@@ -107,6 +107,30 @@ describe('createFlightLayer', () => {
     expect(eastward.material.rotation).toBeCloseTo(-Math.PI / 2, 1)
     layer.dispose()
   })
+
+  it('flies a route flown both ways there and back by turns, and one flown one way always from its start', () => {
+    const layer = createFlightLayer(RADIUS)
+    const north = { from: { lat: -10, lng: 0 }, to: { lat: 10, lng: 0 } }
+    layer.show([
+      { key: 'there-and-back', ...north, bothWays: true },
+      { key: 'one-way', ...north },
+    ])
+    const [both, one] = parts(layer).planes
+    const trip = flightSeconds((20 * Math.PI) / 180) // 20° of latitude
+    const at = (seconds: number) => {
+      layer.tick(seconds, camera(), 800, 800)
+      return [both, one].map((plane) => ({ y: plane.position.y, rotation: plane.material.rotation }))
+    }
+    const [bothFirst, oneFirst] = at(trip * 0.3)
+    const [bothNext, oneNext] = at(trip * 1.3)
+    // Where it was a trip ago, mirrored, and facing south instead of north
+    expect(bothNext.y).toBeCloseTo(-bothFirst.y, 3)
+    expect(Math.abs(bothNext.rotation - bothFirst.rotation)).toBeCloseTo(Math.PI, 1)
+    // Each trip the same
+    expect(oneNext.y).toBeCloseTo(oneFirst.y, 6)
+    expect(oneNext.rotation).toBeCloseTo(oneFirst.rotation, 6)
+    layer.dispose()
+  })
 })
 
 describe('flightSeconds', () => {

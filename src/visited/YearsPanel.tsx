@@ -28,7 +28,7 @@ type Lapse = {
   onStop: () => void
 }
 
-/** Your travels year by year, as the globe fills in: the year, all so far, and what was new */
+/** Your travels year by year, as the globe fills in: the year, all so far, what was new and where you went back to */
 function TimeLapse({ steps, shown, onPlay, onPause, onStop }: Lapse & { shown: NonNullable<Lapse['shown']> }) {
   const step = steps[shown.step]
   const atEnd = shown.step === steps.length - 1
@@ -67,7 +67,22 @@ function TimeLapse({ steps, shown, onPlay, onPause, onStop }: Lapse & { shown: N
           ))}
         </ul>
       ) : (
-        <p className="muted">No new places, only {plural(step.newFlights.length, 'flight')}.</p>
+        <p className="muted">
+          {step.revisits.length > 0 ? 'No new places.' : `No new places, only ${plural(step.newFlights.length, 'flight')}.`}
+        </p>
+      )}
+      {step.revisits.length > 0 && (
+        <>
+          <h3>Visited again in {step.year}</h3>
+          <ul className="country-list" aria-label={`Visited again in ${step.year}`}>
+            {step.revisits.map((c) => (
+              <li key={c.properties.name} className="lapse-place">
+                <Flag country={c} />
+                <span className="row-name">{c.properties.name}</span>
+              </li>
+            ))}
+          </ul>
+        </>
       )}
       <div className="lapse-controls">
         {shown.playing ? (

@@ -174,6 +174,9 @@ export const visitedRegionColor = (theme: Theme) => darker(theme.visited)
 /** Visited states of the country pointed at: a darker shade of the hover color */
 export const hoveredRegionColor = (theme: Theme) => darker(theme.hover)
 
+/** In the replay, places visited again in a year: a darker shade of the color for those first visited then */
+export const revisitColor = (theme: Theme) => darker(theme.correct)
+
 /** How far from the land color to the visited color, for 1, 2, 3, and 4 or more visits */
 const HEAT_STEPS = [0.35, 0.6, 0.8, 1]
 /** The most visits the heat map tells apart: more are shown as many */

@@ -60,7 +60,7 @@ import VisitedTab, { type VisitedView } from './visited/VisitedTab'
 import YearsPanel from './visited/YearsPanel'
 import { reviewOf, spotsOf, spotsOfStep, timelineOf, yearsOf, type YearReview } from './visited/yearInReview'
 import { useTimeLapse } from './visited/useTimeLapse'
-import { routeOf, uniqueRoutes, type Route } from './data/flights'
+import { routeOf, flownBothWays, uniqueRoutes, type Route } from './data/flights'
 import { regionFills, regionOutlines, regionProgress } from './visited/regionsView'
 import Tooltip from './Tooltip'
 import {
@@ -79,7 +79,7 @@ import {
   useSmoothAutoRotate,
 } from './globe/hooks'
 import { PIN_FADE, SCREENSAVER_PIN_FADE, pinAt } from './globe/pinLayer'
-import { heatColors, hoveredRegionColor, visitedRegionColor } from './globe/themes'
+import { heatColors, hoveredRegionColor, revisitColor, visitedRegionColor } from './globe/themes'
 import type { LatLng, Point, Spot } from './globe/interaction'
 import {
   INITIAL_VIEW,
@@ -289,7 +289,14 @@ export default function App({ compareOnOpen = false }: { compareOnOpen?: boolean
 
   const highlights = useMemo(() => {
     const colors = gameHighlights(game, theme)
-    if (lapseStep) return new Map([...colors, ...lapseStep.newPlaces.map((c) => [c, theme.correct] as const)])
+    // In the time-lapse, the year's places stand out over those before: new ones brighter than those visited again
+    if (lapseStep) {
+      return new Map([
+        ...colors,
+        ...lapseStep.revisits.map((c) => [c, revisitColor(theme)] as const),
+        ...lapseStep.newPlaces.map((c) => [c, theme.correct] as const),
+      ])
+    }
     return editing ? new Map([...colors, [editing, theme.selected]]) : colors
   }, [game, theme, editing, lapseStep])
 
@@ -436,11 +443,15 @@ export default function App({ compareOnOpen = false }: { compareOnOpen?: boolean
     if (showsGame(game) || compareOpen || (!yearShown && !settings.showFlights)) return []
     // In the time-lapse, the flights so far, that year's standing out
     const picked = lapseStep ? lapseStep.newFlights : (shownRoutes ?? [])
-    return uniqueRoutes(lapseStep ? lapseStep.flights : yearShown ? yearShown.flights : routes).map((route) => ({
+    const flown = lapseStep ? lapseStep.flights : yearShown ? yearShown.flights : routes
+    // A route flown both ways has its plane flying back on every other trip
+    const backToo = flownBothWays(flown)
+    return uniqueRoutes(flown).map((route) => ({
       key: route.flight.id,
       from: route.from,
       to: route.to,
       highlighted: picked.some((p) => uniqueRoutes([route, p]).length === 1),
+      bothWays: backToo(route),
     }))
   }, [cityAnswer, routes, lapseStep, yearShown, compareOpen, settings.showFlights, game, shownRoutes])
   useFlightLayer(globe, flightLines, { color: theme.flight, highlight: theme.selected })
@@ -669,6 +680,16 @@ export default function App({ compareOnOpen = false }: { compareOnOpen?: boolean
               { label: 'You', color: theme.visited },
               { label: 'Both', color: theme.correct },
               { label: friend.name, color: theme.wishlist },
+            ]}
+          />
+        )}
+        {lapseStep && (
+          <GlobeKey
+            title={String(lapseStep.year)}
+            items={[
+              { label: 'New', color: theme.correct },
+              { label: 'Again', color: revisitColor(theme) },
+              { label: 'Earlier', color: theme.visited },
             ]}
           />
         )}

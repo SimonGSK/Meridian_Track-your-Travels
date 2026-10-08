@@ -117,6 +117,7 @@ describe('timelineOf', () => {
       ['France', 'Greenland', 'Japan', 'Kenya'],
     ])
     expect(steps.map((s) => names(s.newPlaces))).toEqual([['France', 'Greenland'], ['Kenya'], ['Japan']]) // France came back, but isn't new
+    expect(steps.map((s) => names(s.revisits))).toEqual([[], [], ['France']])
     expect(steps.map((s) => s.countryCount)).toEqual([1, 2, 3]) // Greenland is a territory
     expect(steps.map((s) => s.continents)).toEqual([2, 3, 4])
   })
@@ -127,9 +128,15 @@ describe('timelineOf', () => {
     expect(steps.map((s) => s.newFlights.map((r) => r.flight.id))).toEqual([['CDG'], [], ['NRT']])
   })
 
-  it('keeps the new places and flights of a year in view', () => {
-    const [first] = timelineOf(t)
+  it('keeps the places and flights of a year in view, those visited again too', () => {
+    const [first, , last] = timelineOf(t)
     expect(spotsOfStep(first)).toHaveLength(2 + 3) // France and Greenland, and the flight's ends and middle
+    expect(spotsOfStep(last)).toHaveLength(2 + 3) // Japan, France again, and the flight
+  })
+
+  it('counts a place visited twice in a year as new that year, not again', () => {
+    const [step] = timelineOf(travels({ Italy: ['2014-03', '2014-09'] }))
+    expect([names(step.newPlaces), names(step.revisits)]).toEqual([['Italy'], []])
   })
 
   it('is empty without dates', () => {
