@@ -5,6 +5,7 @@ import { flagUrl } from '../flags'
 import { StarIcon } from '../icons'
 import { percentLabel } from './percentLabel'
 import StatsBox from '../ui/StatsBox'
+import { noAutofill } from '../ui/noAutofill'
 
 type Props = {
   visited: ReadonlySet<string>
@@ -123,10 +124,10 @@ export default function VisitedPanel(props: Props) {
       >
         <label htmlFor="visited-search">Add a country</label>
         <input
+          {...noAutofill('country')}
           id="visited-search"
           type="search"
           placeholder="Search countries…"
-          autoComplete="off"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />

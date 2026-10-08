@@ -1,6 +1,7 @@
 import { useId, useState } from 'react'
 import { findCountryByName, type CountryFeature } from '../countries'
 import { matchKey } from '../data/names'
+import { noAutofill } from '../ui/noAutofill'
 
 type Props = {
   /** `alias` is the name used when it isn't the usual one, e.g. "Swaziland" */
@@ -31,9 +32,9 @@ export default function CountryInput({ onAnswer, label = 'Your answer' }: Props)
     <div className="country-input">
       <label htmlFor={id}>{label}</label>
       <input
+        {...noAutofill('answer')}
         id={id}
         type="text"
-        autoComplete="off"
         autoCorrect="off"
         autoCapitalize="words"
         spellCheck={false}

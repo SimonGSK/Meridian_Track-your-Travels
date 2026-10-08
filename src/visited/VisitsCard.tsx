@@ -4,6 +4,7 @@ import { CloseIcon, PencilIcon } from '../icons'
 import Card from '../ui/Card'
 import MonthYearSelect from './MonthYearSelect'
 import { NOTE_MAX_LENGTH } from './useVisitDates'
+import { noAutofill } from '../ui/noAutofill'
 
 type Props = {
   /** Newest first */
@@ -61,6 +62,7 @@ export default function VisitsCard({ dates, onAdd, onRemove, noteOf, onNote }: P
                     }}
                   >
                     <input
+                      {...noAutofill('note')}
                       type="text"
                       aria-label={`Note on the visit in ${when}`}
                       placeholder="Who with, what you did…"

@@ -173,6 +173,18 @@ describe('App', () => {
     pinLayer.show.mockClear()
   })
 
+  it("keeps password managers off every text box: none of them is a login", async () => {
+    render(<App />)
+    for (const tab of ['Visited', 'Games', 'Settings']) {
+      await userEvent.click(screen.getByRole('button', { name: tab }))
+      for (const box of document.querySelectorAll('input[type="text"], input[type="search"], input:not([type])')) {
+        if ((box as HTMLInputElement).readOnly) continue
+        expect(box, box.outerHTML).toHaveAttribute('autocomplete', 'off')
+        expect(box.getAttribute('name'), box.outerHTML).toMatch(/-search$/)
+      }
+    }
+  })
+
   it('shows the brand and how to use the globe', () => {
     render(<App />)
     expect(screen.getByRole('heading', { name: 'Meridian' })).toBeInTheDocument()

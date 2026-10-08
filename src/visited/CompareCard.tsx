@@ -5,6 +5,7 @@ import Card from '../ui/Card'
 import StatsBox from '../ui/StatsBox'
 import { FRIEND_NAME_MAX, readShared, shareLink, type Comparison, type Friend } from './friend'
 import { Flag } from './VisitedPanel'
+import { noAutofill } from '../ui/noAutofill'
 
 type Props = {
   /** Your places, by name */
@@ -137,9 +138,9 @@ export default function CompareCard(props: Props) {
           >
             <label htmlFor="friend-link">Your friend's link</label>
             <input
+              {...noAutofill('friend-link')}
               id="friend-link"
               type="text"
-              autoComplete="off"
               placeholder="Paste it here"
               value={pasted}
               onChange={(e) => setPasted(e.target.value)}
@@ -155,6 +156,7 @@ export default function CompareCard(props: Props) {
       <h3>Your link</h3>
       <div className="compare-share">
         <input
+          {...noAutofill('your-name')}
           type="text"
           aria-label="Your name, for your friend"
           placeholder="Your name"

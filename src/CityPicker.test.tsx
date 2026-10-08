@@ -23,6 +23,16 @@ const suggestions = () =>
     .map((b) => b.textContent)
 
 describe('CityPicker', () => {
+  it("tells password managers it isn't a login, so none pops up over the cities", () => {
+    setup()
+    const box = screen.getByRole('searchbox', { name: 'Add a city' })
+    expect(box).toHaveAttribute('name', 'city-search') // Safari won't take it for a username
+    expect(box).toHaveAttribute('autocomplete', 'off')
+    expect(box).toHaveAttribute('data-1p-ignore')
+    expect(box).toHaveAttribute('data-lpignore', 'true')
+    expect(box).toHaveAttribute('data-bwignore')
+  })
+
   it('says it is loading until the cities are there', () => {
     render(<CityPicker cities={null} visited={new Set()} onToggle={() => {}} />)
     expect(screen.getByRole('region', { name: 'Visited cities' })).toHaveTextContent('Loading…')

@@ -1,6 +1,7 @@
 import { useId, useState } from 'react'
 import { cityOf, countryOf, findAirports, type Airport } from '../data/airports'
 import { CloseIcon } from '../icons'
+import { noAutofill } from '../ui/noAutofill'
 
 type Props = {
   /** "From" or "To" */
@@ -44,9 +45,9 @@ export default function AirportSearch({ label, airports, value, onChange }: Prop
       </label>
       <div className="city-adder">
         <input
+          {...noAutofill('airport')}
           id={`${listId}-input`}
           type="search"
-          autoComplete="off"
           placeholder="City, airport or code…"
           aria-controls={listId}
           value={query}
