@@ -16,6 +16,12 @@ export type City = {
   lng: number
   population: number
   capital?: true
+  /**
+   * The state or province it's in ("US-NY"), in countries that have them on
+   * the map: from GeoNames, as a city on a coast or a border can fall just
+   * outside its state's simplified outline
+   */
+  region?: string
 }
 
 /** The cities, loaded on demand like the region shapes */

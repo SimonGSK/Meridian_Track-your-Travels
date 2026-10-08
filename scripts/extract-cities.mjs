@@ -7,10 +7,11 @@
 // Per place: the capital, every city of a million or more, the biggest
 // others (more for more populous countries), and some famous smaller ones;
 // leaving out districts and suburbs of a bigger city already picked. Names
-// are in English where it has its own ("Cologne", not "Köln").
+// are in English where it has its own ("Cologne", not "Köln"). Cities in
+// countries with states (see regions.ts) get theirs, as `region`.
 import { readFile, writeFile } from 'node:fs/promises'
 import cities from 'all-the-cities'
-import { geoDistance } from 'd3-geo'
+import { geoBounds, geoContains, geoDistance } from 'd3-geo'
 
 const OUTPUT = new URL('../src/data/cities.json', import.meta.url)
 const facts = JSON.parse(await readFile(new URL('../src/data/country-facts.json', import.meta.url), 'utf8'))
@@ -245,6 +246,40 @@ const MISSING = [
   { cityId: 1024683, name: 'Vilanculos', country: 'MZ', featureCode: 'PPL', population: 43183, loc: { coordinates: [35.3167, -22.0] } },
 ]
 
+// The state each city is in, from GeoNames: its state code (admin1), matched
+// to the map's states by where most of that state code's towns are. The
+// city's own point won't do: the map's outlines are simplified, so cities
+// on a coast or a border fall just outside (New York City in the harbour)
+const ALPHA2 = { USA: 'US', CAN: 'CA', AUS: 'AU', BRA: 'BR' }
+const regionShapes = new Map()
+for (const shape of JSON.parse(await readFile(new URL('../src/data/regions.json', import.meta.url), 'utf8')).features) {
+  const place = ALPHA2[shape.properties.country]
+  if (!regionShapes.has(place)) regionShapes.set(place, [])
+  regionShapes.get(place).push({ id: `${place}-${shape.properties.code}`, shape, box: geoBounds(shape) })
+}
+const regionAt = (place, [lng, lat]) =>
+  regionShapes.get(place).find(({ shape, box: [[west, south], [east, north]] }) =>
+    lat >= south && lat <= north && lng >= west && lng <= east && geoContains(shape, [lng, lat]),
+  )?.id
+const votes = new Map()
+for (const city of cities) {
+  if (!regionShapes.has(city.country) || !city.adminCode) continue
+  const region = regionAt(city.country, city.loc.coordinates)
+  if (!region) continue
+  const code = `${city.country}:${city.adminCode}`
+  if (!votes.has(code)) votes.set(code, new Map())
+  votes.get(code).set(region, (votes.get(code).get(region) ?? 0) + 1)
+}
+/** GeoNames' state code, "CA:08", to the map's state, "CA-ON" */
+const regionOfCode = new Map(
+  [...votes].map(([code, count]) => [code, [...count].sort((a, b) => b[1] - a[1])[0][0]]),
+)
+for (const [code, count] of votes) {
+  const all = [...count.values()].reduce((a, b) => a + b, 0)
+  const share = count.get(regionOfCode.get(code)) / all
+  if (share < 0.9) console.warn(`State code ${code}: only ${Math.round(share * 100)}% of its towns in ${regionOfCode.get(code)}`)
+}
+
 const byPlace = new Map()
 for (const city of [...cities, ...MISSING]) {
   if (SKIP.has(city.featureCode)) continue
@@ -299,6 +334,7 @@ for (const [place, list] of byPlace) {
       lng: Math.round(city.loc.coordinates[0] * 1e4) / 1e4,
       population: city.population,
       ...(city === capital && { capital: true }),
+      ...(regionOfCode.has(`${place}:${city.adminCode}`) && { region: regionOfCode.get(`${place}:${city.adminCode}`) }),
     })
   }
 }
