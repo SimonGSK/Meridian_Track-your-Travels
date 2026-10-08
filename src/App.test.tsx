@@ -911,6 +911,15 @@ describe('App', () => {
       expect(within(countryPanel()!).getByRole('button', { name: /states explored$/ })).toHaveTextContent('1 of 51')
     })
 
+    it('marks the state of a city on the coast, whose point is just off the map\'s outline: New York', async () => {
+      render(<App />)
+      click(800)
+      await within(countryPanel()!).findByRole('searchbox', { name: 'Add a city' })
+      await addCity('New York City')
+      expect(JSON.parse(localStorage.getItem('countries-app.visited-regions')!)).toEqual(['US-NY'])
+      expect(within(countryPanel()!).getByRole('button', { name: /states explored$/ })).toHaveTextContent('1 of 51')
+    })
+
     it("names the city of a pin pointed at, and shows its country's flag", async () => {
       await openDenmark()
       await addCity('Copenhagen')

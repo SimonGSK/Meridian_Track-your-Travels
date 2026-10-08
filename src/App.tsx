@@ -393,8 +393,11 @@ export default function App({ compareOnOpen = false }: { compareOnOpen?: boolean
     (city: City, country: CountryFeature) => {
       if (!visitedCities.has(city.id)) {
         if (!visited.has(country.properties.name)) addPlace(country.properties.name)
-        const region = regions && hasRegions(country) ? findRegionAt(regionsOf(regions, country), city.lat, city.lng) : null
-        if (region) addRegionId(region.properties.id)
+        // The state the city is in, as the city data says; else where its point falls on the map
+        const region =
+          city.region ??
+          (regions && hasRegions(country) ? findRegionAt(regionsOf(regions, country), city.lat, city.lng)?.properties.id : null)
+        if (region) addRegionId(region)
       }
       toggleCityId(city.id)
     },
