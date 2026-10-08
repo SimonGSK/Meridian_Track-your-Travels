@@ -1,4 +1,4 @@
-# Meridian: Countries of the World
+# Meridian: Track your Travels
 
 An interactive 3D globe: spin it, hover a country to see its name and flag, click it to fly there and see its capital, inhabitants and area.
 
