@@ -59,6 +59,14 @@ The design (navy and amber, after a mock-up made in Lovable) has a top bar with 
 
 The globe spins on its own until you touch it, and again once it's been left alone for 30 seconds. Tiny countries and islands get a ring marker, and clicks just beside a small island still count, also with the rings hidden. Zoomed in, tiny places reach 3.5 km around them, so pointing near Vatican City finds it (at this map's scale it's drawn 1.6 km from where it is). Only a pin's head answers to the pointer, so what's under its stem stays clickable. City pins fade out as they near the edge of the globe.
 
+## Online
+
+Meridian is online at **https://simongsk.github.io/Countries_app/**, so it opens in any browser, on a phone too, without installing anything. Every push to `main` builds it and puts the new version there with GitHub Pages (`.github/workflows/deploy.yml`, about a minute). It's served over `https://`, so it can be installed as an app and works offline (below), and a friend opening it is at the same address as you, so "Copy my link" works between you.
+
+Your places are kept by the browser for each address, so the online app starts empty even if you've used `npm run dev`. To bring them over, **Download backup** in the Settings tab at http://localhost:5173 and **Restore from a backup…** online (see Backup).
+
+To set it up the first time, the repository has to be public (GitHub Pages is free only for public repositories), and in its Settings › Pages, **Source** set to **GitHub Actions**. Then run the Deploy workflow from the Actions tab, or push to `main`.
+
 ## Screensaver
 
 The globe can be your Mac's screensaver, spinning with your places on it. With `?screensaver` in the address the app shows only the globe, and the pointer doesn't stop it. It looks at the globe from just north of the equator, so as it turns you see Europe and Canada but also Australia and New Zealand, and its pins stay until closer to the edge. A screensaver keeps its own storage, so the address carries your places, flights, wishlist, design and layers in its `#places=…` part.
