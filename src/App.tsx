@@ -307,9 +307,11 @@ export default function App({ compareOnOpen = false }: { compareOnOpen?: boolean
       : showsGame(game) || !settings.showVisited
         ? NO_VISITS
         : visited
-  // Comparing with a friend: where you've both been, and where only they have, over your places
-  // Not in the screensaver's preview: the real one doesn't know your friend
-  const compareShown = !!comparison && friendShown && colorVisited === visited && !previewing
+  // While the Compare tab is open, the globe shows just countries (your friend has no states, cities or flights), and,
+  // switched on, where you've both been and where only they have, over your places. Not in the screensaver's preview:
+  // the real one doesn't know your friend
+  const compareOpen = view === 'visited' && visitedView === 'compare' && !showsGame(game) && !previewing
+  const compareShown = compareOpen && !!comparison && friendShown && colorVisited === visited
   const marked = useMemo(
     () =>
       compareShown && comparison
@@ -354,8 +356,7 @@ export default function App({ compareOnOpen = false }: { compareOnOpen?: boolean
         ? regionFills({
             regions,
             visitedRegions,
-            // Comparing with a friend is about countries only
-            isShownCountry: (c) => !yearShown && !compareShown && settings.showRegions && visited.has(c.properties.name),
+            isShownCountry: (c) => !yearShown && !compareOpen && settings.showRegions && visited.has(c.properties.name),
             editing,
             hovered: hoveredRegion,
             hoveredCountry: hoveredWithRegions,
@@ -369,7 +370,7 @@ export default function App({ compareOnOpen = false }: { compareOnOpen?: boolean
       game,
       visitedRegions,
       yearShown,
-      compareShown,
+      compareOpen,
       settings.showRegions,
       visited,
       editing,
@@ -416,12 +417,12 @@ export default function App({ compareOnOpen = false }: { compareOnOpen?: boolean
   // A pin on each visited city, standing on the selected country when it's raised; in "find the city" the answer's
   const pinned = useMemo(() => {
     if (cityAnswer) return [{ city: cityAnswer.city, lat: cityAnswer.city.lat, lng: cityAnswer.city.lng, raised: false }]
-    return cities && settings.showCities && !showsGame(game) && !yearShown && !compareShown
+    return cities && settings.showCities && !showsGame(game) && !yearShown && !compareOpen
       ? cities
           .filter((c) => visitedCities.has(c.id))
           .map((city) => ({ city, lat: city.lat, lng: city.lng, raised: !editing && countryOfCity(city) === selected }))
       : []
-  }, [cityAnswer, cities, settings.showCities, game, yearShown, compareShown, visitedCities, editing, selected])
+  }, [cityAnswer, cities, settings.showCities, game, yearShown, compareOpen, visitedCities, editing, selected])
   usePinLayer(globe, pinned, cityAnswer ? theme.correct : theme.pin, screensaver || previewing ? SCREENSAVER_PIN_FADE : PIN_FADE)
   // Night as it is now, lit by the cities; not in games, where it would hide what to find
   useNightLayer(globe, settings.showDayNight && !showsGame(game), (settings.showCityLights && cities) || NO_LIGHTS)
@@ -432,17 +433,16 @@ export default function App({ compareOnOpen = false }: { compareOnOpen?: boolean
     if (cityAnswer?.guess.position) {
       return [{ key: `city-${cityAnswer.city.id}`, from: cityAnswer.guess.position, to: cityAnswer.city, highlighted: true }]
     }
-    if (showsGame(game) || (!yearShown && !settings.showFlights)) return []
-    // In the time-lapse, the flights so far, that year's standing out. Comparing with a friend, just one picked in the list
+    if (showsGame(game) || compareOpen || (!yearShown && !settings.showFlights)) return []
+    // In the time-lapse, the flights so far, that year's standing out
     const picked = lapseStep ? lapseStep.newFlights : (shownRoutes ?? [])
-    const lines = lapseStep ? lapseStep.flights : yearShown ? yearShown.flights : compareShown ? picked : routes
-    return uniqueRoutes(lines).map((route) => ({
+    return uniqueRoutes(lapseStep ? lapseStep.flights : yearShown ? yearShown.flights : routes).map((route) => ({
       key: route.flight.id,
       from: route.from,
       to: route.to,
       highlighted: picked.some((p) => uniqueRoutes([route, p]).length === 1),
     }))
-  }, [cityAnswer, routes, lapseStep, yearShown, compareShown, settings.showFlights, game, shownRoutes])
+  }, [cityAnswer, routes, lapseStep, yearShown, compareOpen, settings.showFlights, game, shownRoutes])
   useFlightLayer(globe, flightLines, { color: theme.flight, highlight: theme.selected })
   const cityAt = useCallback(
     (point: Point | null) => (globe && point && pinned.length > 0 ? (pinAt(globe, pinned, point)?.city ?? null) : null),
