@@ -759,6 +759,15 @@ test.describe('touch', { tag: '@touch' }, () => {
     const nav = (await page.getByRole('navigation', { name: 'Main' }).boundingBox())!
     expect(nav.y + nav.height).toBeCloseTo(viewport.height, 0)
     expect(nav.width).toBeCloseTo(viewport.width, 0)
+    // Each tab: its symbol over its name, in the middle of the tab
+    for (const tab of await page.getByRole('navigation', { name: 'Main' }).getByRole('button').all()) {
+      const box = (await tab.boundingBox())!
+      const icon = (await tab.locator('svg').boundingBox())!
+      const label = (await tab.locator('span').boundingBox())!
+      expect(icon).not.toBeNull()
+      expect(icon.y + icon.height).toBeLessThanOrEqual(label.y + 1)
+      expect(Math.abs((icon.y + label.y + label.height) / 2 - (box.y + box.height / 2))).toBeLessThan(3)
+    }
 
     await page.getByRole('button', { name: 'Visited' }).tap()
     const sheet = page.getByRole('region', { name: 'Visited', exact: true })
