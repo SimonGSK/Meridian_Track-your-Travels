@@ -1,6 +1,19 @@
-# Meridian: Countries of the World
+# Meridian · Track your Travels
 
-An interactive 3D globe: spin it, hover a country to see its name and flag, click it to fly there and see its capital, inhabitants and area.
+An interactive 3D globe for keeping track of where you've been. Mark the countries, states and cities you've visited and when, log your flights and see them grouped into trips, look back on each year or replay them all as a time-lapse, keep a wishlist, compare your travels with a friend's, and test your geography with twelve games.
+
+**Try it at https://simongsk.github.io/meridian-track-your-travels/**. It runs in any browser, on a phone too, can be installed as an app, and works offline. Everything you add stays in your browser.
+
+- **Your travels**: countries out of the world's 197, states and provinces (USA, Canada, Australia, Brazil), cities with pins, each visit by month with a note, a heat map by visits, a wishlist, and 58 achievements to earn.
+- **Flights and trips**: flights between 3,244 airports, drawn as arcs with little planes, and grouped into trips worked out from where each one leaves and lands.
+- **Years**: a review of each year, the globe showing just that year, and a time-lapse of them all.
+- **With a friend**: your places and a friend's on one globe, from a link, with nothing going through a server.
+- **Games**: a daily challenge, finding countries and cities on the globe, naming neighbours, flags, shapes, capitals, higher or lower, and more, with best scores and time records.
+- **The globe**: six designs, day and night from where the sun really is, city lights, and your Mac's screensaver.
+
+## What's in it
+
+Spin the globe, hover a country to see its name and flag, and click it to fly there and see its capital, inhabitants and area.
 
 The design (navy and amber, after a mock-up made in Lovable) has a top bar with the five tabs, where the globe is looking and how many places you've visited. The selected country shows on the left: its ISO code, capital, inhabitants and area, the cities you've visited there, its states, and a button to put it in your visited atlas. The open tab's cards are on the right. On phones the tabs move to the bottom and panels open as sheets, with the tab's name and a close button above the cards, which scroll under them.
 
@@ -34,7 +47,7 @@ The design (navy and amber, after a mock-up made in Lovable) has a top bar with 
 
   "▶ Replay your travels" plays the years as a time-lapse, from the first with a date to the last, about two seconds each. Each year the globe shows everywhere you'd been by its end: the places first visited that year in green, the others in the visited color, and that year's flights standing out among those before. It turns to each year's new places, and the panel shows the year, the countries, continents and flights so far, and what was new. Pause, play on, replay, or go back to the years; leaving the Years view ends it.
 
-  Below the Visited atlas, "Compare with a friend" puts your places and a friend's on one globe. Each of you copies your link ("Copy my link", with your name if you like) and sends it in any chat. The other pastes it into their card, or opens it, if you both use Meridian at the same address. Only your places go in the link (not your cities, flights or dates), packed into its `#compare=…` part, so nothing goes through a server. The globe then colors where you've both been green, where only you have been in your color, and where only your friend has been in theirs (the wishlist's color, as the wishlist steps aside meanwhile), with a key in the corner. The card shows "You 42 · Both 18 · Anna 24" and the places in each group, and a star puts a place only your friend has been on your wishlist. Your friend stays until you remove them, off the globe until switched on.
+  Below the Visited atlas, "Compare with a friend" puts your places and a friend's on one globe. Each of you copies your link ("Copy my link", with your name if you like) and sends it in any chat. The other pastes it into their card, or just opens it on the online version, where you're both at the same address. Only your places go in the link (not your cities, flights or dates), packed into its `#compare=…` part, so nothing goes through a server. The globe then colors where you've both been green, where only you have been in your color, and where only your friend has been in theirs (the wishlist's color, as the wishlist steps aside meanwhile), with a key in the corner. The card shows "You 42 · Both 18 · Anna 24" and the places in each group, and a star puts a place only your friend has been on your wishlist. Your friend stays until you remove them, off the globe until switched on.
 
   Under Achievements, 58 to earn from where you've been, in eight groups: milestones (your first country, then 10 up to all 197), continents (every continent, all of one, Antarctica, all four hemispheres), regions (Scandinavia, the Nordics, the Baltics, Benelux, the Caribbean, the Gulf, the Stans, the G7 and more), islands, states (every US state and D.C., all of Canada, Australia or Brazil), cities and capitals, flights and distance flown (around the world, to the Moon, long haul), and return trips (one country 3 or 5 times). Each shows how far along you are ("3 of 5"), and a note pops up at the bottom when something you add earns one; click it to see them all. They're worked out from what you've saved, so a backup brings them back too.
 - **Games**:
@@ -61,7 +74,7 @@ The globe spins on its own until you touch it, and again once it's been left alo
 
 ## Online
 
-Meridian is online at **https://simongsk.github.io/Meridian_Track-your-Travels/**, so it opens in any browser, on a phone too, without installing anything. Every push to `main` builds it and puts the new version there with GitHub Pages (`.github/workflows/deploy.yml`, about a minute). It's served over `https://`, so it can be installed as an app and works offline (below), and a friend opening it is at the same address as you, so "Copy my link" works between you.
+Meridian is online at **https://simongsk.github.io/meridian-track-your-travels/**, so it opens in any browser, on a phone too, without installing anything. Every push to `main` builds it and puts the new version there with GitHub Pages (`.github/workflows/deploy.yml`, about a minute). It's served over `https://`, so it can be installed as an app and works offline (below), and a friend opening it is at the same address as you, so "Copy my link" works between you.
 
 Your places are kept by the browser for each address, so the online app starts empty even if you've used `npm run dev`. To bring them over, **Download backup** in the Settings tab at http://localhost:5173 and **Restore from a backup…** online (see Backup).
 
@@ -140,10 +153,10 @@ npx playwright install chromium
 
 ## Tests
 
-- **Unit and component tests** (Vitest and Testing Library, in jsdom): the data, the game rules, the globe's layers against a real three.js camera, every panel, and the whole app with a stand-in for the WebGL globe. About 970 tests, covering over 99% of the lines.
-- **End-to-end tests** (Playwright): the real app with its WebGL globe in headless Chromium, on a desktop and a phone (touch, tab bar, sheets): hovering and clicking countries, visited places, states, cities and flights kept after reloading, the wishlist, a friend's link, the settings, a year in review, a backup downloaded and restored, the designs, every game, and the screensaver. In CI they run on the production build, with the service worker.
+- **Unit and component tests** (Vitest and Testing Library, in jsdom): the data, the game rules, the globe's layers against a real three.js camera, every panel, and the whole app with a stand-in for the WebGL globe. About 980 tests, covering over 99% of the lines.
+- **End-to-end tests** (Playwright): the real app with its WebGL globe in headless Chromium, on a desktop and a phone (touch, tab bar, sheets): hovering and clicking countries, visited places, states, cities and flights kept after reloading, the wishlist, a friend's link, the settings, a year in review and its time-lapse, a backup downloaded and restored, the designs, every game, the screensaver and its preview (40 tests). In CI they run on the production build, with the service worker.
 
-`.github/workflows/tests.yml` runs all of it on GitHub for every pull request and every push to `main`: lint, the unit tests, the build (which type-checks), and the end-to-end tests.
+`.github/workflows/tests.yml` runs all of it on GitHub for every pull request and every push to `main`: lint, the unit tests, the build (which type-checks), and the end-to-end tests. `.github/workflows/deploy.yml` then puts each push to `main` online (see Online).
 
 ## How it works
 
@@ -170,15 +183,17 @@ src/
     flights.ts         flights: distances, figures, routes, moving old city flights to airports
     trips.ts           flights grouped into trips, and where to look from to see them
   storage.ts           state saved in the browser
+  base64url.ts         packing text into an address, for the screensaver and a friend's link
   screensaver.ts       the screensaver mode, and carrying your places in its address
   demo.ts              sample data for `npm run dev:demo`
-  ui/                  the cards with "GAMES ··· 06" headers, and the boxes of figures
+  ui/                  the cards with "GAMES ··· 06" headers, the boxes of figures, the key in the globe's corner,
+                       and keeping password managers off the text boxes
   nav/                 the top bar, tabs, the column of cards on the right
   explore/             the Explore tools: atlas search, design and layers; settings
   visited/             visited countries, states and cities; the wishlist; a friend to compare with; flights, and the airport search;
                        achievements (achievements.ts), their view and the note when one is earned;
                        each year's review (yearInReview.ts) and its view
-  design/              design picker, and how to set up the screensaver
+  design/              design picker, how to set up the screensaver, and the way out of its preview
   settings/            backups: making, checking and restoring them, and their card; installing the app
   pwa/                 the service worker (serviceWorker.ts, written into the build by vite.offline.ts),
                        starting it, and the browser's offer to install
@@ -191,7 +206,7 @@ src/
     regionLayer.ts     states and provinces drawn over their country
     pinLayer.ts        pins on visited cities, and finding the pin under the pointer
     flightLayer.ts     flight routes as arcs, with planes flying along them
-    colors.ts          which color each country gets (game answers > hover > visited > land)
+    colors.ts          which color each country gets (game answers > hover > a friend's > visited > wishlist > land)
     themes.ts          the designs
     hooks.ts           the layers, pointer picking, depth precision, idle spin
     interaction.ts     click-vs-drag, flight duration/altitude, easing
@@ -199,7 +214,7 @@ src/
     style.ts           heights
 e2e/                   Playwright tests
 scripts/               data extraction
-.github/workflows/     the tests, run on GitHub
+.github/workflows/     the tests, run on GitHub, and putting the app online with GitHub Pages
 ```
 
 A few choices keep the globe smooth:
@@ -238,7 +253,7 @@ Some corrections to the map data:
 
 Capitals, population (2024) and total area come from the [World Bank's open data](https://data.worldbank.org/) (CC BY 4.0). Places it doesn't cover (Taiwan, Vatican City, Western Sahara and several territories) use recent censuses and estimates from `src/data/country-facts-extra.json`, marked as estimates in the app. Somalia's and Cyprus's figures include Somaliland and Northern Cyprus.
 
-Cities come from [GeoNames](https://www.geonames.org/) (CC BY 4.0), via [all-the-cities](https://github.com/zeke/all-the-cities). For each place, `scripts/extract-cities.mjs` keeps the capital, every city of a million or more, the next biggest (more for more populous countries, from 50,000 people), and a hand-picked list of famous smaller ones (Venice, Key West, Chefchaouen…), leaving out suburbs within 25 km of a city already picked. GeoNames often uses local spellings, so the script has English names for well-known cities ("Cologne", not "Köln") and leaves out transliteration marks; it also has a short list of GeoNames entries that are districts, camps or campuses rather than cities. Overseas regions like Réunion are listed under the country the map draws them in. A few places the all-the-cities extract leaves out (Vilanculos) are added by hand, with their GeoNames ids.
+Cities come from [GeoNames](https://www.geonames.org/) (CC BY 4.0), via [all-the-cities](https://github.com/zeke/all-the-cities). For each place, `scripts/extract-cities.mjs` keeps the capital, every city of a million or more, the next biggest (more for more populous countries, from 50,000 people), and a hand-picked list of famous smaller ones (Venice, Key West, Chefchaouen…), leaving out suburbs within 25 km of a city already picked. GeoNames often uses local spellings, so the script has English names for well-known cities ("Cologne", not "Köln") and leaves out transliteration marks; it also has a short list of GeoNames entries that are districts, camps or campuses rather than cities. Overseas regions like Réunion are listed under the country the map draws them in. Cities in the USA, Canada, Australia and Brazil carry their state: GeoNames' state code for the city, matched to the map's state that most of that code's towns fall in (the city's own point won't do, as the map's simplified outlines leave cities on a coast or a border just outside). A few places the all-the-cities extract leaves out (Vilanculos) are added by hand, with their GeoNames ids.
 
 Airports come from [OurAirports](https://ourairports.com/data/) (public domain): `scripts/fetch-airports.mjs` keeps the large and medium airports with scheduled airline service and an IATA code, which covers every international airport.
 

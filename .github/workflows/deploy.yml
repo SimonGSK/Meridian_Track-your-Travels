@@ -1,5 +1,5 @@
 # Builds the app and puts it online with GitHub Pages on every push to main,
-# at https://simongsk.github.io/Meridian_Track-your-Travels/ (see "Online" in README.md).
+# at https://simongsk.github.io/meridian-track-your-travels/ (see "Online" in README.md).
 name: Deploy
 
 on:
