@@ -2289,8 +2289,8 @@ code {
   }
 }
 
-/* Narrower still, just their names */
-@media (max-width: 720px) {
+/* Narrower still, just their names (on phones they're a tab bar, with room for both) */
+@media (min-width: 641px) and (max-width: 720px) {
   .topbar .tab svg {
     display: none;
   }
@@ -2338,10 +2338,12 @@ code {
     background: var(--panel-strong);
   }
   /* Each tab an equal share of the bar, so five fit on the narrowest phones */
+  /* Its symbol over its name, in the middle */
   .tab {
     flex: 1 1 0;
     min-width: 0;
     flex-direction: column;
+    justify-content: center;
     gap: 3px;
     padding: 6px 2px;
     border-radius: 12px;
