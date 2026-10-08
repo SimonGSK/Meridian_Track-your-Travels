@@ -10,8 +10,10 @@ import { newestFirst, partsOf, type VisitDate } from './visitDates'
 export type Trip = {
   /** In the order flown */
   routes: Route[]
-  /** The first leg's date; the legs of a trip are all dated, or none are */
+  /** When it started: its earliest leg's date; the legs of a trip are all dated, or none are */
   date: VisitDate | null
+  /** When it ended: its latest leg's date */
+  endDate: VisitDate | null
   km: number
 }
 
@@ -47,16 +49,27 @@ export function tripsOf(routes: readonly Route[]): Trip[] {
     trip.push(route)
     if (samePlace(route.to, trip[0].from)) going.delete(trip)
   }
-  return trips.map((legs) => ({
-    routes: legs,
-    date: legs[0].flight.date ?? null,
-    km: legs.reduce((sum, route) => sum + route.km, 0),
-  }))
+  return trips.map((legs) => {
+    const dates = legs.flatMap((route) => route.flight.date ?? []).sort()
+    return {
+      routes: legs,
+      date: dates[0] ?? null,
+      endDate: dates.at(-1) ?? null,
+      km: legs.reduce((sum, route) => sum + route.km, 0),
+    }
+  })
 }
 
-/** Newest first; trips without a date after them, the last added first */
+/**
+ * Newest first, by when they started. Of trips that started the same month,
+ * the one that ended later is the newer; of those that ended then too, the
+ * one added later. Trips without a date come after them, the last added first.
+ */
 export function tripsByDate(trips: readonly Trip[]) {
-  const dated = trips.filter((t) => t.date).sort((a, b) => newestFirst(a.date!, b.date!))
+  const added = new Map(trips.map((trip, i) => [trip, i]))
+  const dated = trips
+    .filter((t) => t.date)
+    .sort((a, b) => newestFirst(a.date!, b.date!) || newestFirst(a.endDate!, b.endDate!) || added.get(b)! - added.get(a)!)
   return [...dated, ...trips.filter((t) => !t.date).reverse()]
 }
 
