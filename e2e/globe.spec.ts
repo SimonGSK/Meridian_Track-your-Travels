@@ -300,7 +300,10 @@ test.describe('screensaver preview on a phone', { tag: '@touch' }, () => {
     await expect(exit).toHaveCSS('opacity', '0', { timeout: 10_000 })
     await page.touchscreen.tap(180, 400)
     await expect(exit).toHaveCSS('opacity', '1')
-    await exit.tap()
+    // Tap it straight away, before it fades again: waiting for the page to hold still takes animation frames, which
+    // the globe makes slow on test machines, long enough for the button to fade and the tap to miss it
+    await page.touchscreen.tap(180, 400)
+    await exit.tap({ force: true })
     await expect(page.getByRole('region', { name: 'Screensaver' })).toBeVisible()
   })
 })
