@@ -653,10 +653,29 @@ export default function App({ compareOnOpen = false }: { compareOnOpen?: boolean
         }
       />
 
-      <p className="hint" aria-hidden="true">
-        <span>drag to spin</span>
-        <span>{isPhone() ? 'pinch to zoom' : 'scroll to zoom'}</span>
-      </p>
+      {/* Along the bottom: how to move the globe, and a key to its colors, beside it or above it when there's no room */}
+      <div className="globe-notes">
+        <p className="hint" aria-hidden="true">
+          <span>drag to spin</span>
+          <span>{isPhone() ? 'pinch to zoom' : 'scroll to zoom'}</span>
+        </p>
+        {compareShown && friend && (
+          <GlobeKey
+            title="Compare"
+            items={[
+              { label: 'You', color: theme.visited },
+              { label: 'Both', color: theme.correct },
+              { label: friend.name, color: theme.wishlist },
+            ]}
+          />
+        )}
+        {heatShown && (
+          <GlobeKey
+            title="Visits"
+            items={heatColors(theme).map((color, i, all) => ({ label: i === all.length - 1 ? `${i + 1}+` : String(i + 1), color }))}
+          />
+        )}
+      </div>
 
       {view && (
         <SidePanel title={VIEWS.find((v) => v.id === view)!.label} onClose={() => changeView(null)}>
@@ -812,22 +831,6 @@ export default function App({ compareOnOpen = false }: { compareOnOpen?: boolean
         text={playing ? null : (hoveredCity?.name ?? hoveredRegion?.properties.name ?? hovered?.properties.name ?? null)}
       />
       <FlagCorner country={playing ? null : hovered} />
-      {compareShown && friend && (
-        <GlobeKey
-          title="Compare"
-          items={[
-            { label: 'You', color: theme.visited },
-            { label: 'Both', color: theme.correct },
-            { label: friend.name, color: theme.wishlist },
-          ]}
-        />
-      )}
-      {heatShown && (
-        <GlobeKey
-          title="Visits"
-          items={heatColors(theme).map((color, i, all) => ({ label: i === all.length - 1 ? `${i + 1}+` : String(i + 1), color }))}
-        />
-      )}
       <AchievementToast
         achievements={newAchievements}
         onOpen={() => {

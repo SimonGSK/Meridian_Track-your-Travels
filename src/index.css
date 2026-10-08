@@ -1332,12 +1332,27 @@ code {
 
 /* Hints and labels over the globe */
 
-/* What the colors on the globe mean, in the corner: the heat map, or a friend */
-.globe-key {
+/*
+ * Along the bottom of the globe: how to move it, and a key to its colors.
+ * Side by side, or the key above when there isn't room for both, so they
+ * never overlap whatever the key holds (a friend's name can be long).
+ */
+.globe-notes {
   position: fixed;
   left: var(--gutter);
+  right: var(--gutter);
   bottom: 22px;
   z-index: 1;
+  display: flex;
+  flex-wrap: wrap-reverse;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  pointer-events: none;
+}
+
+/* What the colors on the globe mean: the heat map, or a friend */
+.globe-key {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -1385,10 +1400,6 @@ code {
 }
 
 .hint {
-  position: fixed;
-  left: 50%;
-  bottom: 22px;
-  z-index: 1;
   display: flex;
   margin: 0;
   padding: 8px 4px;
@@ -1397,8 +1408,6 @@ code {
   background: var(--panel);
   font-family: var(--font-mono);
   font-size: 12px;
-  transform: translateX(-50%);
-  pointer-events: none;
 }
 
 .hint span {
@@ -2342,7 +2351,7 @@ code {
     display: none;
   }
   /* Above the tab bar, while no sheet covers it */
-  .globe-key {
+  .globe-notes {
     bottom: calc(var(--tab-bar-height) + 12px);
   }
   .panel-open .globe-key {
