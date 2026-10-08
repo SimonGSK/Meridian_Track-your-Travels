@@ -18,8 +18,8 @@ import { LAND_ALTITUDE } from './style'
 
 type LatLng = { lat: number; lng: number }
 
-/** A route to draw: from where to where, and whether it's the one picked */
-export type FlightLine = { key: string; from: LatLng; to: LatLng; highlighted?: boolean }
+/** A route to draw: from where to where, whether it's the one picked, and whether it was flown back too */
+export type FlightLine = { key: string; from: LatLng; to: LatLng; highlighted?: boolean; bothWays?: boolean }
 
 /** Routes leave from just above the land, so their ends aren't hidden in it */
 export const FLIGHT_BASE = LAND_ALTITUDE * 1.5
@@ -59,7 +59,8 @@ export function pointAlong(path: readonly Vector3[], t: number, into = new Vecto
   return into.copy(path[i]).lerp(path[i + 1], position - i)
 }
 
-type Plane = { sprite: Sprite; path: Vector3[]; seconds: number; offset: number }
+/** A plane on a route flown both ways flies back on every other trip */
+type Plane = { sprite: Sprite; path: Vector3[]; seconds: number; offset: number; bothWays: boolean }
 
 export type FlightLayer = {
   object: Group
@@ -75,8 +76,9 @@ const offsetOf = (key: string) => [...key].reduce((sum, ch) => (sum * 31 + ch.ch
 
 /**
  * Flights as thin arcs above the globe, each with a little plane flying
- * along it from where the flight left. The planes keep their size on screen
- * and turn to face the way they're flying.
+ * along it from where the flight left, and back again on the next trip if
+ * it was flown both ways. The planes keep their size on screen and turn to
+ * face the way they're flying.
  */
 export function createFlightLayer(globeRadius: number): FlightLayer {
   const object = new Group()
@@ -123,7 +125,7 @@ export function createFlightLayer(globeRadius: number): FlightLayer {
         const seconds = flightSeconds(radians)
         object.add(mesh, sprite)
         lines.push({ mesh, highlighted })
-        planes.push({ sprite, path, seconds, offset: offsetOf(route.key) * seconds, highlighted })
+        planes.push({ sprite, path, seconds, offset: offsetOf(route.key) * seconds, highlighted, bothWays: !!route.bothWays })
       }
       paint()
     },
@@ -136,12 +138,14 @@ export function createFlightLayer(globeRadius: number): FlightLayer {
       // Sprites that don't scale with distance are sized by the camera's projection
       const scale = PLANE_SIZE_PX / ((camera.projectionMatrix.elements[5] * height) / 2)
       for (const plane of planes) {
-        const t = ((seconds + plane.offset) % plane.seconds) / plane.seconds
+        const trips = (seconds + plane.offset) / plane.seconds
+        const back = plane.bothWays && Math.floor(trips) % 2 === 1
+        const t = back ? 1 - (trips % 1) : trips % 1
         pointAlong(plane.path, t, here)
         plane.sprite.position.copy(here)
         plane.sprite.scale.setScalar(scale)
         // Face the way it's going, as it looks on screen
-        pointAlong(plane.path, t + 0.01, ahead)
+        pointAlong(plane.path, back ? t - 0.01 : t + 0.01, ahead)
         const start = here.clone().project(camera)
         const end = ahead.project(camera)
         const dx = (end.x - start.x) * width

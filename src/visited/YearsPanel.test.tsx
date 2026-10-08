@@ -132,11 +132,12 @@ describe('YearsPanel', () => {
       expect(onPlay).toHaveBeenCalled()
     })
 
-    it('shows a year: all so far, and the places new that year', async () => {
+    it('shows a year: all so far, the places new that year, and those visited again', async () => {
       const { onPause } = showLapse({ step: 1, playing: true })
       expect(screen.getByRole('heading', { name: '2024' })).toBeInTheDocument()
       expect(screen.getByLabelText('By the end of 2024')).toHaveTextContent(/Countries\s*5\s*Continents\s*4\s*Flights\s*2/)
       expect(screen.getByRole('list', { name: 'New in 2024' })).toHaveTextContent('JapanKenyaSouth Korea') // France came in 2019
+      expect(screen.getByRole('list', { name: 'Visited again in 2024' })).toHaveTextContent(/^France$/)
       expect(screen.getByRole('progressbar', { name: 'Years played' })).toHaveAttribute('aria-valuenow', '2')
       expect(screen.queryByRole('list', { name: 'Month by month' })).not.toBeInTheDocument()
       await userEvent.click(screen.getByRole('button', { name: 'Pause' }))
@@ -166,6 +167,27 @@ describe('YearsPanel', () => {
       expect(screen.getByText('No new places, only 1 flight.')).toBeInTheDocument()
       expect(screen.queryByRole('button', { name: 'Play on' })).not.toBeInTheDocument() // the last year
       expect(screen.getByRole('button', { name: 'Replay' })).toBeInTheDocument()
+    })
+
+    it('says when a year has no new places, only ones visited again', () => {
+      const backAgain = timelineOf(travels({ Peru: ['2019-11', '2022'] }))
+      render(
+        <YearsPanel
+          years={[2022, 2019]}
+          review={null}
+          onYearChange={vi.fn()}
+          onShow={vi.fn()}
+          onShowRoute={vi.fn()}
+          lapse={{ steps: backAgain, shown: { step: 1, playing: false }, ...controls() }}
+        />,
+      )
+      expect(screen.getByText('No new places.')).toBeInTheDocument()
+      expect(screen.getByRole('list', { name: 'Visited again in 2022' })).toHaveTextContent(/^Peru$/)
+    })
+
+    it('lists none visited again in the first year', () => {
+      showLapse({ step: 0, playing: false })
+      expect(screen.queryByRole('list', { name: /Visited again/ })).not.toBeInTheDocument()
     })
   })
 })

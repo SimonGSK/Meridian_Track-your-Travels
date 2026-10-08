@@ -1,7 +1,17 @@
 import { describe, expect, it } from 'vitest'
 import { Color } from 'three'
 import { MAP_COLOR_COUNT } from '../countries'
-import { DEFAULT_THEME, THEMES, heatColor, heatColors, hoveredRegionColor, landColor, themeById, visitedRegionColor } from './themes'
+import {
+  DEFAULT_THEME,
+  THEMES,
+  heatColor,
+  heatColors,
+  hoveredRegionColor,
+  landColor,
+  revisitColor,
+  themeById,
+  visitedRegionColor,
+} from './themes'
 
 describe('themes', () => {
   it('has several designs with unique ids', () => {
@@ -39,6 +49,12 @@ describe('themes', () => {
     const lightness = (color: string) => new Color(color).getHSL({ h: 0, s: 0, l: 0 }).l
     expect(lightness(visitedRegionColor(DEFAULT_THEME))).toBeLessThan(lightness(DEFAULT_THEME.visited))
     expect(lightness(hoveredRegionColor(DEFAULT_THEME))).toBeLessThan(lightness(DEFAULT_THEME.hover))
+  })
+
+  it.each(THEMES.map((t) => [t.name, t]))('%s shows places visited again in the replay darker than those new', (_, theme) => {
+    const lightness = (color: string) => new Color(color).getHSL({ h: 0, s: 0, l: 0 }).l
+    expect(lightness(revisitColor(theme))).toBeLessThan(lightness(theme.correct))
+    expect(revisitColor(theme)).not.toBe(theme.visited)
   })
 
   it.each(THEMES.map((t) => [t.name, t]))('%s shades the heat map from near the land to the visited color', (_, theme) => {

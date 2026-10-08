@@ -115,8 +115,10 @@ export type TimelineStep = {
   /** Of those, the countries */
   countryCount: number
   continents: number
-  /** Places first visited that year, by name */
+  /** Places first visited that year */
   newPlaces: CountryFeature[]
+  /** Places visited that year that had been visited in an earlier one */
+  revisits: CountryFeature[]
   /** Flights dated by the end of the year, and those that year */
   flights: Route[]
   newFlights: Route[]
@@ -125,10 +127,12 @@ export type TimelineStep = {
 /**
  * Your travels year by year, oldest first, for the time-lapse: each year
  * with a dated visit or flight. A place joins in the year of its first
- * dated visit; places and flights without dates aren't in it.
+ * dated visit, and stands out again in each year it's visited after;
+ * places and flights without dates aren't in it.
  */
 export function timelineOf(travels: Travels): TimelineStep[] {
-  const firsts = datedPlaces(travels).map(({ country, dates }) => ({ country, year: Math.min(...dates.map(yearOf)) }))
+  const dates = datedPlaces(travels).map(({ country, dates }) => ({ country, years: new Set(dates.map(yearOf)) }))
+  const firsts = dates.map(({ country, years }) => ({ country, year: Math.min(...years) }))
   const dated = travels.routes.filter(({ flight }) => flight.date)
   return [...yearsOf(travels)].reverse().map((year) => {
     const places = firsts.filter((p) => p.year <= year).map((p) => p.country)
@@ -138,14 +142,18 @@ export function timelineOf(travels: Travels): TimelineStep[] {
       countryCount: places.filter(isCountry).length,
       continents: CONTINENTS.filter((continent) => places.some((c) => c.properties.continent === continent)).length,
       newPlaces: firsts.filter((p) => p.year === year).map((p) => p.country).sort(byName),
+      revisits: dates
+        .filter((p, i) => p.years.has(year) && firsts[i].year < year)
+        .map((p) => p.country)
+        .sort(byName),
       flights: dated.filter(({ flight }) => yearOf(flight.date!) <= year),
       newFlights: dated.filter(({ flight }) => yearOf(flight.date!) === year),
     }
   })
 }
 
-/** What to keep in view in a year of the time-lapse: its new places, and its flights */
-export const spotsOfStep = ({ newPlaces, newFlights }: TimelineStep): Spot[] => [
-  ...newPlaces.map(({ properties: { centroid, extent } }) => ({ lng: centroid[0], lat: centroid[1], radius: extent / 2 })),
+/** What to keep in view in a year of the time-lapse: its places, new and visited again, and its flights */
+export const spotsOfStep = ({ newPlaces, revisits, newFlights }: TimelineStep): Spot[] => [
+  ...[...newPlaces, ...revisits].map(({ properties: { centroid, extent } }) => ({ lng: centroid[0], lat: centroid[1], radius: extent / 2 })),
   ...newFlights.flatMap(spotsOfRoute),
 ]
