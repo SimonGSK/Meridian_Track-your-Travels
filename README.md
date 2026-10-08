@@ -61,11 +61,11 @@ The globe spins on its own until you touch it, and again once it's been left alo
 
 ## Online
 
-Meridian is online at **https://simongsk.github.io/Countries_app/**, so it opens in any browser, on a phone too, without installing anything. Every push to `main` builds it and puts the new version there with GitHub Pages (`.github/workflows/deploy.yml`, about a minute). It's served over `https://`, so it can be installed as an app and works offline (below), and a friend opening it is at the same address as you, so "Copy my link" works between you.
+Meridian is online at **https://simongsk.github.io/Meridian_Track-your-Travels/**, so it opens in any browser, on a phone too, without installing anything. Every push to `main` builds it and puts the new version there with GitHub Pages (`.github/workflows/deploy.yml`, about a minute). It's served over `https://`, so it can be installed as an app and works offline (below), and a friend opening it is at the same address as you, so "Copy my link" works between you.
 
 Your places are kept by the browser for each address, so the online app starts empty even if you've used `npm run dev`. To bring them over, **Download backup** in the Settings tab at http://localhost:5173 and **Restore from a backup…** online (see Backup).
 
-To set it up the first time, the repository has to be public (GitHub Pages is free only for public repositories), and in its Settings › Pages, **Source** set to **GitHub Actions**. Then run the Deploy workflow from the Actions tab, or push to `main`.
+To set it up the first time, the repository has to be public (GitHub Pages is free only for public repositories), and in its Settings › Pages, **Source** set to **GitHub Actions** (skip the suggested workflows, like Jekyll or Static HTML: the repository has its own). Then run the Deploy workflow from the Actions tab, or push to `main`.
 
 ## Screensaver
 
