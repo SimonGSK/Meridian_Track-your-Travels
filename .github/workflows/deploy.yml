@@ -1,0 +1,48 @@
+# Builds the app and puts it online with GitHub Pages on every push to main,
+# at https://simongsk.github.io/Countries_app/ (see "Online" in README.md).
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  # Can also be started by hand from the Actions tab
+  workflow_dispatch:
+
+# One deploy at a time; a newer push waits rather than cutting one off halfway
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: dist
+
+  deploy:
+    name: Publish
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5
