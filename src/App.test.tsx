@@ -669,6 +669,49 @@ describe('App', () => {
       expect(JSON.parse(localStorage.getItem('countries-app.wishlist')!)).toEqual(['Japan'])
     })
 
+    it('shows only the countries compared: not your states, city pins or flights, unless a flight is picked', async () => {
+      const copenhagen = (await loadCities()).find((c) => c.name === 'Copenhagen' && c.place === 'DK')!
+      await loadAirports()
+      localStorage.setItem('countries-app.visited', JSON.stringify(['Denmark', 'France', 'United States']))
+      localStorage.setItem('countries-app.visited-regions', JSON.stringify(['US-CA']))
+      localStorage.setItem('countries-app.visited-cities', JSON.stringify([copenhagen.id]))
+      localStorage.setItem('countries-app.flights', JSON.stringify([{ id: 'a', from: 'CPH', to: 'CDG' }]))
+      localStorage.setItem('countries-app.friend', JSON.stringify({ name: 'Anna', places: ['Japan'] }))
+      const states = () =>
+        [...((regionLayer.show.mock.calls.at(-1)?.[0] ?? new Map()) as Map<{ properties: { name: string } }, string>).keys()].map(
+          (r) => r.properties.name,
+        )
+      const pins = () => ((pinLayer.show.mock.calls.at(-1)?.[0] ?? []) as { city: { name: string } }[]).map((p) => p.city.name)
+      const flights = () =>
+        ((flightLayer.show.mock.calls.at(-1)?.[0] ?? []) as { from: { code: string }; to: { code: string }; highlighted: boolean }[]).map(
+          (line) => `${line.from.code}-${line.to.code}${line.highlighted ? '!' : ''}`,
+        )
+      render(<App />)
+      await waitFor(() => expect(flights()).toEqual(['CPH-CDG']))
+      expect(states()).toEqual(['California'])
+      expect(pins()).toEqual(['Copenhagen'])
+
+      await userEvent.click(screen.getByRole('button', { name: 'Visited' }))
+      await userEvent.click(screen.getByRole('tab', { name: 'Compare with a friend' }))
+      await userEvent.click(screen.getByRole('switch', { name: 'Show Anna on the globe' }))
+      expect(states()).toEqual([])
+      expect(pins()).toEqual([])
+      expect(flights()).toEqual([])
+
+      // A flight picked in the list still shows, on its own, until put away
+      await userEvent.click(screen.getByRole('tab', { name: 'Flights' }))
+      await userEvent.click(await screen.findByRole('button', { name: /^Copenhagen → Paris/ }))
+      expect(flights()).toEqual(['CPH-CDG!'])
+      fireEvent.keyDown(window, { key: 'Escape' })
+      expect(flights()).toEqual([])
+
+      await userEvent.click(screen.getByRole('tab', { name: 'Compare with a friend' }))
+      await userEvent.click(screen.getByRole('switch', { name: 'Show Anna on the globe' }))
+      expect(states()).toEqual(['California'])
+      expect(pins()).toEqual(['Copenhagen'])
+      expect(flights()).toEqual(['CPH-CDG'])
+    })
+
     it('keeps your friend after a reload, but off the globe until switched on', () => {
       localStorage.setItem('countries-app.friend', JSON.stringify({ name: 'Anna', places: ['Japan'] }))
       render(<App />)
