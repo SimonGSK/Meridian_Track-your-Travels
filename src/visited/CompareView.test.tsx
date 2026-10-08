@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import CompareCard from './CompareCard'
+import CompareView from './CompareView'
 import { comparisonOf, readShared, shareLink, type Friend } from './friend'
 
 const YOURS = new Set(['Japan', 'France', 'Denmark'])
@@ -17,13 +17,14 @@ function setup(friend: Friend | null = null, shown = false) {
     onShownChange: vi.fn(),
     wishlist: new Set(['Chile']),
     onWish: vi.fn(),
+    onUnwish: vi.fn(),
     onShow: vi.fn(),
   }
-  render(<CompareCard {...props} />)
+  render(<CompareView {...props} />)
   return props
 }
 
-describe('CompareCard', () => {
+describe('CompareView', () => {
   afterEach(() => vi.restoreAllMocks())
 
   it('copies your link, with your name and places', async () => {
@@ -54,7 +55,6 @@ describe('CompareCard', () => {
 
   it('shows how you compare, and where only one of you has been', () => {
     setup(ANNA, true)
-    expect(screen.getByRole('region', { name: 'Compare with a friend' })).toHaveTextContent('ANNA')
     expect(screen.getByLabelText('You and Anna')).toHaveTextContent(/You\s*3\s*Both\s*1\s*Anna\s*3/)
     const names = (label: string) => within(screen.getByRole('list', { name: label })).getAllByRole('listitem').map((li) => li.textContent)
     expect(names('Only Anna')).toEqual(['Chile', 'Peru'])
@@ -63,11 +63,16 @@ describe('CompareCard', () => {
     expect(screen.getByRole('switch', { name: 'Show Anna on the globe' })).toBeChecked()
   })
 
-  it("puts a place only your friend has been on your wishlist, opens one, hides your friend, or removes them", async () => {
-    const { onWish, onShow, onShownChange, onFriend } = setup(ANNA, true)
-    expect(screen.getByRole('button', { name: 'Chile is on your wishlist' })).toBeDisabled()
+  it("puts a place only your friend has been on your wishlist, and takes it off again", async () => {
+    const { onWish, onUnwish } = setup(ANNA, true)
     await userEvent.click(screen.getByRole('button', { name: 'Add Peru to your wishlist' }))
     expect(onWish).toHaveBeenCalledWith('Peru')
+    await userEvent.click(screen.getByRole('button', { name: 'Take Chile off your wishlist' }))
+    expect(onUnwish).toHaveBeenCalledWith('Chile')
+  })
+
+  it('opens a place, hides your friend, or removes them', async () => {
+    const { onShow, onShownChange, onFriend } = setup(ANNA, true)
     await userEvent.click(screen.getByRole('button', { name: 'Japan' }))
     expect(onShow).toHaveBeenCalledWith(expect.objectContaining({ properties: expect.objectContaining({ name: 'Japan' }) }))
     await userEvent.click(screen.getByRole('switch', { name: 'Show Anna on the globe' }))

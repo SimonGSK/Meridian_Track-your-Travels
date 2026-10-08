@@ -632,6 +632,7 @@ describe('App', () => {
       render(<App />)
       expect(painted()).toMatchObject({ Brazil: DEFAULT_THEME.wishlist })
       await userEvent.click(screen.getByRole('button', { name: 'Visited' }))
+      await userEvent.click(screen.getByRole('tab', { name: 'Compare with a friend' }))
       await userEvent.type(
         screen.getByRole('textbox', { name: "Your friend's link" }),
         shareLink('Anna', ['Denmark', 'Japan'], 'https://m.test/'),
@@ -651,9 +652,21 @@ describe('App', () => {
       localStorage.setItem('countries-app.friend', JSON.stringify({ name: 'Anna', places: ['Japan'] }))
       render(<App compareOnOpen />)
       expect(sidePanel()).toHaveAccessibleName('Visited')
-      expect(screen.getByRole('region', { name: 'Compare with a friend' })).toHaveTextContent('ANNA')
+      expect(screen.getByRole('tab', { name: 'Compare with a friend' })).toHaveAttribute('aria-selected', 'true')
+      expect(screen.getByRole('region', { name: 'Compare' })).toHaveTextContent('with Anna')
       expect(painted()).toMatchObject({ Japan: DEFAULT_THEME.wishlist, Denmark: DEFAULT_THEME.visited })
       expect(key()).toBeInTheDocument()
+    })
+
+    it('takes a place off your wishlist from the comparison, as well as putting one on', async () => {
+      localStorage.setItem('countries-app.friend', JSON.stringify({ name: 'Anna', places: ['Brazil', 'Japan'] }))
+      render(<App />)
+      await userEvent.click(screen.getByRole('button', { name: 'Visited' }))
+      await userEvent.click(screen.getByRole('tab', { name: 'Compare with a friend' }))
+      await userEvent.click(screen.getByRole('button', { name: 'Take Brazil off your wishlist' }))
+      expect(JSON.parse(localStorage.getItem('countries-app.wishlist')!)).toEqual([])
+      await userEvent.click(screen.getByRole('button', { name: 'Add Japan to your wishlist' }))
+      expect(JSON.parse(localStorage.getItem('countries-app.wishlist')!)).toEqual(['Japan'])
     })
 
     it('keeps your friend after a reload, but off the globe until switched on', () => {

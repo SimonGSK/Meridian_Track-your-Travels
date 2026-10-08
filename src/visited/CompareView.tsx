@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import type { CountryFeature } from '../countries'
 import { EyeIcon, EyeOffIcon, StarIcon } from '../icons'
-import Card from '../ui/Card'
 import StatsBox from '../ui/StatsBox'
 import { FRIEND_NAME_MAX, readShared, shareLink, type Comparison, type Friend } from './friend'
 import { Flag } from './VisitedPanel'
@@ -17,21 +16,23 @@ type Props = {
   /** Whether your friend's places show on the globe */
   shown: boolean
   onShownChange: (shown: boolean) => void
-  /** For the places only your friend has been: on your wishlist? */
+  /** For the places only your friend has been: on your wishlist, and on or off it again */
   wishlist: ReadonlySet<string>
   onWish: (name: string) => void
+  onUnwish: (name: string) => void
   onShow: (country: CountryFeature) => void
 }
 
-/** A group of places: who's been, with flags; your friend's can go on your wishlist */
+/** A group of places: who's been, with flags; your friend's can go on your wishlist, and off it again */
 function Places(props: {
   label: string
   places: CountryFeature[]
   wishlist?: ReadonlySet<string>
   onWish?: (name: string) => void
+  onUnwish?: (name: string) => void
   onShow: (country: CountryFeature) => void
 }) {
-  const { label, places, wishlist, onWish, onShow } = props
+  const { label, places, wishlist, onWish, onUnwish, onShow } = props
   if (places.length === 0) return null
   return (
     <>
@@ -41,21 +42,21 @@ function Places(props: {
       <ul className="country-list" aria-label={label}>
         {places.map((c) => {
           const { name } = c.properties
+          const wished = !!wishlist?.has(name)
           return (
             <li key={name} className="country-item">
               <button type="button" className="country-row" onClick={() => onShow(c)}>
                 <Flag country={c} />
                 <span className="row-name">{name}</span>
               </button>
-              {onWish && (
+              {onWish && onUnwish && (
                 <button
                   type="button"
-                  className={`icon-button small wish-star${wishlist?.has(name) ? ' on' : ''}`}
-                  aria-label={wishlist?.has(name) ? `${name} is on your wishlist` : `Add ${name} to your wishlist`}
-                  disabled={wishlist?.has(name)}
-                  onClick={() => onWish(name)}
+                  className={`icon-button small wish-star${wished ? ' on' : ''}`}
+                  aria-label={wished ? `Take ${name} off your wishlist` : `Add ${name} to your wishlist`}
+                  onClick={() => (wished ? onUnwish(name) : onWish(name))}
                 >
-                  <StarIcon size={15} filled={wishlist?.has(name)} />
+                  <StarIcon size={15} filled={wished} />
                 </button>
               )}
             </li>
@@ -66,8 +67,8 @@ function Places(props: {
   )
 }
 
-/** Comparing with a friend: your link to send them, theirs pasted in, and where you've each been */
-export default function CompareCard(props: Props) {
+/** The Visited tab's comparing with a friend: your link to send them, theirs pasted in, and where you've each been */
+export default function CompareView(props: Props) {
   const { visited, friend, comparison, onFriend, shown, onShownChange } = props
   const [name, setName] = useState('')
   const [copied, setCopied] = useState(false)
@@ -92,7 +93,7 @@ export default function CompareCard(props: Props) {
   }
 
   return (
-    <Card label="Compare with a friend" meta={friend?.name.toUpperCase()} className="compare">
+    <div className="compare">
       {friend && comparison ? (
         <>
           <StatsBox
@@ -116,7 +117,14 @@ export default function CompareCard(props: Props) {
               {shown ? <EyeIcon /> : <EyeOffIcon />}
             </span>
           </button>
-          <Places label={`Only ${friend.name}`} places={comparison.onlyFriend} wishlist={props.wishlist} onWish={props.onWish} onShow={props.onShow} />
+          <Places
+            label={`Only ${friend.name}`}
+            places={comparison.onlyFriend}
+            wishlist={props.wishlist}
+            onWish={props.onWish}
+            onUnwish={props.onUnwish}
+            onShow={props.onShow}
+          />
           <Places label="Both of you" places={comparison.both} onShow={props.onShow} />
           <Places label="Only you" places={comparison.onlyYou} onShow={props.onShow} />
           <button type="button" className="text-button" onClick={() => onFriend(null)}>
@@ -172,6 +180,6 @@ export default function CompareCard(props: Props) {
         </button>
       </div>
       <p className="muted compare-note">With your {visited.size} places, as they are now.</p>
-    </Card>
+    </div>
   )
 }

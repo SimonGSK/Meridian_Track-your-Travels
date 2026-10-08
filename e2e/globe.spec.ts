@@ -392,8 +392,8 @@ test.describe('comparing with a friend', () => {
     const code = Buffer.from(JSON.stringify({ v: 1, name: 'Anna', places: ['Japan', 'Peru'] })).toString('base64url')
     await page.goto(`/#compare=${code}`)
     await expect(page.getByTestId('globe')).toHaveAttribute('aria-busy', 'false')
-    const card = page.getByRole('region', { name: 'Compare with a friend' })
-    await expect(card).toContainText('ANNA')
+    await expect(page.getByRole('tab', { name: 'Compare with a friend' })).toHaveAttribute('aria-selected', 'true')
+    await expect(page.getByRole('region', { name: 'Compare' })).toContainText('with Anna')
     await expect(page.getByRole('list', { name: 'Only Anna' })).toContainText('Japan')
     await expect(page.getByRole('figure', { name: 'Compare' })).toBeVisible()
     expect(page.url()).not.toContain('compare=') // the address is tidied
