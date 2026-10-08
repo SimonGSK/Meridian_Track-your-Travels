@@ -669,7 +669,7 @@ describe('App', () => {
       expect(JSON.parse(localStorage.getItem('countries-app.wishlist')!)).toEqual(['Japan'])
     })
 
-    it('shows only the countries compared: not your states, city pins or flights, unless a flight is picked', async () => {
+    it('shows only countries while the Compare tab is open, and your friend only there', async () => {
       const copenhagen = (await loadCities()).find((c) => c.name === 'Copenhagen' && c.place === 'DK')!
       await loadAirports()
       localStorage.setItem('countries-app.visited', JSON.stringify(['Denmark', 'France', 'United States']))
@@ -683,33 +683,49 @@ describe('App', () => {
         )
       const pins = () => ((pinLayer.show.mock.calls.at(-1)?.[0] ?? []) as { city: { name: string } }[]).map((p) => p.city.name)
       const flights = () =>
-        ((flightLayer.show.mock.calls.at(-1)?.[0] ?? []) as { from: { code: string }; to: { code: string }; highlighted: boolean }[]).map(
-          (line) => `${line.from.code}-${line.to.code}${line.highlighted ? '!' : ''}`,
+        ((flightLayer.show.mock.calls.at(-1)?.[0] ?? []) as { from: { code: string }; to: { code: string } }[]).map(
+          (line) => `${line.from.code}-${line.to.code}`,
         )
+      /** Your states, city pins and flights all on the globe, and Anna not */
+      const yoursShown = () => {
+        expect(states()).toEqual(['California'])
+        expect(pins()).toEqual(['Copenhagen'])
+        expect(flights()).toEqual(['CPH-CDG'])
+        expect(painted().Japan).toBeUndefined()
+        expect(key()).not.toBeInTheDocument()
+      }
       render(<App />)
       await waitFor(() => expect(flights()).toEqual(['CPH-CDG']))
-      expect(states()).toEqual(['California'])
-      expect(pins()).toEqual(['Copenhagen'])
+      yoursShown()
 
+      // The Compare tab shows just countries, with Anna switched off as well
       await userEvent.click(screen.getByRole('button', { name: 'Visited' }))
       await userEvent.click(screen.getByRole('tab', { name: 'Compare with a friend' }))
-      await userEvent.click(screen.getByRole('switch', { name: 'Show Anna on the globe' }))
       expect(states()).toEqual([])
       expect(pins()).toEqual([])
       expect(flights()).toEqual([])
-
-      // A flight picked in the list still shows, on its own, until put away
-      await userEvent.click(screen.getByRole('tab', { name: 'Flights' }))
-      await userEvent.click(await screen.findByRole('button', { name: /^Copenhagen → Paris/ }))
-      expect(flights()).toEqual(['CPH-CDG!'])
-      fireEvent.keyDown(window, { key: 'Escape' })
-      expect(flights()).toEqual([])
-
-      await userEvent.click(screen.getByRole('tab', { name: 'Compare with a friend' }))
+      expect(painted()).toEqual({
+        Denmark: DEFAULT_THEME.visited,
+        France: DEFAULT_THEME.visited,
+        'United States': DEFAULT_THEME.visited,
+        Brazil: DEFAULT_THEME.wishlist,
+      })
       await userEvent.click(screen.getByRole('switch', { name: 'Show Anna on the globe' }))
-      expect(states()).toEqual(['California'])
-      expect(pins()).toEqual(['Copenhagen'])
-      expect(flights()).toEqual(['CPH-CDG'])
+      expect(painted().Japan).toBe(DEFAULT_THEME.wishlist)
+      expect(key()).toBeInTheDocument()
+
+      // Another tab, or another panel, puts Anna away, though she stays switched on for the Compare tab
+      await userEvent.click(screen.getByRole('tab', { name: 'Flights' }))
+      yoursShown()
+      await userEvent.click(screen.getByRole('tab', { name: 'Compare with a friend' }))
+      expect(painted().Japan).toBe(DEFAULT_THEME.wishlist)
+      await userEvent.click(screen.getByRole('button', { name: 'Explore' }))
+      yoursShown()
+      await userEvent.click(screen.getByRole('button', { name: 'Visited' }))
+      expect(painted().Japan).toBe(DEFAULT_THEME.wishlist)
+      fireEvent.keyDown(window, { key: 'Escape' })
+      expect(sidePanel()).not.toBeInTheDocument()
+      yoursShown()
     })
 
     it('keeps your friend after a reload, but off the globe until switched on', () => {
