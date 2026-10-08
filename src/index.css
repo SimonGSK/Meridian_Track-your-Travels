@@ -1043,6 +1043,17 @@ code {
   color: var(--accent-ink);
 }
 
+/* Symbols instead of names: equal columns, each symbol in the middle */
+.segmented.icons {
+  grid-auto-columns: 1fr;
+}
+
+.segmented.icons button {
+  display: grid;
+  place-items: center;
+  padding: 7px 0;
+}
+
 .facts.stats {
   /* Sized by what's in them, so "Cities" lends its room to "Territories" */
   grid-template-columns: repeat(3, auto);
@@ -2242,14 +2253,6 @@ code {
   .tab {
     padding: 9px 14px;
     font-size: 14px;
-  }
-  /* "Countries, Flights, Years, Achievements" in the narrower column */
-  .segmented {
-    gap: 2px;
-  }
-  .segmented button {
-    padding: 7px 3px;
-    font-size: 12px;
   }
 }
 

@@ -47,7 +47,7 @@ import { useVisitDates } from './visited/useVisitDates'
 import { useWishlist } from './visited/useWishlist'
 import { useFriend } from './visited/useFriend'
 import { comparisonOf } from './visited/friend'
-import CompareCard from './visited/CompareCard'
+import CompareView from './visited/CompareView'
 import { ACHIEVEMENTS, earnedIds, type Atlas } from './visited/achievements'
 import AchievementsPanel from './visited/AchievementsPanel'
 import AchievementToast from './visited/AchievementToast'
@@ -177,7 +177,8 @@ export default function App({ compareOnOpen = false }: { compareOnOpen?: boolean
   const [hoveredCity, setHoveredCity] = useState<City | null>(null)
   const airports = useAirports()
   const { flights, add: addFlight, remove: removeFlight, setDate: setFlightDate } = useFlights(cities, airports)
-  const [visitedView, setVisitedView] = useState<VisitedView>('countries')
+  // A friend's link opened: their comparison
+  const [visitedView, setVisitedView] = useState<VisitedView>(compareOnOpen ? 'compare' : 'countries')
   /** A flight or trip picked in the list, shown on the globe (and highlighted) until the view moves on */
   const [shownRoutes, setShownRoutes] = useState<Route[] | null>(null)
 
@@ -682,7 +683,22 @@ export default function App({ compareOnOpen = false }: { compareOnOpen?: boolean
               years={years.length}
               earned={earnedIds(atlas).size}
               achievementCount={ACHIEVEMENTS.length}
+              friend={friend?.name ?? null}
               achievements={<AchievementsPanel atlas={atlas} />}
+              compare={
+                <CompareView
+                  visited={visited}
+                  friend={friend}
+                  comparison={comparison}
+                  onFriend={setFriend}
+                  shown={friendShown}
+                  onShownChange={setFriendShown}
+                  wishlist={wishlist}
+                  onWish={addWish}
+                  onUnwish={removeWish}
+                  onShow={showCountry}
+                />
+              }
               countries={
                 <VisitedPanel
                   visited={visited}
@@ -742,19 +758,6 @@ export default function App({ compareOnOpen = false }: { compareOnOpen?: boolean
                   onShowTrip={showRoutes}
                 />
               }
-            />
-          )}
-          {view === 'visited' && (
-            <CompareCard
-              visited={visited}
-              friend={friend}
-              comparison={comparison}
-              onFriend={setFriend}
-              shown={friendShown}
-              onShownChange={setFriendShown}
-              wishlist={wishlist}
-              onWish={addWish}
-              onShow={showCountry}
             />
           )}
           {view === 'design' && (

@@ -17,6 +17,8 @@ describe('VisitedTab', () => {
         countries={<p>the countries</p>}
         flightsPanel={<p>the flights</p>}
         yearsPanel={<p>the years</p>}
+        friend="Anna"
+        compare={<p>the comparison</p>}
         achievements={<p>the achievements</p>}
       />,
     )
@@ -38,6 +40,29 @@ describe('VisitedTab', () => {
     show('years')
     expect(screen.getByRole('tabpanel', { name: 'Years' })).toHaveTextContent('the years')
     expect(screen.getByText('4 years')).toBeInTheDocument()
+  })
+
+  it('shows how you compare with a friend, named', () => {
+    show('compare')
+    expect(screen.getByRole('tabpanel', { name: 'Compare with a friend' })).toHaveTextContent('the comparison')
+    expect(screen.getByRole('region', { name: 'Compare' })).toHaveTextContent('with Anna')
+  })
+
+  it('switches with symbols, each named when pointed at and read out', () => {
+    show('countries')
+    const tabs = screen.getAllByRole('tab')
+    expect(tabs.map((tab) => tab.getAttribute('aria-label'))).toEqual([
+      'Countries',
+      'Flights',
+      'Years',
+      'Achievements',
+      'Compare with a friend',
+    ])
+    for (const tab of tabs) {
+      expect(tab).toHaveAttribute('title', tab.getAttribute('aria-label'))
+      expect(tab.querySelector('svg')).toBeInTheDocument()
+      expect(tab).toHaveTextContent('')
+    }
   })
 
   it('shows your achievements, counting those earned', () => {
@@ -69,6 +94,8 @@ describe('VisitedTab, switched from elsewhere', () => {
       flightsPanel: null,
       yearsPanel: null,
       achievements: null,
+      friend: null,
+      compare: null,
     }
     const { rerender } = render(<VisitedTab view="countries" {...props} />)
     expect(scrolled).not.toHaveBeenCalled()

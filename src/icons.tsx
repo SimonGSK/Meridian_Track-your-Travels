@@ -113,6 +113,43 @@ export const TrophyIcon = ({ size = 24 }: Props) =>
     </>,
   )
 
+export const FlagIcon = ({ size = 24 }: Props) =>
+  svg(
+    size,
+    <>
+      <path d="M5 21V4" />
+      <path d="M5 4h12l-2.5 4.5L17 13H5" />
+    </>,
+  )
+
+/** Seen from above, nose up */
+export const PlaneIcon = ({ size = 24 }: Props) =>
+  svg(
+    size,
+    <path d="M12 2.5c.8 0 1.4.7 1.4 1.5v5.2l7.1 4.3v2l-7.1-2.1v4.2l2.3 1.8v1.6L12 20l-3.7 1v-1.6l2.3-1.8v-4.2l-7.1 2.1v-2l7.1-4.3V4c0-.8.6-1.5 1.4-1.5z" />,
+  )
+
+export const CalendarIcon = ({ size = 24 }: Props) =>
+  svg(
+    size,
+    <>
+      <rect x="4" y="5" width="16" height="16" rx="2" />
+      <path d="M4 10h16M9 3v4M15 3v4" />
+    </>,
+  )
+
+/** Two people, side by side */
+export const PeopleIcon = ({ size = 24 }: Props) =>
+  svg(
+    size,
+    <>
+      <circle cx="9" cy="8" r="3.2" />
+      <path d="M3.5 20c0-3.3 2.5-5.5 5.5-5.5s5.5 2.2 5.5 5.5" />
+      <circle cx="17" cy="9" r="2.6" />
+      <path d="M16.2 14.6c2.6.3 4.3 2.3 4.3 5" />
+    </>,
+  )
+
 export const LayersIcon = ({ size = 24 }: Props) =>
   svg(
     size,
