@@ -57,6 +57,7 @@ import { describeVisits, formatVisitDate, type VisitDate } from './data/visitDat
 import { cityOf } from './data/airports'
 import UndoToast, { type Removal } from './ui/UndoToast'
 import { useFlights } from './visited/useFlights'
+import { useTripNames } from './visited/useTripNames'
 import FlightsPanel from './visited/FlightsPanel'
 import VisitedTab, { type VisitedView } from './visited/VisitedTab'
 import YearsPanel from './visited/YearsPanel'
@@ -203,10 +204,13 @@ export default function App({ compareOnOpen = false }: { compareOnOpen?: boolean
   const [hoveredCity, setHoveredCity] = useState<City | null>(null)
   const airports = useAirports()
   const { flights, add: addFlight, remove: removeFlight, setDate: setFlightDate } = useFlights(cities, airports)
+  const { nameOf: tripNameOf, setName: setTripName } = useTripNames()
   // A friend's link opened: their comparison
   const [visitedView, setVisitedView] = useState<VisitedView>(compareOnOpen ? 'compare' : 'countries')
   /** A flight or trip picked in the list, shown on the globe (and highlighted) until the view moves on */
   const [shownRoutes, setShownRoutes] = useState<Route[] | null>(null)
+  // A trip picked in the list, or one of its flights, says what it's called on the globe
+  const pickedTrip = shownRoutes ? tripNameOf(shownRoutes.map((route) => route.flight.id)) : null
 
   const globeMaterial = useMemo(
     () => new MeshPhongMaterial({ color: theme.ocean, shininess: theme.oceanShininess }),
@@ -729,6 +733,12 @@ export default function App({ compareOnOpen = false }: { compareOnOpen?: boolean
           <span>drag to spin</span>
           <span>{isPhone() ? 'pinch to zoom' : 'scroll to zoom'}</span>
         </p>
+        {pickedTrip && !playing && (
+          <p className="globe-caption">
+            {pickedTrip.name.trim() && <strong>{pickedTrip.name}</strong>}
+            {pickedTrip.note && <span>{pickedTrip.note}</span>}
+          </p>
+        )}
         {compareShown && friend && (
           <GlobeKey
             title="Compare"
@@ -853,6 +863,8 @@ export default function App({ compareOnOpen = false }: { compareOnOpen?: boolean
                   onDate={setFlightDate}
                   onShow={(route) => showRoutes([route])}
                   onShowTrip={showRoutes}
+                  nameOf={tripNameOf}
+                  onName={(legs, name) => setTripName(legs, name, flights.map((f) => f.id))}
                 />
               }
             />

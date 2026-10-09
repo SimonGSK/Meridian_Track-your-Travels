@@ -73,5 +73,5 @@ export function tripsByDate(trips: readonly Trip[]) {
   return [...dated, ...trips.filter((t) => !t.date).reverse()]
 }
 
-/** The cities a trip stops at, in order: "Copenhagen", "Seoul", "Tokyo", "Copenhagen" */
-export const stopsOf = (trip: Trip) => [cityOf(trip.routes[0].from), ...trip.routes.map((route) => cityOf(route.to))]
+/** The cities a trip, or any flights one after another, stop at, in order: "Copenhagen", "Seoul", "Tokyo", "Copenhagen" */
+export const stopsOf = ({ routes }: Pick<Trip, 'routes'>) => [cityOf(routes[0].from), ...routes.map((route) => cityOf(route.to))]

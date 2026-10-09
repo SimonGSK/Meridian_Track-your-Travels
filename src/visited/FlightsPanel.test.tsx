@@ -1,7 +1,9 @@
 import { describe, expect, it, vi } from 'vitest'
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { useState } from 'react'
 import FlightsPanel from './FlightsPanel'
+import type { TripName } from './useTripNames'
 import { loadAirports } from '../data/airports'
 import { routeOf, type Flight } from '../data/flights'
 
@@ -133,6 +135,57 @@ describe('FlightsPanel', () => {
     await pick('To', 'cdg')
     expect(screen.getByRole('button', { name: 'Add flight' })).toBeDisabled()
     expect(screen.getByText('From and To are the same airport.')).toBeInTheDocument()
+  })
+
+  describe('naming a trip', () => {
+    const stops = 'Copenhagen → Bangkok → Sydney'
+    /** The panel with a trip, naming it as the app does */
+    function Named({ onName = vi.fn() }: { onName?: (legs: readonly string[], name: TripName) => void }) {
+      const [named, setNamed] = useState<TripName | null>(null)
+      return (
+        <FlightsPanel
+          routes={[route('CPH', 'BKK'), route('BKK', 'SYD')]}
+          airports={airports}
+          onAdd={vi.fn()}
+          onRemove={vi.fn()}
+          onDate={vi.fn()}
+          onShow={vi.fn()}
+          onShowTrip={vi.fn()}
+          nameOf={() => named}
+          onName={(legs, name) => {
+            onName(legs, name)
+            setNamed(name.name || name.note ? name : null)
+          }}
+        />
+      )
+    }
+
+    it('names a trip and writes a note, shown with its stops', async () => {
+      const onName = vi.fn()
+      render(<Named onName={onName} />)
+      await userEvent.click(screen.getByRole('button', { name: `Name the trip ${stops}` }))
+      await userEvent.type(screen.getByRole('textbox', { name: `Name of the trip ${stops}` }), 'Down under')
+      await userEvent.type(screen.getByRole('textbox', { name: `Note on the trip ${stops}` }), 'With Anna')
+      expect(onName).toHaveBeenLastCalledWith(['CPH-BKK', 'BKK-SYD'], { name: 'Down under', note: 'With Anna' })
+      await userEvent.click(screen.getByRole('button', { name: 'Done' }))
+      expect(screen.queryByRole('textbox', { name: `Name of the trip ${stops}` })).not.toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /^Trip/ })).toHaveTextContent(new RegExp(`Down under${stops}With Anna$`))
+      expect(screen.getByRole('button', { name: 'Rename the trip Down under' })).toBeInTheDocument()
+    })
+
+    it('goes back to the stops when the name is cleared', async () => {
+      render(<Named />)
+      await userEvent.click(screen.getByRole('button', { name: `Name the trip ${stops}` }))
+      const name = screen.getByRole('textbox', { name: `Name of the trip ${stops}` })
+      await userEvent.type(name, 'Oz')
+      await userEvent.clear(name)
+      expect(screen.getByRole('button', { name: `Name the trip ${stops}` })).toBeInTheDocument()
+    })
+
+    it("offers no naming where names aren't kept", () => {
+      setup()
+      expect(screen.queryByRole('button', { name: /Name the trip/ })).not.toBeInTheDocument()
+    })
   })
 
   it('says when there are no flights yet', () => {

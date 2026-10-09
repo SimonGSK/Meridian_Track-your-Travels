@@ -1234,6 +1234,28 @@ describe('App', () => {
       expect(drawn()).toEqual(['CPH-DXB', 'BKK-CPH', 'LHR-CDG'])
     })
 
+    it('names a trip, kept after a reload, and says what it is called on the globe when picked', async () => {
+      withFlights(fly('CPH', 'DXB'), fly('DXB', 'BKK'), fly('BKK', 'CPH'))
+      const { unmount } = render(<App />)
+      await openFlights()
+      await userEvent.click(await screen.findByRole('button', { name: /^Name the trip/ }))
+      await userEvent.type(screen.getByRole('textbox', { name: /^Name of the trip/ }), 'Asia loop')
+      await userEvent.type(screen.getByRole('textbox', { name: /^Note on the trip/ }), 'Monsoon')
+      await userEvent.click(screen.getByRole('button', { name: 'Done' }))
+      unmount()
+
+      render(<App />)
+      await openFlights()
+      await userEvent.click(await screen.findByRole('button', { name: /^Trip · 3 flights · .*Asia loop/ }))
+      const caption = () => document.querySelector('.globe-caption')
+      expect(caption()).toHaveTextContent('Asia loopMonsoon')
+      // One of its flights says it too
+      fireEvent.keyDown(window, { key: 'Escape' })
+      expect(caption()).toBeNull()
+      await userEvent.click(screen.getByRole('button', { name: /^Dubai → Bangkok/ }))
+      expect(caption()).toHaveTextContent('Asia loop')
+    })
+
     it('hides the flights when switched off, and during games', async () => {
       withFlights(fly('CPH', 'BKK'))
       render(<App />)

@@ -3,10 +3,12 @@ import { cityOf, type Airport } from '../data/airports'
 import { flightStats, formatDistance, type Route } from '../data/flights'
 import { stopsOf, tripsByDate, tripsOf } from '../data/trips'
 import { formatVisitDate, type VisitDate } from '../data/visitDates'
-import { CloseIcon } from '../icons'
+import { CloseIcon, PencilIcon } from '../icons'
 import StatsBox from '../ui/StatsBox'
+import { noAutofill } from '../ui/noAutofill'
 import AirportSearch from './AirportSearch'
 import MonthYearSelect from './MonthYearSelect'
+import { TRIP_NAME_MAX, TRIP_NOTE_MAX, type TripName } from './useTripNames'
 
 type Props = {
   /** Your flights with their cities, in the order added */
@@ -21,6 +23,10 @@ type Props = {
   onShow: (route: Route) => void
   /** Shows a trip's routes on the globe */
   onShowTrip: (routes: Route[]) => void
+  /** A trip's name and note, from its flights' ids */
+  nameOf?: (legs: readonly string[]) => TripName | null
+  /** Names a trip; with neither a name nor a note, it has none */
+  onName?: (legs: readonly string[], name: TripName) => void
 }
 
 const oneDecimal = new Intl.NumberFormat('en-US', { maximumFractionDigits: 1 })
@@ -76,12 +82,15 @@ function FlightRow({ route, editing, onEdit, onShow, onRemove, onDate }: RowProp
 }
 
 /** The Visited tab's flights: what they add up to, a form to add one, and the list, grouped into trips */
-export default function FlightsPanel({ routes, airports, onAdd, onRemove, onDate, onShow, onShowTrip }: Props) {
+export default function FlightsPanel(props: Props) {
+  const { routes, airports, onAdd, onRemove, onDate, onShow, onShowTrip, nameOf, onName } = props
   const [from, setFrom] = useState<Airport | null>(null)
   const [to, setTo] = useState<Airport | null>(null)
   // Kept for the next leg too, which is likely the same trip
   const [date, setDate] = useState<VisitDate | null>(null)
   const [editing, setEditing] = useState<string | null>(null)
+  /** The trip being named, by its first flight */
+  const [naming, setNaming] = useState<string | null>(null)
   const { flights, km, aroundEarth } = flightStats(routes)
 
   const add = () => {
@@ -160,12 +169,64 @@ export default function FlightsPanel({ routes, airports, onAdd, onRemove, onDate
             if (trip.routes.length === 1) return row(trip.routes[0])
             const stops = stopsOf(trip).join(' → ')
             const meta = ['Trip', trip.date && formatVisitDate(trip.date), `${trip.routes.length} flights`, formatDistance(trip.km)]
+            const legs = trip.routes.map((route) => route.flight.id)
+            const id = legs[0]
+            const named = nameOf?.(legs) ?? null
+            const name = named?.name.trim() ? named.name : null
             return (
-              <li key={trip.routes[0].flight.id} className="trip">
-                <button type="button" className="trip-header" onClick={() => onShowTrip(trip.routes)}>
-                  <span className="trip-meta">{meta.filter(Boolean).join(' · ')}</span>
-                  <span className="trip-route">{stops}</span>
-                </button>
+              <li key={id} className="trip">
+                <div className="trip-top">
+                  <button type="button" className="trip-header" onClick={() => onShowTrip(trip.routes)}>
+                    <span className="trip-meta">{meta.filter(Boolean).join(' · ')}</span>
+                    {name && <span className="trip-name">{name}</span>}
+                    <span className={name ? 'trip-stops' : 'trip-route'}>{stops}</span>
+                    {named?.note && naming !== id && <span className="visit-note">{named.note}</span>}
+                  </button>
+                  {onName && (
+                    <button
+                      type="button"
+                      className="remove-button note-button"
+                      aria-expanded={naming === id}
+                      onClick={() => setNaming(naming === id ? null : id)}
+                      aria-label={name ? `Rename the trip ${name}` : `Name the trip ${stops}`}
+                    >
+                      <PencilIcon size={14} />
+                    </button>
+                  )}
+                </div>
+                {onName && naming === id && (
+                  <form
+                    className="note-editor trip-name-editor"
+                    onSubmit={(e) => {
+                      e.preventDefault()
+                      setNaming(null)
+                    }}
+                  >
+                    <input
+                      {...noAutofill('trip-name')}
+                      type="text"
+                      aria-label={`Name of the trip ${stops}`}
+                      placeholder="Interrail 2019"
+                      maxLength={TRIP_NAME_MAX}
+                      value={named?.name ?? ''}
+                      onChange={(e) => onName(legs, { name: e.target.value, note: named?.note })}
+                      // Opened by pressing the pencil, to write in straight away
+                      autoFocus
+                    />
+                    <input
+                      {...noAutofill('trip-note')}
+                      type="text"
+                      aria-label={`Note on the trip ${stops}`}
+                      placeholder="Who with, what you did…"
+                      maxLength={TRIP_NOTE_MAX}
+                      value={named?.note ?? ''}
+                      onChange={(e) => onName(legs, { name: named?.name ?? '', note: e.target.value })}
+                    />
+                    <button type="submit" className="link-button">
+                      Done
+                    </button>
+                  </form>
+                )}
                 <ul className="flight-list trip-legs" aria-label={`Flights of the trip ${stops}`}>
                   {trip.routes.map(row)}
                 </ul>
