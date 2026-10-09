@@ -2637,12 +2637,19 @@ code {
   color: var(--accent);
 }
 
-/* A note when you earn one. Only the note itself takes clicks, never the space it's shown in. */
-.achievement-toast-region {
+/*
+ * Notes at the bottom: one when you earn an achievement, one to undo a
+ * removal, one over the other. Only the notes take clicks, never the space
+ * they're shown in.
+ */
+.toasts {
   position: fixed;
   left: 50%;
   bottom: 80px;
   z-index: 5;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   transform: translateX(-50%);
   width: min(360px, calc(100vw - 32px));
   pointer-events: none;
@@ -2650,10 +2657,41 @@ code {
 
 /* On phones, over the globe under the header, rather than over the sheet you're using */
 @media (max-width: 640px) {
-  .achievement-toast-region {
+  .toasts {
     top: calc(var(--topbar-height) + 12px);
     bottom: auto;
   }
+}
+
+.undo-toast {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 6px 6px 14px;
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  background: var(--panel-strong);
+}
+
+.undo-toast-text {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+}
+
+.undo-button {
+  padding: 6px 10px;
+  border: none;
+  border-radius: 8px;
+  background: none;
+  color: var(--accent);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.undo-button:hover {
+  background: var(--surface-hover);
 }
 
 .achievement-toast {

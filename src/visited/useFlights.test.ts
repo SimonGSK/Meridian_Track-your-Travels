@@ -18,6 +18,24 @@ describe('useFlights', () => {
     expect(renderHook(() => useFlights(null, null)).result.current.flights).toHaveLength(1)
   })
 
+  it('puts a removed flight back where it was in the order', () => {
+    const { result } = renderHook(() => useFlights(null, null))
+    act(() => result.current.add('CPH', 'BKK'))
+    act(() => result.current.add('BKK', 'HKT', '2024-02'))
+    act(() => result.current.add('HKT', 'CPH'))
+    const [, middle] = result.current.flights
+    let undo = () => {}
+    act(() => {
+      undo = result.current.remove(middle.id)
+    })
+    expect(result.current.flights.map((f) => f.to)).toEqual(['BKK', 'CPH'])
+    act(() => undo())
+    expect(result.current.flights).toEqual([result.current.flights[0], middle, result.current.flights[2]])
+    expect(result.current.flights.map((f) => f.to)).toEqual(['BKK', 'HKT', 'CPH'])
+    act(() => undo()) // only once
+    expect(result.current.flights).toHaveLength(3)
+  })
+
   it('does not add a flight to the same airport', () => {
     const { result } = renderHook(() => useFlights(null, null))
     act(() => result.current.add('CPH', 'CPH'))

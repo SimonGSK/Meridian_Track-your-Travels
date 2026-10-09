@@ -736,6 +736,108 @@ describe('App', () => {
     })
   })
 
+  describe('undo', () => {
+    const note = () => screen.queryByText(/^(Removed|Took) /)
+    const saved = (key: string) => JSON.parse(localStorage.getItem(`countries-app.${key}`) ?? 'null')
+    beforeAll(() => loadAirports(), 20_000)
+    beforeEach(() => localStorage.setItem('countries-app.visited', JSON.stringify(['Denmark', 'France'])))
+
+    it('puts a country removed from the list back, from the note or with Cmd+Z', async () => {
+      render(<App />)
+      await userEvent.click(screen.getByRole('button', { name: 'Visited' }))
+      await userEvent.click(screen.getByRole('button', { name: 'Remove Denmark' }))
+      expect(note()).toHaveTextContent('Removed Denmark')
+      expect(painted()).toEqual({ France: DEFAULT_THEME.visited })
+      await userEvent.click(screen.getByRole('button', { name: 'Undo' }))
+      expect(painted()).toEqual({ Denmark: DEFAULT_THEME.visited, France: DEFAULT_THEME.visited })
+      expect(note()).not.toBeInTheDocument()
+
+      await userEvent.click(screen.getByRole('button', { name: 'Remove France' }))
+      fireEvent.keyDown(window, { key: 'z', metaKey: true })
+      expect(saved('visited')).toEqual(expect.arrayContaining(['Denmark', 'France']))
+      expect(note()).not.toBeInTheDocument()
+    })
+
+    it("puts back a country unmarked in its panel, and a place taken off the wishlist", async () => {
+      localStorage.setItem('countries-app.wishlist', JSON.stringify(['Peru']))
+      render(<App />)
+      click(100)
+      await userEvent.click(within(countryPanel()!).getByRole('button', { name: 'In visited atlas' }))
+      expect(note()).toHaveTextContent('Removed Denmark')
+      await userEvent.click(screen.getByRole('button', { name: 'Undo' }))
+      expect(within(countryPanel()!).getByRole('button', { name: 'In visited atlas' })).toHaveAttribute('aria-pressed', 'true')
+
+      await userEvent.click(screen.getByRole('button', { name: 'Visited' }))
+      await userEvent.click(screen.getByRole('button', { name: 'Take Peru off your wishlist' }))
+      expect(note()).toHaveTextContent('Took Peru off your wishlist')
+      await userEvent.click(screen.getByRole('button', { name: 'Undo' }))
+      expect(saved('wishlist')).toEqual(['Peru'])
+    })
+
+    it('puts back a visit with its note', async () => {
+      localStorage.setItem('countries-app.visit-dates', JSON.stringify({ Denmark: ['2019-06', '2023'] }))
+      localStorage.setItem('countries-app.visit-notes', JSON.stringify({ Denmark: { '2019-06': 'Midsummer' } }))
+      render(<App />)
+      click(100)
+      await userEvent.click(within(countryPanel()!).getByRole('button', { name: 'Remove the visit in Jun 2019' }))
+      expect(note()).toHaveTextContent('Removed the visit to Denmark in Jun 2019')
+      expect(saved('visit-notes')).toEqual({})
+      await userEvent.click(screen.getByRole('button', { name: 'Undo' }))
+      expect(saved('visit-dates').Denmark).toEqual(expect.arrayContaining(['2019-06', '2023']))
+      expect(saved('visit-notes')).toEqual({ Denmark: { '2019-06': 'Midsummer' } })
+    })
+
+    it('puts back a city', async () => {
+      const copenhagen = (await loadCities()).find((c) => c.name === 'Copenhagen' && c.place === 'DK')!
+      localStorage.setItem('countries-app.visited-cities', JSON.stringify([copenhagen.id]))
+      render(<App />)
+      click(100)
+      await userEvent.click(await within(countryPanel()!).findByRole('button', { name: 'Remove Copenhagen' }))
+      expect(note()).toHaveTextContent('Removed Copenhagen')
+      expect(saved('visited-cities')).toEqual([])
+      await userEvent.click(screen.getByRole('button', { name: 'Undo' }))
+      expect(saved('visited-cities')).toEqual([copenhagen.id])
+    })
+
+    it('puts a flight back where it was in the order, which trips are told apart by', async () => {
+      const flights = [
+        { id: 'a', from: 'CPH', to: 'BKK' },
+        { id: 'b', from: 'BKK', to: 'LHR' },
+        { id: 'c', from: 'LHR', to: 'CPH' },
+      ]
+      localStorage.setItem('countries-app.flights', JSON.stringify(flights))
+      render(<App />)
+      await userEvent.click(screen.getByRole('button', { name: 'Visited' }))
+      await userEvent.click(screen.getByRole('tab', { name: 'Flights' }))
+      await userEvent.click(await screen.findByRole('button', { name: 'Remove flight from Bangkok to London' }))
+      expect(note()).toHaveTextContent('Removed the flight from Bangkok to London')
+      expect(saved('flights').map((f: { id: string }) => f.id)).toEqual(['a', 'c'])
+      await userEvent.click(screen.getByRole('button', { name: 'Undo' }))
+      expect(saved('flights')).toEqual(flights)
+    })
+
+    it('puts back a friend removed', async () => {
+      localStorage.setItem('countries-app.friend', JSON.stringify({ name: 'Anna', places: ['Japan'] }))
+      render(<App />)
+      await userEvent.click(screen.getByRole('button', { name: 'Visited' }))
+      await userEvent.click(screen.getByRole('tab', { name: 'Compare with a friend' }))
+      await userEvent.click(screen.getByRole('button', { name: 'Remove Anna' }))
+      expect(saved('friend')).toBeNull()
+      await userEvent.click(screen.getByRole('button', { name: 'Undo' }))
+      expect(saved('friend')).toEqual({ name: 'Anna', places: ['Japan'] })
+    })
+
+    it('offers to undo only the last removal', async () => {
+      render(<App />)
+      await userEvent.click(screen.getByRole('button', { name: 'Visited' }))
+      await userEvent.click(screen.getByRole('button', { name: 'Remove Denmark' }))
+      await userEvent.click(screen.getByRole('button', { name: 'Remove France' }))
+      expect(note()).toHaveTextContent('Removed France')
+      await userEvent.click(screen.getByRole('button', { name: 'Undo' }))
+      expect(saved('visited')).toEqual(['France'])
+    })
+  })
+
   describe('wishlist', () => {
     const wishes = () => JSON.parse(localStorage.getItem('countries-app.wishlist') ?? '[]')
 

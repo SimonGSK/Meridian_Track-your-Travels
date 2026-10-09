@@ -42,7 +42,18 @@ export function useFlights(cities: readonly City[] | null, airports: readonly Ai
     },
     [setStored],
   )
-  const remove = useCallback((id: string) => setStored((prev) => prev.filter((f) => f.id !== id)), [setStored])
+  /** Removes a flight; gives back how to put it back where it was in the order, which trips are told apart by */
+  const remove = useCallback(
+    (id: string) => {
+      const index = stored.findIndex((f) => f.id === id)
+      const flight = stored[index]
+      setStored((prev) => prev.filter((f) => f.id !== id))
+      return () => {
+        if (flight) setStored((prev) => (prev.some((f) => f.id === id) ? prev : [...prev.slice(0, index), flight, ...prev.slice(index)]))
+      }
+    },
+    [stored, setStored],
+  )
   /** When a flight was, or null for no date */
   const setDate = useCallback(
     (id: string, date: VisitDate | null) =>

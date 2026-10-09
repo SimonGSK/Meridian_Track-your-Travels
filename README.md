@@ -98,6 +98,8 @@ The screensaver doesn't update by itself. After changing your places or design, 
 
 Visited places, when you went and your notes, states, cities and flights, the wishlist, a friend you compare with, best scores and times, daily challenges, the design and the settings are saved in your browser (`localStorage`). Nothing is sent anywhere, so clearing the browser's site data, or moving to another browser or computer, would leave them behind. In the Settings tab, **Download backup** saves all of it to a file (`meridian-backup-2026-10-04.json`, readable JSON), and shows when you last did. **Restore from a backup…** reads one, says what it holds and when it was made, and only replaces what's in this browser when you confirm. Every part of the file is checked the way the app checks it when loading, so a damaged or foreign file is refused as a whole rather than half restored.
 
+Removing something by mistake is easy to take back: removing a country, a visit, a city, a flight, a place on the wishlist or a friend shows a note at the bottom ("Removed Japan · Undo") for eight seconds. **Undo**, or Cmd/Ctrl+Z when you're not typing, puts it back as it was: a visit with its note, a flight where it was among the others (so its trip stays the same). Only the last removal can be undone.
+
 Opening the app never writes over what's saved: something is saved only when you change it. So if the app finds data it can't read (saved by a newer version, or damaged), it leaves it as it is. If you then change that part, the new data is saved and the old is kept beside it, under the same name with `.unreadable` added.
 
 ## Install as an app
@@ -154,7 +156,7 @@ npx playwright install chromium
 ## Tests
 
 - **Unit and component tests** (Vitest and Testing Library, in jsdom): the data, the game rules, the globe's layers against a real three.js camera, every panel, and the whole app with a stand-in for the WebGL globe. About 980 tests, covering over 99% of the lines.
-- **End-to-end tests** (Playwright): the real app with its WebGL globe in headless Chromium, on a desktop and a phone (touch, tab bar, sheets): hovering and clicking countries, visited places, states, cities and flights kept after reloading, the wishlist, a friend's link, the settings, a year in review and its time-lapse, a backup downloaded and restored, the designs, every game, the screensaver and its preview (40 tests). In CI they run on the production build, with the service worker.
+- **End-to-end tests** (Playwright): the real app with its WebGL globe in headless Chromium, on a desktop and a phone (touch, tab bar, sheets): hovering and clicking countries, visited places, states, cities and flights kept after reloading, the wishlist, a friend's link, the settings, a year in review and its time-lapse, a backup downloaded and restored, undoing a removal, the designs, every game, the screensaver and its preview (41 tests). In CI they run on the production build, with the service worker.
 
 `.github/workflows/tests.yml` runs all of it on GitHub for every pull request and every push to `main`: lint, the unit tests, the build (which type-checks), and the end-to-end tests. `.github/workflows/deploy.yml` then puts each push to `main` online (see Online).
 
