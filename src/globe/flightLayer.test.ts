@@ -110,7 +110,7 @@ describe('createFlightLayer', () => {
 
   it('turns each plane to face its way on screen', () => {
     const layer = createFlightLayer(RADIUS)
-    // Due north along the meridian facing the camera: straight up the screen, flying or waiting
+    // Due north along the meridian facing the camera: straight up the screen
     const north = { from: { lat: -10, lng: 0 }, to: { lat: 10, lng: 0 } }
     layer.show([{ key: 'north', ...north }], [{ key: 'north', legs: [north] }])
     const [plane] = parts(layer).planes
@@ -129,7 +129,7 @@ describe('createFlightLayer', () => {
 })
 
 describe('a journey flown once', () => {
-  it('waits at the start until its time, flies its flights in its own time, and stays where it ends', () => {
+  it('flies its flights in its own time from when it starts, there only while flying', () => {
     const layer = createFlightLayer(RADIUS)
     const legs = [
       { from: { lat: -10, lng: 0 }, to: { lat: 10, lng: 0 } },
@@ -137,15 +137,18 @@ describe('a journey flown once', () => {
     ]
     layer.show([], [{ key: 'followed', legs, timing: { startsAt: 100, seconds: [4, 4], stop: STOP_SECONDS } }])
     const plane = layer.object.children.find((c) => c.type === 'Sprite') as Sprite
+    /** Where the plane is at a time, [lat, lng], or null where it's not to be seen */
     const where = (at: number) => {
       layer.tick(at, camera(), 800, 800)
+      if (!plane.visible) return null
       const { x, y, z } = plane.position
       return [Math.round((Math.asin(y / plane.position.length()) * 180) / Math.PI), Math.round((Math.atan2(x, z) * 180) / Math.PI)]
     }
-    expect(where(50)).toEqual([-10, 0]) // not off yet
+    expect(where(50)).toBeNull() // not off yet
     expect(where(102)).toEqual([0, 0]) // halfway along the first
-    expect(where(104 + STOP_SECONDS / 2)).toEqual([10, 0]) // waiting at the stop
-    expect(where(500)).toEqual([10, 20]) // landed at the end, and stays
+    expect(where(104 + STOP_SECONDS / 2)).toBeNull() // landed: gone, at the stop
+    expect(where(104 + STOP_SECONDS + 2)).toEqual([10, 10]) // off again, halfway along the second
+    expect(where(500)).toBeNull() // landed at the end: gone
     layer.dispose()
   })
 })
