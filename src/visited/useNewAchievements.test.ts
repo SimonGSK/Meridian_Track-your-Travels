@@ -37,6 +37,15 @@ describe('useNewAchievements', () => {
     expect(ids(result)).toEqual([])
   })
 
+  it('says nothing when one lost is earned again, as when a removal is undone', () => {
+    const { result, rerender } = setup(atlas(['Denmark', 'Norway']))
+    rerender({ atlas: atlas(['Denmark', 'Norway', 'Sweden']), loaded: true })
+    act(() => result.current[1]())
+    rerender({ atlas: atlas(['Denmark', 'Norway']), loaded: true })
+    rerender({ atlas: atlas(['Denmark', 'Norway', 'Sweden']), loaded: true })
+    expect(ids(result)).toEqual([])
+  })
+
   it('says nothing while the cities and airports load, nor when they arrive', () => {
     const capitals = Array.from({ length: 10 }, () => ({ capital: true }))
     const { result, rerender } = setup(atlas(['Denmark']), false)

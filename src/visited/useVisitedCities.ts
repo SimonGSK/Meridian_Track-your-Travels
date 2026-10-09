@@ -14,5 +14,6 @@ export function useVisitedCities() {
     (id: number) => setIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id])),
     [setIds],
   )
-  return { visitedCities, toggle }
+  const add = useCallback((id: number) => setIds((prev) => (prev.includes(id) ? prev : [...prev, id])), [setIds])
+  return { visitedCities, toggle, add }
 }

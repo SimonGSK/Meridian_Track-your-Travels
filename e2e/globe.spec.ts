@@ -387,6 +387,26 @@ test.describe('achievements', () => {
   })
 })
 
+test.describe('undo', () => {
+  test('a country removed by mistake comes back with Undo', async ({ page }) => {
+    await openGlobe(page)
+    await page.getByRole('button', { name: 'Visited', exact: true }).click()
+    const add = page.getByRole('searchbox', { name: 'Add a country' })
+    for (const name of ['Japan', 'Peru']) {
+      await add.fill(name)
+      await add.press('Enter')
+    }
+    const list = page.getByRole('list', { name: 'Visited countries' })
+    await expect(list).toContainText('Japan')
+    await page.getByRole('button', { name: 'Remove Japan' }).click()
+    await expect(list).not.toContainText('Japan')
+    await expect(page.getByText('Removed Japan')).toBeVisible()
+    await page.getByRole('button', { name: 'Undo' }).click()
+    await expect(list).toContainText('Japan')
+    await expect(page.getByText('Removed Japan')).toBeHidden()
+  })
+})
+
 test.describe('comparing with a friend', () => {
   test("opening a friend's link shows how you compare, and keeps them", async ({ page }) => {
     const code = Buffer.from(JSON.stringify({ v: 1, name: 'Anna', places: ['Japan', 'Peru'] })).toString('base64url')

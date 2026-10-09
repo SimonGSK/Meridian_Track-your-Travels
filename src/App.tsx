@@ -46,14 +46,16 @@ import { useVisitedCities } from './visited/useVisitedCities'
 import { useVisitDates } from './visited/useVisitDates'
 import { useWishlist } from './visited/useWishlist'
 import { useFriend } from './visited/useFriend'
-import { comparisonOf } from './visited/friend'
+import { comparisonOf, type Friend } from './visited/friend'
 import CompareView from './visited/CompareView'
 import { ACHIEVEMENTS, earnedIds, type Atlas } from './visited/achievements'
 import AchievementsPanel from './visited/AchievementsPanel'
 import AchievementToast from './visited/AchievementToast'
 import GlobeKey from './ui/GlobeKey'
 import { useNewAchievements } from './visited/useNewAchievements'
-import { describeVisits } from './data/visitDates'
+import { describeVisits, formatVisitDate, type VisitDate } from './data/visitDates'
+import { cityOf } from './data/airports'
+import UndoToast, { type Removal } from './ui/UndoToast'
 import { useFlights } from './visited/useFlights'
 import FlightsPanel from './visited/FlightsPanel'
 import VisitedTab, { type VisitedView } from './visited/VisitedTab'
@@ -126,8 +128,8 @@ export default function App({ compareOnOpen = false }: { compareOnOpen?: boolean
   const [view, setView] = useState<ViewId | null>(() => (compareOnOpen ? 'visited' : isPhone() ? null : 'explore'))
   /** The game whose setup is open in the Games tab */
   const [chosenGame, setChosenGame] = useState<GameId | null>(null)
-  const { visited, add: addVisited, remove: removeVisited, toggle: toggleVisited } = useVisited()
-  const { wishlist: wished, add: addWish, remove: removeWish, toggle: toggleWish } = useWishlist()
+  const { visited, add: addVisited, remove: removeVisited } = useVisited()
+  const { wishlist: wished, add: addWish, remove: removeWish } = useWishlist()
   // A friend to compare with, shown on the globe until switched off (at once, when their link was opened)
   const [friend, setFriend] = useFriend()
   const [friendShown, setFriendShown] = useState(compareOnOpen)
@@ -141,6 +143,30 @@ export default function App({ compareOnOpen = false }: { compareOnOpen?: boolean
     },
     [addVisited, removeWish],
   )
+  // The last thing removed, with a note to undo it for a few seconds
+  const [removal, setRemoval] = useState<Removal | null>(null)
+  const clearRemoval = useCallback(() => setRemoval(null), [])
+  const removePlace = useCallback(
+    (name: string) => {
+      removeVisited(name)
+      setRemoval({ message: `Removed ${name}`, undo: () => addVisited(name) })
+    },
+    [removeVisited, addVisited],
+  )
+  const unwish = useCallback(
+    (name: string) => {
+      removeWish(name)
+      setRemoval({ message: `Took ${name} off your wishlist`, undo: () => addWish(name) })
+    },
+    [removeWish, addWish],
+  )
+  const changeFriend = (next: Friend | null) => {
+    if (!next && friend) {
+      const gone = friend
+      setRemoval({ message: `Removed ${gone.name}`, undo: () => setFriend(gone) })
+    }
+    setFriend(next)
+  }
   const {
     game,
     best,
@@ -172,7 +198,7 @@ export default function App({ compareOnOpen = false }: { compareOnOpen?: boolean
   const { visitedRegions, toggle: toggleRegionId, add: addRegionId } = useVisitedRegions()
   const [hoveredRegion, setHoveredRegion] = useState<RegionFeature | null>(null)
   const cities = useCities()
-  const { visitedCities, toggle: toggleCityId } = useVisitedCities()
+  const { visitedCities, toggle: toggleCityId, add: addCityId } = useVisitedCities()
   const { datesOf, addVisit, removeVisit, noteOf, setNote } = useVisitDates()
   const [hoveredCity, setHoveredCity] = useState<City | null>(null)
   const airports = useAirports()
@@ -215,6 +241,27 @@ export default function App({ compareOnOpen = false }: { compareOnOpen?: boolean
     () => flights.flatMap((flight) => routeOf(flight, airportByCode) ?? []),
     [flights, airportByCode],
   )
+  /** A visit removed, its note with it */
+  const removeVisitOf = (name: string, date: VisitDate) => {
+    const note = noteOf(name, date)
+    removeVisit(name, date)
+    setRemoval({
+      message: `Removed the visit to ${name} in ${formatVisitDate(date)}`,
+      undo: () => {
+        addVisit(name, date)
+        if (note) setNote(name, date, note)
+      },
+    })
+  }
+  const removeFlightById = (id: string) => {
+    if (shownRoutes?.some((route) => route.flight.id === id)) setShownRoutes(null)
+    const route = routes.find((r) => r.flight.id === id)
+    const undo = removeFlight(id)
+    setRemoval({
+      message: route ? `Removed the flight from ${cityOf(route.from)} to ${cityOf(route.to)}` : 'Removed the flight',
+      undo,
+    })
+  }
 
   // What achievements are earned from, and the ones just earned
   const visitedCityList = useMemo(() => (cities ?? []).filter((c) => visitedCities.has(c.id)), [cities, visitedCities])
@@ -416,10 +463,12 @@ export default function App({ compareOnOpen = false }: { compareOnOpen?: boolean
           city.region ??
           (regions && hasRegions(country) ? findRegionAt(regionsOf(regions, country), city.lat, city.lng)?.properties.id : null)
         if (region) addRegionId(region)
+      } else {
+        setRemoval({ message: `Removed ${city.name}`, undo: () => addCityId(city.id) })
       }
       toggleCityId(city.id)
     },
-    [visitedCities, visited, addPlace, regions, addRegionId, toggleCityId],
+    [visitedCities, visited, addPlace, regions, addRegionId, toggleCityId, addCityId],
   )
 
   // "Find the city": once guessed, the city and where you clicked
@@ -741,12 +790,12 @@ export default function App({ compareOnOpen = false }: { compareOnOpen?: boolean
                   visited={visited}
                   friend={friend}
                   comparison={comparison}
-                  onFriend={setFriend}
+                  onFriend={changeFriend}
                   shown={friendShown}
                   onShownChange={setFriendShown}
                   wishlist={wishlist}
                   onWish={addWish}
-                  onUnwish={removeWish}
+                  onUnwish={unwish}
                   onShow={showCountry}
                 />
               }
@@ -754,10 +803,10 @@ export default function App({ compareOnOpen = false }: { compareOnOpen?: boolean
                 <VisitedPanel
                   visited={visited}
                   onAdd={addPlace}
-                  onRemove={removeVisited}
+                  onRemove={removePlace}
                   wishlist={wishlist}
                   onWish={addWish}
-                  onUnwish={removeWish}
+                  onUnwish={unwish}
                   onShow={showCountry}
                   note={(country) => {
                     const notes = [describeVisits(datesOf(country.properties.name))]
@@ -800,10 +849,7 @@ export default function App({ compareOnOpen = false }: { compareOnOpen?: boolean
                   routes={routes}
                   airports={airports}
                   onAdd={addFlight}
-                  onRemove={(id) => {
-                    if (shownRoutes?.some((route) => route.flight.id === id)) setShownRoutes(null)
-                    removeFlight(id)
-                  }}
+                  onRemove={removeFlightById}
                   onDate={setFlightDate}
                   onShow={(route) => showRoutes([route])}
                   onShowTrip={showRoutes}
@@ -863,26 +909,29 @@ export default function App({ compareOnOpen = false }: { compareOnOpen?: boolean
         text={playing ? null : (hoveredCity?.name ?? hoveredRegion?.properties.name ?? hovered?.properties.name ?? null)}
       />
       <FlagCorner country={playing ? null : hovered} />
-      <AchievementToast
-        achievements={newAchievements}
-        onOpen={() => {
-          clearAchievements()
-          setVisitedView('achievements')
-          changeView('visited')
-        }}
-        onDismiss={clearAchievements}
-      />
+      {/* Notes at the bottom, one over the other */}
+      <div className="toasts">
+        <AchievementToast
+          achievements={newAchievements}
+          onOpen={() => {
+            clearAchievements()
+            setVisitedView('achievements')
+            changeView('visited')
+          }}
+          onDismiss={clearAchievements}
+        />
+        <UndoToast removal={removal} onDone={clearRemoval} />
+      </div>
 
       {selected && (
         <CountryPanel
           country={selected}
           visited={visited.has(selected.properties.name)}
-          onToggleVisited={() => {
-            if (!visited.has(selected.properties.name)) removeWish(selected.properties.name)
-            toggleVisited(selected.properties.name)
-          }}
+          onToggleVisited={() =>
+            (visited.has(selected.properties.name) ? removePlace : addPlace)(selected.properties.name)
+          }
           wished={wishlist.has(selected.properties.name)}
-          onToggleWish={() => toggleWish(selected.properties.name)}
+          onToggleWish={() => (wished.has(selected.properties.name) ? unwish : addWish)(selected.properties.name)}
           onClose={() => selectCountry(null)}
           regions={
             editing
@@ -908,7 +957,7 @@ export default function App({ compareOnOpen = false }: { compareOnOpen?: boolean
               ? {
                   dates: datesOf(selected.properties.name),
                   onAdd: (date) => addVisit(selected.properties.name, date),
-                  onRemove: (date) => removeVisit(selected.properties.name, date),
+                  onRemove: (date) => removeVisitOf(selected.properties.name, date),
                   noteOf: (date) => noteOf(selected.properties.name, date),
                   onNote: (date, note) => setNote(selected.properties.name, date, note),
                 }

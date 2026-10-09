@@ -14,6 +14,13 @@ describe('useVisitedCities', () => {
     expect(renderHook(() => useVisitedCities()).result.current.visitedCities.has(2624652)).toBe(true)
   })
 
+  it('adds a city once', () => {
+    const { result } = renderHook(() => useVisitedCities())
+    act(() => result.current.add(2618425))
+    act(() => result.current.add(2618425))
+    expect([...result.current.visitedCities]).toEqual([2618425])
+  })
+
   it('ignores corrupted data', () => {
     localStorage.setItem(VISITED_CITIES_KEY, JSON.stringify(['Paris']))
     expect(renderHook(() => useVisitedCities()).result.current.visitedCities.size).toBe(0)

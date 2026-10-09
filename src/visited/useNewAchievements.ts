@@ -4,8 +4,9 @@ import { ACHIEVEMENTS, earnedIds, type Achievement, type Atlas } from './achieve
 /**
  * The achievements just earned by something you did: not those earned
  * already when the app opened, nor those that appear as the cities and
- * airports load in the background (`loaded` turns true then). Clear them
- * once shown.
+ * airports load in the background (`loaded` turns true then), nor those
+ * earned again after being lost (undoing a removal, say). Clear them once
+ * shown.
  */
 export function useNewAchievements(atlas: Atlas, loaded: boolean) {
   const [fresh, setFresh] = useState<Achievement[]>([])
@@ -16,7 +17,8 @@ export function useNewAchievements(atlas: Atlas, loaded: boolean) {
     const earned = earnedIds(atlas)
     const previous = before.current
     const quietly = !previous || !loaded || loaded !== loadedBefore.current
-    before.current = earned
+    // All earned so far, those lost since too
+    before.current = new Set([...(previous ?? []), ...earned])
     loadedBefore.current = loaded
     if (quietly) return
     const added = ACHIEVEMENTS.filter((a) => earned.has(a.id) && !previous.has(a.id))
