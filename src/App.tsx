@@ -75,6 +75,7 @@ import {
   useCities,
   useCountryLayer,
   useFlightLayer,
+  useImagery,
   useCountryPointer,
   useDepthPrecision,
   useNightLayer,
@@ -255,9 +256,19 @@ export default function App({ compareOnOpen = false }: { compareOnOpen?: boolean
   // A trip picked in the list, or one of its flights, says what it's called on the globe
   const pickedTrip = shownRoutes ? tripNameOf(shownRoutes.map((route) => route.flight.id)) : null
 
+  // The sea in the design's color, or a picture of the Earth (once loaded), its sea shining
+  const imagery = useImagery(theme.imagery)
   const globeMaterial = useMemo(
-    () => new MeshPhongMaterial({ color: theme.ocean, shininess: theme.oceanShininess }),
-    [theme],
+    () =>
+      imagery
+        ? new MeshPhongMaterial({
+            map: imagery.map,
+            specularMap: imagery.water,
+            specular: '#4a5a6a',
+            shininess: theme.oceanShininess,
+          })
+        : new MeshPhongMaterial({ color: theme.ocean, shininess: theme.oceanShininess }),
+    [theme, imagery],
   )
   useEffect(() => () => globeMaterial.dispose(), [globeMaterial])
 

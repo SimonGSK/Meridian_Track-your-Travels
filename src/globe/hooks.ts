@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { PointerEvent } from 'react'
 import type { GlobeMethods } from 'react-globe.gl'
-import type { PerspectiveCamera } from 'three'
+import { SRGBColorSpace, TextureLoader, type PerspectiveCamera, type Texture } from 'three'
 import { geoDistance } from 'd3-geo'
 import { borders, countries, findCountryNear, tinyPlaces, type CountryFeature } from '../countries'
 import { loadCities, type City } from '../data/cities'
@@ -17,7 +17,7 @@ import { subsolarPoint } from './sun'
 import { approach, isClick, type LatLng, type Point } from './interaction'
 import { screenToLatLng } from './picking'
 import { LAND_ALTITUDE, SELECTED_ALTITUDE } from './style'
-import type { Theme } from './themes'
+import { landColor, type Theme } from './themes'
 
 /** How close (in pixels) the pointer must be to a tiny country's marker, or to any country's coast */
 const MARKER_HIT_PX = 8
@@ -86,6 +86,7 @@ export function useCountryLayer(
 
   useEffect(() => {
     layer.current?.setBorders(theme.border, theme.borderOpacity)
+    layer.current?.setSeeThrough(!!theme.imagery)
   }, [globe, theme])
 
   useEffect(() => {
@@ -99,13 +100,17 @@ export function useCountryLayer(
   useEffect(() => {
     const current = layer.current
     if (!current) return
+    const { imagery } = theme
     for (const country of countries) {
       const color = colorOf(country)
-      if (painted.current.get(country) === color) continue
-      current.paint(country, color)
-      painted.current.set(country, color)
+      // Over a picture of the Earth, plain land isn't painted at all, and places colored are see-through
+      const opacity = !imagery ? 1 : color === landColor(theme, country.properties.mapColor) ? 0 : imagery.tint
+      const paint = `${color} ${opacity}`
+      if (painted.current.get(country) === paint) continue
+      current.paint(country, color, opacity)
+      painted.current.set(country, paint)
     }
-  }, [globe, colorOf])
+  }, [globe, colorOf, theme])
 }
 
 const RISE_MS = 300
@@ -355,6 +360,38 @@ export const useRegions = () => useLoaded(loadRegions)
 /** The well-known cities, once loaded */
 export const useCities = (): City[] | null => useLoaded(loadCities)
 
+type Imagery = NonNullable<Theme['imagery']>
+
+/** A design's pictures of the Earth, once loaded (null while loading, or for a design without) */
+export function useImagery(imagery: Theme['imagery']) {
+  const [loaded, setLoaded] = useState<{ of: Imagery; map: Texture; water: Texture | null } | null>(null)
+
+  useEffect(() => {
+    if (!imagery) return
+    let gone = false
+    let textures: Texture[] = []
+    const loader = new TextureLoader()
+    Promise.all([loader.loadAsync(imagery.map), imagery.water ? loader.loadAsync(imagery.water) : null])
+      .then(([map, water]) => {
+        map.colorSpace = SRGBColorSpace
+        // Sharper at a slant, near the edge of the globe
+        map.anisotropy = 8
+        textures = water ? [map, water] : [map]
+        if (gone) textures.forEach((t) => t.dispose())
+        else setLoaded({ of: imagery, map, water })
+      })
+      .catch(() => {
+        // Not there (offline before it was kept): the design's sea color stays
+      })
+    return () => {
+      gone = true
+      textures.forEach((t) => t.dispose())
+    }
+  }, [imagery])
+
+  return loaded?.of === imagery ? loaded : null
+}
+
 /** The airports, once loaded */
 export const useAirports = (): Airport[] | null => useLoaded(loadAirports)
 
@@ -509,6 +546,7 @@ export function useRegionLayer(
 
   useEffect(() => {
     layer.current?.setOutlineColor(theme.border, theme.borderOpacity * 0.7)
+    layer.current?.setFillOpacity(theme.imagery?.tint ?? 1)
   }, [globe, regions, theme])
 
   useEffect(() => {

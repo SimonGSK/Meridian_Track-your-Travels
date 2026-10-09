@@ -5,9 +5,24 @@ type Props = {
   onChange: (id: string) => void
 }
 
-/** A tiny globe in the theme's colors. */
+/** A tiny globe in the theme's colors, or with its picture of the Earth (Europe and Africa, a place over them visited) */
 function Preview({ theme }: { theme: Theme }) {
   const border = { stroke: theme.border, strokeOpacity: theme.borderOpacity, strokeWidth: 1 }
+  if (theme.imagery) {
+    const clip = `preview-${theme.id}`
+    return (
+      <svg className="theme-preview" viewBox="0 0 64 64" aria-hidden="true">
+        <defs>
+          <clipPath id={clip}>
+            <circle cx="32" cy="32" r="27" />
+          </clipPath>
+        </defs>
+        <circle cx="32" cy="32" r="30" fill={theme.atmosphere} opacity="0.25" />
+        <image href={theme.imagery.map} x="-51" y="-1" width="150" height="75" preserveAspectRatio="none" clipPath={`url(#${clip})`} />
+        <path d="M41 34c3-1 7 1 8 4 0 3-3 4-6 4-2 0-4-2-4-4 0-2 0-3 2-4z" fill={theme.visited} opacity={theme.imagery.tint} {...border} />
+      </svg>
+    )
+  }
   return (
     <svg className="theme-preview" viewBox="0 0 64 64" aria-hidden="true">
       <circle cx="32" cy="32" r="30" fill={theme.atmosphere} opacity="0.25" />

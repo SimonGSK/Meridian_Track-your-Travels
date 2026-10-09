@@ -27,6 +27,8 @@ export type RegionLayer = {
   /** Fill these regions in these colors, and outline these; everything else is hidden */
   show(fills: ReadonlyMap<RegionFeature, ColorRepresentation>, outlines: Iterable<RegionFeature>): void
   setOutlineColor(color: ColorRepresentation, opacity: number): void
+  /** How opaque the regions are: see-through over a picture of the Earth, as their countries are */
+  setFillOpacity(opacity: number): void
   dispose(): void
 }
 
@@ -111,6 +113,12 @@ export function createRegionLayer(regions: readonly RegionFeature[], globeRadius
     setOutlineColor(color, opacity) {
       lines.material.color.set(color)
       lines.material.opacity = opacity
+    },
+    setFillOpacity(opacity) {
+      fill.material.opacity = opacity
+      if (fill.material.transparent === opacity < 1) return
+      fill.material.transparent = opacity < 1
+      fill.material.needsUpdate = true
     },
     dispose() {
       fillGeometry.dispose()
