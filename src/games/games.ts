@@ -22,19 +22,54 @@ export type QuizKind = Exclude<RoundGameId, 'daily'>
 /** "all" goes through every country, instead of 10 rounds */
 export type Difficulty = 'easy' | 'medium' | 'hard' | 'all'
 
-export const GAMES: { id: GameId; title: string; description: string }[] = [
-  { id: 'daily', title: 'Daily challenge', description: 'Five countries, one of each quiz, the same for everyone today.' },
-  { id: 'find', title: 'Find the country', description: 'We name a country, you click it on the globe.' },
-  { id: 'city', title: 'Find the city', description: 'We name a city, you click where it is. The closer, the more points.' },
-  { id: 'letter', title: 'Letter hunt', description: 'Click every country that starts with a letter.' },
-  { id: 'all', title: 'Name them all', description: 'Type every country you can think of, from memory.' },
-  { id: 'neighbours', title: 'Neighbours', description: 'Name every country bordering the one lit up on the globe.' },
-  { id: 'flags', title: 'Flag quiz', description: 'Which country has this flag?' },
-  { id: 'name', title: 'Name that country', description: 'A country lights up on the globe. Which one is it?' },
-  { id: 'shape', title: 'Shape quiz', description: 'Name the country from its outline alone.' },
-  { id: 'capital', title: 'Capital quiz', description: "What's the capital of the country lit up on the globe?" },
-  { id: 'capital-country', title: 'Whose capital?', description: 'Which country has this capital?' },
-  { id: 'higher', title: 'Higher or lower', description: 'More people, or fewer? Bigger, or smaller? Keep it going.' },
+/** The kinds of games, in the order they're listed, after the daily challenge */
+export const GAME_CATEGORIES = ['Countries', 'Flags', 'Capitals', 'Cities', 'Facts'] as const
+export type GameCategory = (typeof GAME_CATEGORIES)[number]
+
+/** Every game, by kind; the daily challenge, a mix of the others, has none and comes first */
+export const GAMES: { id: GameId; title: string; description: string; category: GameCategory | null }[] = [
+  {
+    id: 'daily',
+    title: 'Daily challenge',
+    description: 'Five countries, one of each quiz, the same for everyone today.',
+    category: null,
+  },
+  { id: 'find', title: 'Find the country', description: 'We name a country, you click it on the globe.', category: 'Countries' },
+  {
+    id: 'name',
+    title: 'Name that country',
+    description: 'A country lights up on the globe. Which one is it?',
+    category: 'Countries',
+  },
+  { id: 'shape', title: 'Shape quiz', description: 'Name the country from its outline alone.', category: 'Countries' },
+  {
+    id: 'neighbours',
+    title: 'Neighbours',
+    description: 'Name every country bordering the one lit up on the globe.',
+    category: 'Countries',
+  },
+  { id: 'letter', title: 'Letter hunt', description: 'Click every country that starts with a letter.', category: 'Countries' },
+  { id: 'all', title: 'Name them all', description: 'Type every country you can think of, from memory.', category: 'Countries' },
+  { id: 'flags', title: 'Flag quiz', description: 'Which country has this flag?', category: 'Flags' },
+  {
+    id: 'capital',
+    title: 'Capital quiz',
+    description: "What's the capital of the country lit up on the globe?",
+    category: 'Capitals',
+  },
+  { id: 'capital-country', title: 'Whose capital?', description: 'Which country has this capital?', category: 'Capitals' },
+  {
+    id: 'city',
+    title: 'Find the city',
+    description: 'We name a city, you click where it is. The closer, the more points.',
+    category: 'Cities',
+  },
+  {
+    id: 'higher',
+    title: 'Higher or lower',
+    description: 'More people, or fewer? Bigger, or smaller? Keep it going.',
+    category: 'Facts',
+  },
 ]
 
 export const DIFFICULTIES: { id: Difficulty; label: string; countries: string }[] = [

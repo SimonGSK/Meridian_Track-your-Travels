@@ -1850,6 +1850,15 @@ code {
   list-style: none;
 }
 
+/* The games of a kind under its name: "Countries", "Flags"… */
+.game-category h3 {
+  margin: 22px 0 0;
+}
+
+.game-category .game-list {
+  margin-top: 8px;
+}
+
 .game-card {
   width: 100%;
   display: flex;

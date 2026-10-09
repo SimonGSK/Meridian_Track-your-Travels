@@ -16,6 +16,7 @@ import type { Guess, Measure } from './higherLower'
 import {
   DIFFICULTIES,
   GAMES,
+  GAME_CATEGORIES,
   MAX_TRIES,
   answerMode,
   currentRound,
@@ -127,20 +128,28 @@ function GameList(props: Props & Chosen) {
     return <NeighboursLevelChoice {...bests} onStart={(level) => props.onStartNeighbours?.(level)} onBack={back} />
   }
   if (chosen) return <DifficultyChoice id={chosen} {...bests} onStart={onStart} onBack={back} />
+  const card = (g: (typeof GAMES)[number]) => (
+    <li key={g.id}>
+      <button type="button" className={`game-card${g.id === 'daily' ? ' daily' : ''}`} onClick={() => setChosen(g.id)}>
+        <strong>{g.title}</strong>
+        <span className="muted">{g.description}</span>
+        {g.id === 'daily' && <DailyStatus results={props.daily ?? {}} today={today} />}
+      </button>
+    </li>
+  )
   return (
     <>
       <p className="muted">Test your geography. Pick a game, then how hard you want it.</p>
-      <ul className="game-list">
-        {GAMES.map((g) => (
-          <li key={g.id}>
-            <button type="button" className={`game-card${g.id === 'daily' ? ' daily' : ''}`} onClick={() => setChosen(g.id)}>
-              <strong>{g.title}</strong>
-              <span className="muted">{g.description}</span>
-              {g.id === 'daily' && <DailyStatus results={props.daily ?? {}} today={today} />}
-            </button>
-          </li>
-        ))}
-      </ul>
+      <ul className="game-list">{GAMES.filter((g) => !g.category).map(card)}</ul>
+      {/* The others by what they ask about */}
+      {GAME_CATEGORIES.map((category) => (
+        <section key={category} className="game-category">
+          <h3>{category}</h3>
+          <ul className="game-list" aria-label={category}>
+            {GAMES.filter((g) => g.category === category).map(card)}
+          </ul>
+        </section>
+      ))}
     </>
   )
 }
