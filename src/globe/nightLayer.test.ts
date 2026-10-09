@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { BufferGeometry, Mesh, Points, ShaderMaterial, Vector3 } from 'three'
-import { NIGHT_DARKNESS, createNightLayer, lightSize } from './nightLayer'
+import { BufferGeometry, Mesh, Points, ShaderMaterial, Texture, Vector3, type SphereGeometry } from 'three'
+import { NIGHT_DARKNESS, PICTURE_DARKNESS, createNightLayer, lightSize } from './nightLayer'
 import { toUnitVector } from './sphereMesh'
 
 const RADIUS = 100
@@ -42,6 +42,21 @@ describe('createNightLayer', () => {
     expect(lightSize(5_000)).toBe(1.5)
     expect(lightSize(500_000)).toBeCloseTo(3.2, 1)
     expect(lightSize(30_000_000)).toBe(5)
+  })
+
+  it('shows a picture of the Earth at night instead, darker, its lights over the dark', () => {
+    const layer = createNightLayer(100)
+    const [shell] = layer.object.children as Mesh<SphereGeometry, ShaderMaterial>[]
+    expect(shell.material.premultipliedAlpha).toBe(true)
+    const picture = new Texture()
+    layer.setPicture(picture)
+    expect(shell.material.uniforms.picture.value).toBe(picture)
+    expect(shell.material.uniforms.hasPicture.value).toBe(1)
+    expect(shell.material.uniforms.darkness.value).toBe(PICTURE_DARKNESS)
+    layer.setPicture(null)
+    expect(shell.material.uniforms.hasPicture.value).toBe(0)
+    expect(shell.material.uniforms.darkness.value).toBe(NIGHT_DARKNESS)
+    layer.dispose()
   })
 
   it('cleans up', () => {

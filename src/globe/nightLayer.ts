@@ -9,6 +9,7 @@ import {
   ShaderMaterial,
   SphereGeometry,
   Vector3,
+  type Texture,
 } from 'three'
 import { toUnitVector } from './sphereMesh'
 import { LAND_ALTITUDE } from './style'
@@ -17,6 +18,10 @@ import { LAND_ALTITUDE } from './style'
 const NIGHT_LIFT = 0.0015
 /** How dark full night is: dark enough to see, light enough to still read the map */
 export const NIGHT_DARKNESS = 0.62
+/** How dark under a picture of the Earth's lights at night: as from space, the lights bright on it */
+export const PICTURE_DARKNESS = 0.8
+/** How bright the picture's lights are */
+const PICTURE_GAIN = 2.5
 const NIGHT_COLOR = '#02060d'
 const LIGHT_COLOR = '#ffd27f'
 
@@ -40,6 +45,8 @@ export type NightLayer = {
   setSun(point: LatLng): void
   /** The cities that light up at night */
   setLights(lights: readonly Light[]): void
+  /** A picture of the Earth's lights at night, on black, to light the side the sun has set on; or none */
+  setPicture(picture: Texture | null): void
   dispose(): void
 }
 
@@ -48,7 +55,8 @@ export const lightSize = (population: number) => 1.5 + Math.min(Math.max(Math.lo
 
 /**
  * Night on the globe: a dark, see-through shell over the side the sun has
- * set on, fading through twilight, with the cities lit on it.
+ * set on, fading through twilight, with the cities lit on it, as dots or as
+ * they look from space in a picture of the Earth's lights at night.
  */
 export function createNightLayer(globeRadius: number): NightLayer {
   const radius = globeRadius * (1 + LAND_ALTITUDE) * (1 + NIGHT_LIFT)
@@ -57,7 +65,13 @@ export function createNightLayer(globeRadius: number): NightLayer {
   const shell = new Mesh(
     new SphereGeometry(radius, 128, 64),
     new ShaderMaterial({
-      uniforms: { sun: { value: sun }, color: { value: new Color(NIGHT_COLOR) }, darkness: { value: NIGHT_DARKNESS } },
+      uniforms: {
+        sun: { value: sun },
+        color: { value: new Color(NIGHT_COLOR) },
+        darkness: { value: NIGHT_DARKNESS },
+        picture: { value: null as Texture | null },
+        hasPicture: { value: 0 },
+      },
       vertexShader: `
         varying vec3 direction;
         void main() {
@@ -69,13 +83,32 @@ export function createNightLayer(globeRadius: number): NightLayer {
         uniform vec3 sun;
         uniform vec3 color;
         uniform float darkness;
+        uniform sampler2D picture;
+        uniform float hasPicture;
         varying vec3 direction;
         ${NIGHT_GLSL}
         void main() {
-          gl_FragColor = vec4(color, nightAt(dot(normalize(direction), sun)) * darkness);
+          vec3 d = normalize(direction);
+          float night = nightAt(dot(d, sun));
+          float alpha = night * darkness;
+          vec3 lit = vec3(0.0);
+          if (hasPicture > 0.5) {
+            // Where on the picture, as on the globe's: longitude around from +z towards +x, latitude up y
+            float a = atan(d.x, d.z) / 6.2831853 + 0.5;
+            // At the date line a jumps from one edge of the picture to the other, and the smaller copies of the
+            // picture used far out would be misread along it: there, read it from b, the same place on the
+            // picture (it repeats sideways), whose jump is at Greenwich instead
+            float b = fract(a + 0.5) - 0.5;
+            float x = fwidth(a) < fwidth(b) - 0.001 ? a : b;
+            vec2 uv = vec2(x, asin(clamp(d.y, -1.0, 1.0)) / 3.1415927 + 0.5);
+            lit = texture2D(picture, uv).rgb * night * ${PICTURE_GAIN.toFixed(2)};
+          }
+          // Premultiplied: the dark over what's under it, and the lights on top
+          gl_FragColor = vec4(color * alpha + lit, alpha);
         }
       `,
       transparent: true,
+      premultipliedAlpha: true,
       depthWrite: false,
     }),
   )
@@ -127,6 +160,12 @@ export function createNightLayer(globeRadius: number): NightLayer {
     object,
     setSun({ lat, lng }) {
       sun.set(...toUnitVector([lng, lat]))
+    },
+    setPicture(picture) {
+      const { uniforms } = shell.material
+      uniforms.picture.value = picture
+      uniforms.hasPicture.value = picture ? 1 : 0
+      uniforms.darkness.value = picture ? PICTURE_DARKNESS : NIGHT_DARKNESS
     },
     setLights(cities) {
       const lightRadius = radius * (1 + NIGHT_LIFT)

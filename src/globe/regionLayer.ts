@@ -116,6 +116,8 @@ export function createRegionLayer(regions: readonly RegionFeature[], globeRadius
     },
     setFillOpacity(opacity) {
       fill.material.opacity = opacity
+      // See-through, before the night, as their countries are
+      fill.renderOrder = opacity < 1 ? -2 : 0
       if (fill.material.transparent === opacity < 1) return
       fill.material.transparent = opacity < 1
       fill.material.needsUpdate = true

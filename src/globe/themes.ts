@@ -1,6 +1,8 @@
 import { Color } from 'three'
 import earthImage from '../assets/earth-blue-marble.jpg'
 import earthWater from '../assets/earth-water.png'
+import earthLights from '../assets/earth-lights.jpg'
+import earthRelief from '../assets/earth-topology.png'
 
 /** A visual design for the globe. */
 export type Theme = {
@@ -32,9 +34,11 @@ export type Theme = {
   /**
    * A picture of the Earth on the globe, instead of colored land on a colored
    * sea: only places colored (visited, picked…) are painted over it, letting
-   * `tint` of their color through, and `water` marks the sea, to shine.
+   * `tint` of their color through. `water` marks the sea, to shine; `relief`
+   * is how high the land is, for mountains to catch the light; and `night` is
+   * the Earth's lights at night, on black, for the side the sun has set on.
    */
-  imagery?: { map: string; water?: string; tint: number }
+  imagery?: { map: string; water?: string; relief?: string; night?: string; tint: number }
 }
 
 export const MIDNIGHT: Theme = {
@@ -169,7 +173,10 @@ export const MINIMAL: Theme = {
   atmosphere: '#ffffff',
 }
 
-/** The Earth as seen from space: NASA's Blue Marble, with its sea to shine (both by way of three-globe) */
+/**
+ * The Earth as seen from space: NASA's Blue Marble, with its sea to shine, its mountains in relief, and its
+ * lights at night (all by way of three-globe; the lights kept from its Earth at night by make-night-lights)
+ */
 export const REALISTIC: Theme = {
   id: 'realistic',
   name: 'Realistic',
@@ -186,12 +193,13 @@ export const REALISTIC: Theme = {
   visited: '#ff9f1c',
   wishlist: '#c3a6ff',
   pin: '#ff4d4d',
-  flight: '#e6f6ff',
+  // Light blue, so places you're going to (tinted with it) stand out from the land
+  flight: '#9fd8ff',
   correct: '#7dff9b',
   wrong: '#ff5c5c',
   background: '#02060d',
   atmosphere: '#6fb3ff',
-  imagery: { map: earthImage, water: earthWater, tint: 0.45 },
+  imagery: { map: earthImage, water: earthWater, relief: earthRelief, night: earthLights, tint: 0.45 },
 }
 
 export const THEMES: readonly Theme[] = [MIDNIGHT, CLASSIC, VINTAGE, POLITICAL, NIGHT, MINIMAL, REALISTIC]
