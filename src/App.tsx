@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import Globe, { type GlobeMethods } from 'react-globe.gl'
 import { MeshPhongMaterial } from 'three'
-import { tinyPlaces, type CountryFeature } from './countries'
+import { countries, tinyPlaces, type CountryFeature } from './countries'
 import { citiesLabel, citiesOf, countryOfCity, type City } from './data/cities'
 import { findRegionAt, hasRegions, regionsLabel, regionsOf, type RegionFeature } from './data/regions'
 import CountryPanel from './CountryPanel'
@@ -55,9 +55,12 @@ import GlobeKey from './ui/GlobeKey'
 import { useNewAchievements } from './visited/useNewAchievements'
 import { describeVisits, formatVisitDate, type VisitDate } from './data/visitDates'
 import { cityOf } from './data/airports'
-import UndoToast, { type Removal } from './ui/UndoToast'
+import UndoToast from './ui/UndoToast'
+import { useUndo } from './ui/useUndo'
 import { useFlights } from './visited/useFlights'
 import { useTripNames } from './visited/useTripNames'
+import { usePlans, useToday } from './visited/usePlans'
+import { isToCome, monthOf } from './data/plans'
 import FlightsPanel from './visited/FlightsPanel'
 import VisitedTab, { type VisitedView } from './visited/VisitedTab'
 import YearsPanel from './visited/YearsPanel'
@@ -76,6 +79,7 @@ import {
   useDepthPrecision,
   useNightLayer,
   usePinLayer,
+  usePlanLayer,
   useRegionLayer,
   useRegions,
   useSelectedCountry,
@@ -145,26 +149,25 @@ export default function App({ compareOnOpen = false }: { compareOnOpen?: boolean
     [addVisited, removeWish],
   )
   // The last thing removed, with a note to undo it for a few seconds
-  const [removal, setRemoval] = useState<Removal | null>(null)
-  const clearRemoval = useCallback(() => setRemoval(null), [])
+  const { removal, offerUndo, clearRemoval } = useUndo()
   const removePlace = useCallback(
     (name: string) => {
       removeVisited(name)
-      setRemoval({ message: `Removed ${name}`, undo: () => addVisited(name) })
+      offerUndo(`Removed ${name}`, () => addVisited(name))
     },
-    [removeVisited, addVisited],
+    [removeVisited, addVisited, offerUndo],
   )
   const unwish = useCallback(
     (name: string) => {
       removeWish(name)
-      setRemoval({ message: `Took ${name} off your wishlist`, undo: () => addWish(name) })
+      offerUndo(`Took ${name} off your wishlist`, () => addWish(name))
     },
-    [removeWish, addWish],
+    [removeWish, addWish, offerUndo],
   )
   const changeFriend = (next: Friend | null) => {
     if (!next && friend) {
       const gone = friend
-      setRemoval({ message: `Removed ${gone.name}`, undo: () => setFriend(gone) })
+      offerUndo(`Removed ${gone.name}`, () => setFriend(gone))
     }
     setFriend(next)
   }
@@ -205,6 +208,46 @@ export default function App({ compareOnOpen = false }: { compareOnOpen?: boolean
   const airports = useAirports()
   const { flights, add: addFlight, remove: removeFlight, setDate: setFlightDate } = useFlights(cities, airports)
   const { nameOf: tripNameOf, setName: setTripName } = useTripNames()
+  // Visits planned, counted down to, until the day comes
+  const today = useToday()
+  const { plans, setPlan } = usePlans()
+  const unplan = useCallback(
+    (name: string) => {
+      const day = plans[name]
+      setPlan(name, null)
+      if (day) offerUndo(`Not going to ${name}`, () => setPlan(name, day))
+    },
+    [plans, setPlan, offerUndo],
+  )
+  /** Planned visits whose day has come: the places are in your atlas now, with the visit, and a note to take them back */
+  const arrive = useCallback(
+    (names: readonly string[]) => {
+      const arrived = names.map((name) => {
+        const month = monthOf(plans[name])
+        return { name, month, wasVisited: visited.has(name), wasWished: wished.has(name), hadVisit: datesOf(name).includes(month) }
+      })
+      for (const { name, month } of arrived) {
+        addPlace(name)
+        addVisit(name, month)
+        setPlan(name, null)
+      }
+      const listed = names.length > 1 ? `${names.slice(0, -1).join(', ')} and ${names.at(-1)}` : names[0]
+      // Undone: didn't go after all
+      offerUndo(`Welcome to ${listed}! In your visited atlas now`, () => {
+        for (const { name, month, wasVisited, wasWished, hadVisit } of arrived) {
+          if (!hadVisit) removeVisit(name, month)
+          if (!wasVisited) removeVisited(name)
+          if (wasWished) addWish(name)
+        }
+      })
+    },
+    [plans, visited, wished, datesOf, addPlace, addVisit, setPlan, removeVisit, removeVisited, addWish, offerUndo],
+  )
+  // As the day of one comes, on opening the app or at midnight. Not in the screensaver, which only shows what's saved
+  useEffect(() => {
+    const due = Object.keys(plans).filter((name) => plans[name] <= today)
+    if (due.length > 0 && !screensaver) arrive(due)
+  }, [plans, today, screensaver, arrive])
   // A friend's link opened: their comparison
   const [visitedView, setVisitedView] = useState<VisitedView>(compareOnOpen ? 'compare' : 'countries')
   /** A flight or trip picked in the list, shown on the globe (and highlighted) until the view moves on */
@@ -241,30 +284,30 @@ export default function App({ compareOnOpen = false }: { compareOnOpen?: boolean
   )
 
   const airportByCode = useMemo(() => new Map((airports ?? []).map((a) => [a.code, a])), [airports])
-  const routes = useMemo(
+  const allRoutes = useMemo(
     () => flights.flatMap((flight) => routeOf(flight, airportByCode) ?? []),
     [flights, airportByCode],
   )
+  // Flights flown, which count, and those booked, still to come: they count once their month comes
+  const [routes, upcomingRoutes] = useMemo(() => {
+    const now = new Date(`${today}T12:00`)
+    const toCome = (route: Route) => !!route.flight.date && isToCome(route.flight.date, now)
+    return [allRoutes.filter((route) => !toCome(route)), allRoutes.filter(toCome)]
+  }, [allRoutes, today])
   /** A visit removed, its note with it */
   const removeVisitOf = (name: string, date: VisitDate) => {
     const note = noteOf(name, date)
     removeVisit(name, date)
-    setRemoval({
-      message: `Removed the visit to ${name} in ${formatVisitDate(date)}`,
-      undo: () => {
-        addVisit(name, date)
-        if (note) setNote(name, date, note)
-      },
+    offerUndo(`Removed the visit to ${name} in ${formatVisitDate(date)}`, () => {
+      addVisit(name, date)
+      if (note) setNote(name, date, note)
     })
   }
   const removeFlightById = (id: string) => {
     if (shownRoutes?.some((route) => route.flight.id === id)) setShownRoutes(null)
-    const route = routes.find((r) => r.flight.id === id)
+    const route = allRoutes.find((r) => r.flight.id === id)
     const undo = removeFlight(id)
-    setRemoval({
-      message: route ? `Removed the flight from ${cityOf(route.from)} to ${cityOf(route.to)}` : 'Removed the flight',
-      undo,
-    })
+    offerUndo(route ? `Removed the flight from ${cityOf(route.from)} to ${cityOf(route.to)}` : 'Removed the flight', undo)
   }
 
   // What achievements are earned from, and the ones just earned
@@ -388,6 +431,15 @@ export default function App({ compareOnOpen = false }: { compareOnOpen?: boolean
     return undefined
   }, [compareShown, comparison, yearPicked, theme])
   const colorWishlist = yearShown || compareShown || showsGame(game) || !settings.showWishlist ? NO_VISITS : wishlist
+  // Places you're going to, tinted and outlined in dashes, on the globe as it is (not a year, a game or a friend's)
+  const plansShown = !yearShown && !compareShown && !showsGame(game) && !previewing && !screensaver
+  const plannedNames = useMemo(() => new Set(Object.keys(plans)), [plans])
+  const colorPlanned = plansShown ? plannedNames : NO_VISITS
+  const plannedPlaces = useMemo(
+    () => (plansShown ? countries.filter((c) => plannedNames.has(c.properties.name)) : []),
+    [plansShown, plannedNames],
+  )
+  usePlanLayer(globe, plannedPlaces, theme.flight)
   // The heat map shades your places by how many times you've been; one marked visited without dates counts once
   const heatShown = colorVisited === visited && settings.showVisitHeat && !compareShown
   const visitsTo = useCallback((name: string) => Math.max(1, datesOf(name).length), [datesOf])
@@ -398,11 +450,12 @@ export default function App({ compareOnOpen = false }: { compareOnOpen?: boolean
         hovered: colorHovered,
         visited: colorVisited,
         wishlist: colorWishlist,
+        planned: colorPlanned,
         visits: heatShown ? visitsTo : undefined,
         marked,
         highlights,
       }),
-    [theme, colorHovered, colorVisited, colorWishlist, heatShown, visitsTo, marked, highlights],
+    [theme, colorHovered, colorVisited, colorWishlist, colorPlanned, heatShown, visitsTo, marked, highlights],
   )
   // Game answers on tiny islands get a dot, or they'd be invisible
   const gameColors = useMemo(() => gameHighlights(game, theme), [game, theme])
@@ -468,11 +521,11 @@ export default function App({ compareOnOpen = false }: { compareOnOpen?: boolean
           (regions && hasRegions(country) ? findRegionAt(regionsOf(regions, country), city.lat, city.lng)?.properties.id : null)
         if (region) addRegionId(region)
       } else {
-        setRemoval({ message: `Removed ${city.name}`, undo: () => addCityId(city.id) })
+        offerUndo(`Removed ${city.name}`, () => addCityId(city.id))
       }
       toggleCityId(city.id)
     },
-    [visitedCities, visited, addPlace, regions, addRegionId, toggleCityId, addCityId],
+    [visitedCities, visited, addPlace, regions, addRegionId, toggleCityId, addCityId, offerUndo],
   )
 
   // "Find the city": once guessed, the city and where you clicked
@@ -506,14 +559,29 @@ export default function App({ compareOnOpen = false }: { compareOnOpen?: boolean
     const flown = lapseStep ? lapseStep.flights : yearShown ? yearShown.flights : routes
     // A route flown both ways has its plane flying back on every other trip
     const backToo = flownBothWays(flown)
-    return uniqueRoutes(flown).map((route) => ({
+    const isPicked = (route: Route) => picked.some((p) => uniqueRoutes([route, p]).length === 1)
+    const lines = uniqueRoutes(flown).map((route) => ({
       key: route.flight.id,
       from: route.from,
       to: route.to,
-      highlighted: picked.some((p) => uniqueRoutes([route, p]).length === 1),
+      highlighted: isPicked(route),
       bothWays: backToo(route),
     }))
-  }, [cityAnswer, routes, lapseStep, yearShown, compareOpen, settings.showFlights, game, shownRoutes])
+    // Flights booked, dashed, on the globe as it is: each route once (dashes there and back would fill each other's
+    // gaps), and not over one flown already
+    if (lapseStep || yearShown) return lines
+    const booked = uniqueRoutes(upcomingRoutes).filter((route) => !flown.some((f) => uniqueRoutes([f, route]).length === 1))
+    return [
+      ...lines,
+      ...booked.map((route) => ({
+        key: `upcoming-${route.flight.id}`,
+        from: route.from,
+        to: route.to,
+        highlighted: isPicked(route),
+        upcoming: true,
+      })),
+    ]
+  }, [cityAnswer, routes, upcomingRoutes, lapseStep, yearShown, compareOpen, settings.showFlights, game, shownRoutes])
   useFlightLayer(globe, flightLines, { color: theme.flight, highlight: theme.selected })
   const cityAt = useCallback(
     (point: Point | null) => (globe && point && pinned.length > 0 ? (pinAt(globe, pinned, point)?.city ?? null) : null),
@@ -817,6 +885,8 @@ export default function App({ compareOnOpen = false }: { compareOnOpen?: boolean
                   wishlist={wishlist}
                   onWish={addWish}
                   onUnwish={unwish}
+                  plans={plans}
+                  onUnplan={unplan}
                   onShow={showCountry}
                   note={(country) => {
                     const notes = [describeVisits(datesOf(country.properties.name))]
@@ -857,6 +927,7 @@ export default function App({ compareOnOpen = false }: { compareOnOpen?: boolean
               flightsPanel={
                 <FlightsPanel
                   routes={routes}
+                  upcoming={upcomingRoutes}
                   airports={airports}
                   onAdd={addFlight}
                   onRemove={removeFlightById}
@@ -975,6 +1046,10 @@ export default function App({ compareOnOpen = false }: { compareOnOpen?: boolean
                 }
               : undefined
           }
+          plan={{
+            day: plans[selected.properties.name] ?? null,
+            onChange: (day) => (day ? setPlan(selected.properties.name, day) : unplan(selected.properties.name)),
+          }}
         />
       )}
         </>

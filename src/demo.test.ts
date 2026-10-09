@@ -45,6 +45,12 @@ describe('the demo data', () => {
       for (const date of Object.keys(notes)) expect(DEMO_VISITS[name], `${name} ${date}`).toContain(date)
     }
     expect(isFlightList(data['countries-app.flights'])).toBe(true)
+    // Trips to come, from the day it's put in: India with its flights there and back, and Chile
+    expect(data['countries-app.plans']).toEqual({ India: '2026-11-14', Chile: '2027-03-04' })
+    expect((data['countries-app.flights'] as { date?: string }[]).filter((f) => f.date && !isPast(f.date, TODAY))).toEqual([
+      { id: 'demo-DEL', from: 'CPH', to: 'DEL', date: '2026-11' },
+      { id: 'demo-DEL-back', from: 'DEL', to: 'CPH', date: '2026-11' },
+    ])
     expect(isDailyResults(data['countries-app.daily'])).toBe(true)
     expect(Object.values(DEMO_VISITS).flat().every((date) => isPast(date, TODAY))).toBe(true)
     // The last week's challenges, up to yesterday

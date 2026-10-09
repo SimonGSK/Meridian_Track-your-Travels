@@ -5,6 +5,7 @@ import { CheckIcon, CloseIcon, PlusIcon, StarIcon } from './icons'
 import CityPicker from './CityPicker'
 import RegionPicker from './RegionPicker'
 import VisitsCard from './visited/VisitsCard'
+import PlanVisit from './visited/PlanVisit'
 
 type Props = {
   country: CountryFeature
@@ -20,11 +21,13 @@ type Props = {
   cities?: ComponentProps<typeof CityPicker>
   /** When you went, once it's visited */
   visits?: ComponentProps<typeof VisitsCard>
+  /** A visit you're planning */
+  plan?: ComponentProps<typeof PlanVisit>
 }
 
 /** The selected country, on the left: "SELECTED COUNTRY", its facts, cities and states. */
 export default function CountryPanel(props: Props) {
-  const { country, visited, onToggleVisited, wished = false, onToggleWish, onClose, regions, cities, visits } = props
+  const { country, visited, onToggleVisited, wished = false, onToggleWish, onClose, regions, cities, visits, plan } = props
   const { name, kind, continent, areaKm2: mapArea, isoCode, isoAlpha2 } = country.properties
   const facts = factsOf(country)
   const code = isoCode ?? isoAlpha2
@@ -62,6 +65,7 @@ export default function CountryPanel(props: Props) {
           {wished ? 'On your wishlist' : 'Add to wishlist'}
         </button>
       )}
+      {plan && <PlanVisit {...plan} />}
     </aside>
   )
 }

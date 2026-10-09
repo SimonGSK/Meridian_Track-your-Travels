@@ -6,6 +6,8 @@ import { VISITED_CITIES_KEY } from './visited/useVisitedCities'
 import { VISITED_REGIONS_KEY } from './visited/useVisitedRegions'
 import { VISIT_DATES_KEY, VISIT_NOTES_KEY } from './visited/useVisitDates'
 import { WISHLIST_KEY } from './visited/useWishlist'
+import { PLANS_KEY } from './visited/usePlans'
+import { dayOf, monthOf } from './data/plans'
 
 /**
  * Sample data, to see the app as someone who's travelled a lot would:
@@ -133,15 +135,30 @@ function dailyResults(today: Date) {
   )
 }
 
+/** Trips to come, from today: India in about six weeks, with the flights booked there and back, and Chile later */
+function upcoming(today: Date) {
+  const inDays = (n: number) => dayOf(new Date(today.getFullYear(), today.getMonth(), today.getDate() + n))
+  return {
+    plans: { India: inDays(40), Chile: inDays(150) },
+    // Over a month away, so in a month still to come
+    flights: [
+      { id: 'demo-DEL', from: 'CPH', to: 'DEL', date: monthOf(inDays(40)) },
+      { id: 'demo-DEL-back', from: 'DEL', to: 'CPH', date: monthOf(inDays(54)) },
+    ],
+  }
+}
+
 /** Everything the demo saves, by storage key */
 export function demoData(today = new Date()): Record<string, unknown> {
+  const { plans, flights } = upcoming(today)
   return {
     [VISITED_STORAGE_KEY]: Object.keys(DEMO_VISITS),
     [VISIT_DATES_KEY]: Object.fromEntries(Object.entries(DEMO_VISITS).filter(([, dates]) => dates.length)),
     [VISIT_NOTES_KEY]: DEMO_NOTES,
     [VISITED_REGIONS_KEY]: DEMO_REGIONS,
     [VISITED_CITIES_KEY]: DEMO_CITIES,
-    [FLIGHTS_KEY]: DEMO_FLIGHTS,
+    [FLIGHTS_KEY]: [...DEMO_FLIGHTS, ...flights],
+    [PLANS_KEY]: plans,
     [WISHLIST_KEY]: DEMO_WISHLIST,
     [BEST_SCORES_KEY]: BEST_SCORES,
     [DAILY_KEY]: dailyResults(today),

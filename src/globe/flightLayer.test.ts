@@ -68,6 +68,19 @@ describe('createFlightLayer', () => {
     layer.dispose()
   })
 
+  it('dashes a flight still to come, with no plane on it yet', () => {
+    const layer = createFlightLayer(RADIUS)
+    layer.show([lines[0], { key: 'soon', from: copenhagen, to: paris, upcoming: true }])
+    const { tubes, planes } = parts(layer)
+    expect(tubes).toHaveLength(2)
+    expect(planes).toHaveLength(1)
+    const [flown, soon] = tubes.map((t) => (t.material as MeshBasicMaterial).alphaMap)
+    expect(flown).toBeNull()
+    expect(soon?.repeat.x).toBeGreaterThanOrEqual(4)
+    layer.tick(1, camera(), 800, 800) // only the plane on the flight flown moves
+    layer.dispose()
+  })
+
   it('colors the routes, the picked one in the highlight color', () => {
     const layer = createFlightLayer(RADIUS)
     layer.show(lines)
@@ -151,6 +164,8 @@ describe('plane texture', () => {
     expect(drawing.fills).toEqual(['#fff'])
     expect(drawing.strokes).toHaveLength(1)
     expect(drawing.lines).toBeGreaterThan(10) // fuselage, wings and tail
+    // And the dash, then the gap, for flights still to come
+    expect(drawing.rects).toEqual(['#fff', '#000'])
     layer.dispose()
     restore()
   })

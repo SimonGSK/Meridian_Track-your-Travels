@@ -1,6 +1,8 @@
 import {
   CanvasTexture,
   CatmullRomCurve3,
+  NearestFilter,
+  RepeatWrapping,
   Color,
   Group,
   Mesh,
@@ -11,6 +13,7 @@ import {
   Vector3,
   type ColorRepresentation,
   type PerspectiveCamera,
+  type Texture,
 } from 'three'
 import { geoDistance, geoInterpolate } from 'd3-geo'
 import { toUnitVector } from './sphereMesh'
@@ -18,8 +21,18 @@ import { LAND_ALTITUDE } from './style'
 
 type LatLng = { lat: number; lng: number }
 
-/** A route to draw: from where to where, whether it's the one picked, and whether it was flown back too */
-export type FlightLine = { key: string; from: LatLng; to: LatLng; highlighted?: boolean; bothWays?: boolean }
+/**
+ * A route to draw: from where to where, whether it's the one picked, whether
+ * it was flown back too, and whether it's still to come (dashed, no plane yet)
+ */
+export type FlightLine = {
+  key: string
+  from: LatLng
+  to: LatLng
+  highlighted?: boolean
+  bothWays?: boolean
+  upcoming?: boolean
+}
 
 /** Routes leave from just above the land, so their ends aren't hidden in it */
 export const FLIGHT_BASE = LAND_ALTITUDE * 1.5
@@ -33,6 +46,8 @@ const HIGHLIGHT_RADIUS = 0.38
 const LINE_OPACITY = 0.5
 /** On-screen size of the planes, in pixels */
 export const PLANE_SIZE_PX = 18
+/** Dashes along a flight still to come, per radian */
+const DASHES_PER_RADIAN = 24
 
 /** A plane takes a few seconds, more for long flights, then sets off again: Copenhagen to Bangkok about 14 */
 export const flightSeconds = (radians: number) => 6 + radians * 6
@@ -78,12 +93,14 @@ const offsetOf = (key: string) => [...key].reduce((sum, ch) => (sum * 31 + ch.ch
  * Flights as thin arcs above the globe, each with a little plane flying
  * along it from where the flight left, and back again on the next trip if
  * it was flown both ways. The planes keep their size on screen and turn to
- * face the way they're flying.
+ * face the way they're flying. Flights still to come are dashed, with no
+ * plane yet.
  */
 export function createFlightLayer(globeRadius: number): FlightLayer {
   const object = new Group()
   object.name = 'flights'
   const texture = planeTexture()
+  const dashes = dashTexture()
   const colors = { line: new Color('#ffffff'), highlight: new Color('#ffffff') }
   let lines: { mesh: Mesh<TubeGeometry, MeshBasicMaterial>; highlighted: boolean }[] = []
   let planes: (Plane & { highlighted: boolean })[] = []
@@ -91,6 +108,8 @@ export function createFlightLayer(globeRadius: number): FlightLayer {
   const clear = () => {
     for (const { mesh } of lines) {
       mesh.geometry.dispose()
+      // Its own copy of the dashes, repeated to its length
+      if (mesh.material.alphaMap !== null) mesh.material.alphaMap.dispose()
       mesh.material.dispose()
     }
     for (const { sprite } of planes) sprite.material.dispose()
@@ -115,16 +134,23 @@ export function createFlightLayer(globeRadius: number): FlightLayer {
         const highlighted = !!route.highlighted
         const path = flightPath(route.from, route.to, globeRadius)
         const tube = new TubeGeometry(new CatmullRomCurve3(path), SAMPLES, highlighted ? HIGHLIGHT_RADIUS : LINE_RADIUS, 5)
+        const radians = geoDistance([route.from.lng, route.from.lat], [route.to.lng, route.to.lat])
         const mesh = new Mesh(
           tube,
-          new MeshBasicMaterial({ transparent: true, opacity: highlighted ? 0.95 : LINE_OPACITY, depthWrite: false }),
+          new MeshBasicMaterial({
+            transparent: true,
+            opacity: highlighted ? 0.95 : LINE_OPACITY,
+            depthWrite: false,
+            alphaMap: route.upcoming ? dashesFor(dashes, radians) : null,
+          }),
         )
+        object.add(mesh)
+        lines.push({ mesh, highlighted })
+        if (route.upcoming) continue
         const sprite = new Sprite(new SpriteMaterial({ map: texture, sizeAttenuation: false, transparent: true, alphaTest: 0.5 }))
         sprite.renderOrder = 2
-        const radians = geoDistance([route.from.lng, route.from.lat], [route.to.lng, route.to.lat])
         const seconds = flightSeconds(radians)
-        object.add(mesh, sprite)
-        lines.push({ mesh, highlighted })
+        object.add(sprite)
         planes.push({ sprite, path, seconds, offset: offsetOf(route.key) * seconds, highlighted, bothWays: !!route.bothWays })
       }
       paint()
@@ -156,8 +182,36 @@ export function createFlightLayer(globeRadius: number): FlightLayer {
     dispose() {
       clear()
       texture.dispose()
+      dashes.dispose()
     },
   }
+}
+
+/** A dash and a gap, to repeat along a route still to come: only the dash shows */
+function dashTexture() {
+  const canvas = document.createElement('canvas')
+  canvas.width = 2
+  canvas.height = 1
+  const context = canvas.getContext('2d')
+  if (context) {
+    context.fillStyle = '#fff'
+    context.fillRect(0, 0, 1, 1)
+    context.fillStyle = '#000'
+    context.fillRect(1, 0, 1, 1)
+  }
+  const texture = new CanvasTexture(canvas)
+  texture.magFilter = NearestFilter
+  texture.minFilter = NearestFilter
+  return texture
+}
+
+/** The dashes repeated along a route this long, around a tube's length (its texture's u) */
+function dashesFor(dashes: Texture, radians: number) {
+  const texture = dashes.clone()
+  texture.wrapS = RepeatWrapping
+  texture.repeat.set(Math.max(4, Math.round(radians * DASHES_PER_RADIAN)), 1)
+  texture.needsUpdate = true
+  return texture
 }
 
 /** A white plane seen from above, nose up, with a dark edge; tinted by each sprite's color */
