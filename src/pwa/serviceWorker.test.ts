@@ -2,14 +2,23 @@ import { describe, expect, it, vi } from 'vitest'
 import { serviceWorkerSource } from './serviceWorker'
 
 type FakeRequest = { url: string; method: string; mode: string }
-type FakeEvent = { request?: FakeRequest; respondWith: (answer: Promise<unknown>) => void; waitUntil: (work: Promise<unknown>) => void }
+type FakeEvent = {
+  request?: FakeRequest
+  data?: unknown
+  respondWith: (answer: Promise<unknown>) => void
+  waitUntil: (work: Promise<unknown>) => void
+}
 
 const ORIGIN = 'https://meridian.test'
 
 /** Runs the worker against a fake browser: caches as maps of address to text, and a network */
 function runWorker({ files = ['./index.html', './assets/index-1a2b.js'], version = 'v2', online = true } = {}) {
   const handlers = new Map<string, (event: FakeEvent) => void>()
-  const self = { location: new URL(`${ORIGIN}/`), addEventListener: (type: string, handler: (event: FakeEvent) => void) => handlers.set(type, handler) }
+  const self = {
+    location: new URL(`${ORIGIN}/`),
+    addEventListener: (type: string, handler: (event: FakeEvent) => void) => handlers.set(type, handler),
+    skipWaiting: vi.fn(),
+  }
   const stores = new Map<string, Map<string, string>>()
   const addressOf = (key: string | FakeRequest) => new URL(typeof key === 'string' ? key : key.url, `${ORIGIN}/`).href
   const cacheOf = (store: Map<string, string>) => ({
@@ -45,7 +54,9 @@ function runWorker({ files = ['./index.html', './assets/index-1a2b.js'], version
     return { answered: answer !== undefined, answer: await answer }
   }
   const get = (path: string, mode = 'cors'): FakeRequest => ({ url: new URL(path, `${ORIGIN}/`).href, method: 'GET', mode })
-  return { stores, send, get, fetch, matchOptions }
+  /** The page sends the worker a message */
+  const message = (data: unknown) => handlers.get('message')!({ data, respondWith: () => {}, waitUntil: () => {} })
+  return { self, stores, send, get, message, fetch, matchOptions }
 }
 
 describe('the service worker', () => {
@@ -58,6 +69,14 @@ describe('the service worker', () => {
       `${ORIGIN}/index.html`,
       `${ORIGIN}/assets/index-1a2b.js`,
     ])
+  })
+
+  it('takes over at once when the page asks (its "Reload"), and not otherwise', () => {
+    const worker = runWorker()
+    worker.message('hello')
+    expect(worker.self.skipWaiting).not.toHaveBeenCalled()
+    worker.message('skip-waiting')
+    expect(worker.self.skipWaiting).toHaveBeenCalledOnce()
   })
 
   it('clears the copies of older versions when it takes over, and nothing else', async () => {

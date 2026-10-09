@@ -29,6 +29,7 @@ import {
 import { dayOf } from './data/plans'
 import { INITIAL_VIEW, SCREENSAVER_VIEW } from './globe/interaction'
 import { SCREENSAVER_PIN_FADE } from './globe/pinLayer'
+import { UPDATE_READY } from './pwa/update'
 
 // WebGL doesn't exist in jsdom, so the globe is replaced by a stand-in that
 // exposes what the app passes to it. Screen positions map to places by x.
@@ -754,6 +755,27 @@ describe('App', () => {
       render(<App />)
       expect(painted().Japan).toBeUndefined()
       expect(key()).not.toBeInTheDocument()
+    })
+  })
+
+  describe('a new version', () => {
+    afterEach(() => Reflect.deleteProperty(navigator, 'serviceWorker'))
+
+    it('says when a new version is ready, and reloads into it, or not now', async () => {
+      const pages = new EventTarget()
+      Object.defineProperty(navigator, 'serviceWorker', { value: pages, configurable: true })
+      const worker = { postMessage: vi.fn() }
+      render(<App />)
+      expect(screen.queryByText('A new version is ready')).not.toBeInTheDocument()
+      act(() => {
+        window.dispatchEvent(new CustomEvent(UPDATE_READY, { detail: worker }))
+      })
+      expect(screen.getByText('A new version is ready')).toBeInTheDocument()
+      await userEvent.click(screen.getByRole('button', { name: 'Reload' }))
+      expect(worker.postMessage).toHaveBeenCalledWith('skip-waiting')
+
+      await userEvent.click(screen.getByRole('button', { name: 'Not now' }))
+      expect(screen.queryByText('A new version is ready')).not.toBeInTheDocument()
     })
   })
 
