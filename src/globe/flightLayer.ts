@@ -131,8 +131,8 @@ const offsetOf = (key: string) => [...key].reduce((sum, ch) => (sum * 31 + ch.ch
 
 /**
  * Flights as thin arcs above the globe, and a little plane for each trip,
- * flying its flights in the order flown, waiting a moment at each stop, then
- * setting off again: one plane a trip keeps the globe calm. The planes keep
+ * flying its flights in the order flown, gone a moment where each lands
+ * before setting off again: one plane a trip keeps the globe calm. The planes keep
  * their size on screen and turn to face the way they're flying. Flights
  * still to come are dashed.
  */
@@ -220,17 +220,19 @@ export function createFlightLayer(globeRadius: number): FlightLayer {
       // Sprites that don't scale with distance are sized by the camera's projection
       const scale = PLANE_SIZE_PX / ((camera.projectionMatrix.elements[5] * height) / 2)
       for (const plane of planes) {
-        // Once: waiting at the start until then, and at the end after
-        const time = plane.startsAt === null ? (seconds + plane.offset) % plane.total : Math.max(seconds - plane.startsAt, 0)
-        const { leg, t } = legAt(plane.seconds, time, plane.stop)
+        // Once: not off until then, and done after
+        const time = plane.startsAt === null ? (seconds + plane.offset) % plane.total : seconds - plane.startsAt
+        const { leg, t } = legAt(plane.seconds, Math.max(time, 0), plane.stop)
+        // Only while flying: gone once it lands, until it sets off again
+        plane.sprite.visible = time >= 0 && t < 1
+        if (!plane.sprite.visible) continue
         const path = plane.paths[leg]
         pointAlong(path, t, here)
         plane.sprite.position.copy(here)
         plane.sprite.scale.setScalar(scale)
-        // Face the way it's going, as it looks on screen; waiting, the way it landed
-        const facing = Math.min(t, 0.99)
-        const start = pointAlong(path, facing).project(camera)
-        const end = pointAlong(path, facing + 0.01, ahead).project(camera)
+        // Face the way it's going, as it looks on screen
+        const start = pointAlong(path, t).project(camera)
+        const end = pointAlong(path, t + 0.01, ahead).project(camera)
         const dx = (end.x - start.x) * width
         const dy = (end.y - start.y) * height
         if (dx || dy) plane.sprite.material.rotation = Math.atan2(dy, dx) - Math.PI / 2
