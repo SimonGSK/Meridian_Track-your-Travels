@@ -152,8 +152,9 @@ describe('flightSeconds', () => {
     expect(flightSeconds(0)).toBeGreaterThan(0)
   })
 
-  it('takes its time: Copenhagen to Bangkok, about 1.35 radians, in about 14 seconds', () => {
-    expect(flightSeconds(1.35)).toBeCloseTo(14.1, 1)
+  it('takes its time: Copenhagen to Bangkok, about 1.35 radians, in about 28 seconds, a short hop in 13', () => {
+    expect(flightSeconds(1.35)).toBeCloseTo(28.2, 1)
+    expect(flightSeconds(0.08)).toBeCloseTo(13, 0)
   })
 })
 

@@ -49,8 +49,11 @@ export const PLANE_SIZE_PX = 18
 /** Dashes along a flight still to come, per radian */
 const DASHES_PER_RADIAN = 24
 
-/** A plane takes a few seconds, more for long flights, then sets off again: Copenhagen to Bangkok about 14 */
-export const flightSeconds = (radians: number) => 6 + radians * 6
+/**
+ * A plane takes its time, more for long flights, then sets off again: Copenhagen to Bangkok about 28 seconds,
+ * slow enough that many flights drift calmly rather than bustle
+ */
+export const flightSeconds = (radians: number) => 12 + radians * 12
 
 /** Points along the great circle from `from` to `to`, rising in an arc that's higher for longer flights */
 export function flightPath(from: LatLng, to: LatLng, globeRadius: number, samples = SAMPLES) {
