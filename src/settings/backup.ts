@@ -4,6 +4,7 @@ import { BEST_TIMES_KEY } from '../games/records'
 import { BEST_SCORES_KEY, isBestScores } from '../games/useGame'
 import { DAILY_KEY, isDailyResults } from '../games/daily'
 import { FLIGHTS_KEY, isFlightList } from '../visited/useFlights'
+import { TRIP_NAMES_KEY, isTripNames } from '../visited/useTripNames'
 import { VISITED_STORAGE_KEY, isNameList } from '../visited/useVisited'
 import { VISITED_CITIES_KEY, isCityIdList } from '../visited/useVisitedCities'
 import { VISITED_REGIONS_KEY, isRegionIdList } from '../visited/useVisitedRegions'
@@ -26,6 +27,7 @@ const SAVED: { key: string; isValid: (value: unknown) => boolean }[] = [
   { key: VISIT_DATES_KEY, isValid: isVisitDates },
   { key: VISIT_NOTES_KEY, isValid: isVisitNotes },
   { key: FLIGHTS_KEY, isValid: isFlightList },
+  { key: TRIP_NAMES_KEY, isValid: isTripNames },
   { key: WISHLIST_KEY, isValid: isNameList },
   { key: FRIEND_KEY, isValid: isFriendOrNone },
   { key: BEST_SCORES_KEY, isValid: isBestScores },

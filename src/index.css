@@ -1324,6 +1324,45 @@ code {
   overflow-wrap: anywhere;
 }
 
+/* A trip's name over its stops, and the pencil to name it beside them, always there so it's found */
+.trip-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.trip-top .trip-header {
+  flex: 1;
+  min-width: 0;
+}
+
+.trip-top .note-button {
+  flex: none;
+  margin-top: 6px;
+  opacity: 1;
+}
+
+.trip-name {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.trip-stops {
+  color: var(--text-muted);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+/* The name, then the note, each a whole line */
+.trip-name-editor {
+  flex-wrap: wrap;
+  padding: 4px 0 8px 8px;
+}
+
+.trip-name-editor input {
+  flex-basis: 100%;
+}
+
 .trip-legs {
   margin-left: 14px;
   padding-left: 4px;
@@ -1349,6 +1388,29 @@ code {
   align-items: center;
   gap: 10px;
   pointer-events: none;
+}
+
+/* A picked trip's name and note */
+.globe-caption {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: center;
+  gap: 4px 10px;
+  max-width: 100%;
+  margin: 0;
+  padding: 7px 16px;
+  border: 1px solid var(--accent);
+  border-radius: 18px;
+  background: var(--panel);
+  font-size: 14px;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.globe-caption span {
+  color: var(--text-muted);
+  font-size: 13px;
 }
 
 /* What the colors on the globe mean: the heat map, or a friend */
