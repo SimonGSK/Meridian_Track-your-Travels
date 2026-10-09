@@ -12,6 +12,11 @@ const AIRPORTS: Record<string, Airport> = {
   CDG: { code: 'CDG', name: 'Charles de Gaulle', city: 'Paris', country: 'FR', lat: 49, lng: 2.5 },
   LHR: { code: 'LHR', name: 'Heathrow', city: 'London', country: 'GB', lat: 51.5, lng: -0.5 },
   JFK: { code: 'JFK', name: 'Kennedy', city: 'New York', country: 'US', lat: 40.6, lng: -73.8 },
+  DOH: { code: 'DOH', name: 'Hamad', city: 'Doha', country: 'QA', lat: 25.3, lng: 51.6 },
+  MPM: { code: 'MPM', name: 'Maputo', city: 'Maputo', country: 'MZ', lat: -25.9, lng: 32.6 },
+  INH: { code: 'INH', name: 'Inhambane', city: 'Inhambane', country: 'MZ', lat: -23.9, lng: 35.4 },
+  JNB: { code: 'JNB', name: 'O. R. Tambo', city: 'Johannesburg', country: 'ZA', lat: -26.1, lng: 28.2 },
+  CPT: { code: 'CPT', name: 'Cape Town', city: 'Cape Town', country: 'ZA', lat: -34, lng: 18.6 },
 }
 
 let id = 0
@@ -60,6 +65,43 @@ describe('tripsOf', () => {
   it('carries on a one-way trip with a later leg', () => {
     const trips = tripsOf([leg('CPH-LHR', '2022-01'), leg('LHR-JFK', '2022-02'), leg('JFK-CDG', '2022-02')])
     expect(paths(trips)).toEqual(['CPH-LHR LHR-JFK JFK-CDG'])
+  })
+
+  it('carries on a trip that went on by land, dated and within a month, from up to 1000 km away', () => {
+    // In to Maputo, by bus to Inhambane, and on from there
+    const trips = tripsOf([
+      leg('CPH-DOH', '2025-07'),
+      leg('DOH-MPM', '2025-07'),
+      leg('INH-MPM', '2025-07'),
+      leg('MPM-JNB', '2025-08'),
+      leg('JNB-CPT', '2025-08'),
+      leg('CPT-DOH', '2025-08'),
+      leg('DOH-CPH', '2025-08'),
+    ])
+    expect(paths(trips)).toEqual(['CPH-DOH DOH-MPM INH-MPM MPM-JNB JNB-CPT CPT-DOH DOH-CPH'])
+    expect(stopsOf(trips[0])).toEqual([
+      'Copenhagen',
+      'Doha',
+      'Maputo',
+      'Inhambane',
+      'Maputo',
+      'Johannesburg',
+      'Cape Town',
+      'Doha',
+      'Copenhagen',
+    ])
+  })
+
+  it('carries on by land only when dated, only from nearby, and not from home again', () => {
+    expect(paths(tripsOf([leg('CPH-MPM'), leg('INH-CPH')]))).toEqual(['CPH-MPM', 'INH-CPH'])
+    expect(paths(tripsOf([leg('CPH-MPM', '2025-07'), leg('CPT-CPH', '2025-07')]))).toEqual(['CPH-MPM', 'CPT-CPH'])
+    // One way to London, then from home to Paris: London isn't far from home, but it's a new trip
+    expect(paths(tripsOf([leg('CPH-LHR', '2025-07'), leg('CPH-CDG', '2025-07')]))).toEqual(['CPH-LHR', 'CPH-CDG'])
+  })
+
+  it('carries on a trip from where it landed rather than one that ended nearby', () => {
+    const trips = tripsOf([leg('CPH-MPM', '2025-07'), leg('LHR-INH', '2025-07'), leg('INH-JNB', '2025-07')])
+    expect(paths(trips)).toEqual(['CPH-MPM', 'LHR-INH INH-JNB'])
   })
 
   it('has no trips without flights', () => {
