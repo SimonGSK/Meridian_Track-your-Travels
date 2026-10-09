@@ -89,6 +89,8 @@ export const PlusIcon = ({ size = 16 }: Props) => svg(size, <path d="M12 5v14M5 
 
 export const CloseIcon = ({ size = 16 }: Props) => svg(size, <path d="m6 6 12 12M18 6 6 18" />)
 
+export const PlayIcon = ({ size = 16 }: Props) => svg(size, <path d="M8 5.5v13l10.5-6.5z" />)
+
 export const PencilIcon = ({ size = 16 }: Props) =>
   svg(
     size,
