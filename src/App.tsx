@@ -69,6 +69,7 @@ import { isToCome, monthOf } from './data/plans'
 import FlightsPanel from './visited/FlightsPanel'
 import VisitedTab, { type VisitedView } from './visited/VisitedTab'
 import YearsPanel from './visited/YearsPanel'
+import WrappedView from './visited/WrappedView'
 import { reviewOf, spotsOf, spotsOfStep, timelineOf, yearsOf, type YearReview } from './visited/yearInReview'
 import { useTimeLapse } from './visited/useTimeLapse'
 import { routeOf, uniqueRoutes, type Route } from './data/flights'
@@ -384,6 +385,9 @@ export default function App({ compareOnOpen = false }: { compareOnOpen?: boolean
   )
   /** Turns the globe to a year's places and flights, as it shows just them */
   const showYear = (year: YearReview | null) => year && flyToSee(spotsOf(year))
+
+  // A year wrapped: its card full screen, to keep or share
+  const [wrapping, setWrapping] = useState(false)
 
   // Following a trip: its plane flies its flights once, from when it starts (on the planes' clock), and the globe turns
   // to each flight in turn. On phones the panel makes way for it, and comes back at the end (`reopen`)
@@ -826,7 +830,8 @@ export default function App({ compareOnOpen = false }: { compareOnOpen?: boolean
     const onKeyDown = (e: KeyboardEvent) => {
       // The preview's own Escape leaves it, back to the panels as they were
       if (e.key !== 'Escape' || previewing) return
-      if (following) setFollowing(null)
+      if (wrapping) setWrapping(false)
+      else if (following) setFollowing(null)
       else if (selected) selectCountry(null)
       else if (shownRoutes) setShownRoutes(null)
       else {
@@ -836,7 +841,7 @@ export default function App({ compareOnOpen = false }: { compareOnOpen?: boolean
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [following, selected, shownRoutes, selectCountry, quitGame, previewing])
+  }, [wrapping, following, selected, shownRoutes, selectCountry, quitGame, previewing])
 
   /** The screensaver's preview, from Settings: nothing picked, from the screensaver's view */
   const startPreview = () => {
@@ -1044,6 +1049,7 @@ export default function App({ compareOnOpen = false }: { compareOnOpen?: boolean
                   years={years}
                   review={review}
                   noteOf={noteOf}
+                  onWrap={() => setWrapping(true)}
                   lapse={{
                     steps: timeline,
                     shown: lapse,
@@ -1131,6 +1137,8 @@ export default function App({ compareOnOpen = false }: { compareOnOpen?: boolean
         text={playing ? null : (hoveredCity?.name ?? hoveredRegion?.properties.name ?? hovered?.properties.name ?? null)}
       />
       <FlagCorner country={playing ? null : hovered} />
+      {wrapping && review && <WrappedView review={review} onClose={() => setWrapping(false)} />}
+
       {/* Notes at the bottom, one over the other */}
       <div className="toasts">
         {update && !previewing && <UpdateToast onReload={() => applyUpdate(update)} onDismiss={dismissUpdate} />}

@@ -115,6 +115,15 @@ describe('YearsPanel', () => {
     expect(screen.getByText(/No dates yet\. Open a country you've been to and add when you went/)).toBeInTheDocument()
   })
 
+  it('wraps the year shown, as a card to keep or share', async () => {
+    const onWrap = vi.fn()
+    render(
+      <YearsPanel years={yearsOf(TRAVELS)} review={reviewOf(2024, TRAVELS)} onYearChange={vi.fn()} onShow={vi.fn()} onShowRoute={vi.fn()} onWrap={onWrap} />,
+    )
+    await userEvent.click(screen.getByRole('button', { name: '✨ Your 2024, wrapped' }))
+    expect(onWrap).toHaveBeenCalledOnce()
+  })
+
   describe('the time-lapse', () => {
     const steps = timelineOf(TRAVELS) // 2019, then 2024
     const controls = () => ({ onPlay: vi.fn(), onPause: vi.fn(), onStop: vi.fn() })
