@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest'
 import {
   distanceKm,
   flightStats,
-  flownBothWays,
   formatDistance,
   isAirportFlight,
   migrateFlights,
@@ -41,11 +40,6 @@ describe('flights', () => {
   it('draws one arc for a route flown both ways or more than once', () => {
     const routes = [route('CPH', 'BKK'), route('BKK', 'CPH', 'back'), route('CPH', 'BKK', 'again'), route('CPH', 'CDG')]
     expect(uniqueRoutes(routes).map((r) => r.flight.id)).toEqual(['CPH-BKK', 'CPH-CDG'])
-  })
-
-  it('tells a route flown both ways from one flown only one way, however often', () => {
-    const backToo = flownBothWays([route('CPH', 'BKK'), route('BKK', 'CPH', 'back'), route('CPH', 'CDG'), route('CPH', 'CDG', 'again')])
-    expect([backToo(route('CPH', 'BKK')), backToo(route('BKK', 'CPH')), backToo(route('CPH', 'CDG'))]).toEqual([true, true, false])
   })
 
   it('moves flights saved between cities to the airports serving them', () => {

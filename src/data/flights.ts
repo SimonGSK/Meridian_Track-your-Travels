@@ -43,12 +43,6 @@ export function uniqueRoutes(routes: readonly Route[]) {
   return [...seen.values()]
 }
 
-/** Whether a route was also flown the other way, among these */
-export function flownBothWays(routes: readonly Route[]) {
-  const flown = new Set(routes.map((route) => `${route.from.code}-${route.to.code}`))
-  return (route: Route) => flown.has(`${route.to.code}-${route.from.code}`)
-}
-
 export const isAirportFlight = (flight: StoredFlight): flight is Flight =>
   typeof flight.from === 'string' && typeof flight.to === 'string'
 

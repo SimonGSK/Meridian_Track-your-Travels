@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { PerspectiveCamera, type Mesh, type MeshBasicMaterial, type Sprite, Vector3 } from 'three'
-import { FLIGHT_BASE, PLANE_SIZE_PX, createFlightLayer, flightPath, flightSeconds, pointAlong } from './flightLayer'
+import { FLIGHT_BASE, PLANE_SIZE_PX, STOP_SECONDS, createFlightLayer, flightPath, flightSeconds, legAt, pointAlong } from './flightLayer'
 import { LAND_ALTITUDE } from './style'
 import { fakeCanvas } from '../test/fakeCanvas'
 
@@ -51,55 +51,57 @@ describe('pointAlong', () => {
 describe('createFlightLayer', () => {
   const lines = [
     { key: 'cph-bkk', from: copenhagen, to: bangkok },
-    { key: 'cph-cdg', from: copenhagen, to: paris, highlighted: true },
+    { key: 'bkk-cdg', from: bangkok, to: paris, highlighted: true },
   ]
+  /** One trip: Copenhagen, Bangkok, Paris */
+  const trip = { key: 'trip', legs: [lines[0], lines[1]] }
   const parts = (layer: ReturnType<typeof createFlightLayer>) => ({
     tubes: layer.object.children.filter((c) => c.type === 'Mesh') as Mesh[],
     planes: layer.object.children.filter((c) => c.type === 'Sprite') as Sprite[],
   })
 
-  it('draws a line and a plane for each route, and clears them for new routes', () => {
+  it('draws a line for each route and a plane for each trip, and clears them for new ones', () => {
     const layer = createFlightLayer(RADIUS)
-    layer.show(lines)
+    layer.show(lines, [trip])
     expect(parts(layer).tubes).toHaveLength(2)
-    expect(parts(layer).planes).toHaveLength(2)
+    expect(parts(layer).planes).toHaveLength(1)
     layer.show([])
     expect(layer.object.children).toHaveLength(0)
     layer.dispose()
   })
 
-  it('dashes a flight still to come, with no plane on it yet', () => {
+  it('dashes a flight still to come', () => {
     const layer = createFlightLayer(RADIUS)
-    layer.show([lines[0], { key: 'soon', from: copenhagen, to: paris, upcoming: true }])
-    const { tubes, planes } = parts(layer)
-    expect(tubes).toHaveLength(2)
-    expect(planes).toHaveLength(1)
-    const [flown, soon] = tubes.map((t) => (t.material as MeshBasicMaterial).alphaMap)
+    layer.show([lines[0], { key: 'soon', from: copenhagen, to: paris, upcoming: true }], [{ key: 'trip', legs: [lines[0]] }])
+    const [flown, soon] = parts(layer).tubes.map((t) => (t.material as MeshBasicMaterial).alphaMap)
     expect(flown).toBeNull()
     expect(soon?.repeat.x).toBeGreaterThanOrEqual(4)
-    layer.tick(1, camera(), 800, 800) // only the plane on the flight flown moves
     layer.dispose()
   })
 
-  it('colors the routes, the picked one in the highlight color', () => {
+  it('colors the routes and planes, those picked in the highlight color', () => {
     const layer = createFlightLayer(RADIUS)
-    layer.show(lines)
+    layer.show(lines, [trip, { key: 'picked', legs: [lines[1]], highlighted: true }])
     layer.setColors('#0000ff', '#ff0000')
-    const [plain, picked] = parts(layer).tubes.map((t) => (t.material as MeshBasicMaterial).color.getHexString())
-    expect([plain, picked]).toEqual(['0000ff', 'ff0000'])
+    const color = (m: Mesh | Sprite) => (m.material as MeshBasicMaterial).color.getHexString()
+    expect(parts(layer).tubes.map(color)).toEqual(['0000ff', 'ff0000'])
+    expect(parts(layer).planes.map(color)).toEqual(['0000ff', 'ff0000'])
     layer.dispose()
   })
 
-  it('flies the planes along their routes over time, the same size on screen', () => {
+  it("flies a trip's plane along its flights over time, the same size on screen", () => {
     const layer = createFlightLayer(RADIUS)
-    layer.show([lines[0]])
+    layer.show(lines, [trip])
     const [plane] = parts(layer).planes
     const cam = camera()
     layer.tick(0, cam, 800, 800)
     const first = plane.position.clone()
     layer.tick(1, cam, 800, 800)
-    expect(plane.position.distanceTo(first)).toBeGreaterThan(1)
-    // On the route: between the ends' heights and the peak
+    const second = plane.position.clone()
+    // Moving, unless it happened to be waiting at a stop; then a second later it is
+    layer.tick(STOP_SECONDS + 1, cam, 800, 800)
+    expect(Math.max(second.distanceTo(first), plane.position.distanceTo(second))).toBeGreaterThan(0.1)
+    // On a route: between the ends' heights and the peak
     expect(altitudeOf(plane.position)).toBeGreaterThanOrEqual(FLIGHT_BASE - 1e-6)
     // Sized so it's PLANE_SIZE_PX tall at any distance
     expect(plane.scale.x * cam.projectionMatrix.elements[5] * 400).toBeCloseTo(PLANE_SIZE_PX)
@@ -108,41 +110,32 @@ describe('createFlightLayer', () => {
 
   it('turns each plane to face its way on screen', () => {
     const layer = createFlightLayer(RADIUS)
-    // Due north along the meridian facing the camera: straight up the screen
-    layer.show([{ key: 'north', from: { lat: -10, lng: 0 }, to: { lat: 10, lng: 0 } }])
+    // Due north along the meridian facing the camera: straight up the screen, flying or waiting
+    const north = { from: { lat: -10, lng: 0 }, to: { lat: 10, lng: 0 } }
+    layer.show([{ key: 'north', ...north }], [{ key: 'north', legs: [north] }])
     const [plane] = parts(layer).planes
-    layer.tick(flightSeconds(0.35) * 0.3, camera(), 800, 800)
-    expect(plane.material.rotation).toBeCloseTo(0, 1)
+    for (const at of [0, 3, 7, 11, 15]) {
+      layer.tick(at, camera(), 800, 800)
+      expect(plane.material.rotation).toBeCloseTo(0, 1)
+    }
     // Due east: to the right, a quarter turn clockwise
-    layer.show([{ key: 'east', from: { lat: 0, lng: -10 }, to: { lat: 0, lng: 10 } }])
+    const east = { from: { lat: 0, lng: -10 }, to: { lat: 0, lng: 10 } }
+    layer.show([{ key: 'east', ...east }], [{ key: 'east', legs: [east] }])
     const [eastward] = parts(layer).planes
-    layer.tick(flightSeconds(0.35) * 0.3, camera(), 800, 800)
+    layer.tick(5, camera(), 800, 800)
     expect(eastward.material.rotation).toBeCloseTo(-Math.PI / 2, 1)
     layer.dispose()
   })
+})
 
-  it('flies a route flown both ways there and back by turns, and one flown one way always from its start', () => {
-    const layer = createFlightLayer(RADIUS)
-    const north = { from: { lat: -10, lng: 0 }, to: { lat: 10, lng: 0 } }
-    layer.show([
-      { key: 'there-and-back', ...north, bothWays: true },
-      { key: 'one-way', ...north },
-    ])
-    const [both, one] = parts(layer).planes
-    const trip = flightSeconds((20 * Math.PI) / 180) // 20° of latitude
-    const at = (seconds: number) => {
-      layer.tick(seconds, camera(), 800, 800)
-      return [both, one].map((plane) => ({ y: plane.position.y, rotation: plane.material.rotation }))
-    }
-    const [bothFirst, oneFirst] = at(trip * 0.3)
-    const [bothNext, oneNext] = at(trip * 1.3)
-    // Where it was a trip ago, mirrored, and facing south instead of north
-    expect(bothNext.y).toBeCloseTo(-bothFirst.y, 3)
-    expect(Math.abs(bothNext.rotation - bothFirst.rotation)).toBeCloseTo(Math.PI, 1)
-    // Each trip the same
-    expect(oneNext.y).toBeCloseTo(oneFirst.y, 6)
-    expect(oneNext.rotation).toBeCloseTo(oneFirst.rotation, 6)
-    layer.dispose()
+describe('legAt', () => {
+  it('goes through the legs in order, waiting where each lands, then starts over', () => {
+    const legs = [10, 5]
+    expect(legAt(legs, 0)).toEqual({ leg: 0, t: 0 })
+    expect(legAt(legs, 3)).toEqual({ leg: 0, t: 0.3 })
+    expect(legAt(legs, 10 + STOP_SECONDS / 2)).toEqual({ leg: 0, t: 1 }) // waiting, where the first landed
+    expect(legAt(legs, 10 + STOP_SECONDS + 1)).toEqual({ leg: 1, t: 0.2 })
+    expect(legAt(legs, 15 + STOP_SECONDS * 1.5)).toEqual({ leg: 1, t: 1 }) // waiting at the end, before starting over
   })
 })
 
@@ -152,8 +145,9 @@ describe('flightSeconds', () => {
     expect(flightSeconds(0)).toBeGreaterThan(0)
   })
 
-  it('takes its time: Copenhagen to Bangkok, about 1.35 radians, in about 14 seconds', () => {
-    expect(flightSeconds(1.35)).toBeCloseTo(14.1, 1)
+  it('takes its time: Copenhagen to Bangkok, about 1.35 radians, in about 28 seconds, a short hop in 13', () => {
+    expect(flightSeconds(1.35)).toBeCloseTo(28.2, 1)
+    expect(flightSeconds(0.08)).toBeCloseTo(13, 0)
   })
 })
 

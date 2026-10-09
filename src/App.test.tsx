@@ -1294,6 +1294,16 @@ describe('App', () => {
       expect(flightLayer.setColors).toHaveBeenLastCalledWith(DEFAULT_THEME.flight, DEFAULT_THEME.selected)
     })
 
+    it('flies one plane a trip, its flights in the order flown', async () => {
+      withFlights(fly('CPH', 'DXB'), fly('LHR', 'CDG'), fly('DXB', 'BKK'), fly('BKK', 'CPH'))
+      render(<App />)
+      const planes = () =>
+        ((flightLayer.show.mock.calls.at(-1)?.[1] ?? []) as { legs: { from: { code: string }; to: { code: string } }[] }[]).map(
+          (journey) => journey.legs.map((leg) => `${leg.from.code}-${leg.to.code}`).join(' '),
+        )
+      await waitFor(() => expect(planes()).toEqual(['CPH-DXB DXB-BKK BKK-CPH', 'LHR-CDG']))
+    })
+
     it('adds a flight from the Visited tab', async () => {
       render(<App />)
       await openFlights()
