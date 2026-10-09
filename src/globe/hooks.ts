@@ -8,7 +8,7 @@ import { loadCities, type City } from '../data/cities'
 import { loadRegions, type RegionFeature } from '../data/regions'
 import { createCountryLayer, createRaisedCountry, type CountryLayer } from './countryLayer'
 import { PIN_FADE, createPinLayer, type Pin, type PinLayer } from './pinLayer'
-import { createFlightLayer, type FlightLayer, type FlightLine } from './flightLayer'
+import { createFlightLayer, type FlightJourney, type FlightLayer, type FlightLine } from './flightLayer'
 import { loadAirports, type Airport } from '../data/airports'
 import { createRegionLayer, type RegionLayer } from './regionLayer'
 import { createPlanLayer, type PlanLayer } from './planLayer'
@@ -401,10 +401,11 @@ export function useImagery(imagery: Theme['imagery']) {
 /** The airports, once loaded */
 export const useAirports = (): Airport[] | null => useLoaded(loadAirports)
 
-/** Flights as arcs with planes flying along them, in `color`, the one picked in `highlight` */
+/** Flights as arcs, with a plane flying each of `journeys` (a trip), in `color`, those picked in `highlight` */
 export function useFlightLayer(
   globe: GlobeMethods | null,
   lines: readonly FlightLine[],
+  journeys: readonly FlightJourney[],
   { color, highlight }: { color: string; highlight: string },
 ) {
   const layer = useRef<FlightLayer | null>(null)
@@ -427,9 +428,9 @@ export function useFlightLayer(
   }, [globe, color, highlight])
 
   useEffect(() => {
-    layer.current?.show(lines)
-    if (!globe || lines.length === 0) return
-    // The planes fly while there are flights to show
+    layer.current?.show(lines, journeys)
+    if (!globe || journeys.length === 0) return
+    // The planes fly while there are planes to show
     const camera = globe.camera() as PerspectiveCamera
     const canvas = globe.renderer().domElement
     let frame = 0
@@ -439,7 +440,7 @@ export function useFlightLayer(
     }
     fly()
     return () => cancelAnimationFrame(frame)
-  }, [globe, lines])
+  }, [globe, lines, journeys])
 }
 
 /** Places you're going to, outlined in dashes of `color` */
