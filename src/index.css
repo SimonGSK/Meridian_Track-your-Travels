@@ -781,6 +781,11 @@ input[type='checkbox'] {
 
 /* The column on the right */
 
+/* Only on phones, where panels are sheets */
+.sheet-grabber {
+  display: none;
+}
+
 .side-panel {
   position: fixed;
   z-index: 2;
@@ -2565,6 +2570,18 @@ code {
   }
   .sheet-close {
     display: grid;
+  }
+  /* The handle at the top of a sheet, which can be swiped down to close it */
+  .sheet-grabber {
+    position: absolute;
+    top: 6px;
+    left: 50%;
+    display: block;
+    width: 36px;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--line-strong);
+    transform: translateX(-50%);
   }
   .card {
     padding: 14px 14px;
