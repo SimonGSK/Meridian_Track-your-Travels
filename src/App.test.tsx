@@ -1565,6 +1565,17 @@ describe('App', () => {
       expect(screen.getByRole('list', { name: '2024: New, Again' })).toBeInTheDocument()
     }, 10_000)
 
+    it('wraps the year shown full screen, put away with Escape', async () => {
+      render(<App />)
+      await openYears()
+      await userEvent.click(screen.getByRole('button', { name: '✨ Your 2024, wrapped' }))
+      expect(screen.getByRole('dialog', { name: 'Your 2024, wrapped' })).toBeInTheDocument()
+      expect(screen.getByRole('img', { name: /^In 2024: 1 country/ })).toBeInTheDocument()
+      fireEvent.keyDown(window, { key: 'Escape' })
+      expect(screen.queryByRole('dialog', { name: 'Your 2024, wrapped' })).not.toBeInTheDocument()
+      expect(sidePanel()).toBeInTheDocument() // Escape put the card away, not the panel
+    })
+
     it('ends the time-lapse on leaving the years', async () => {
       render(<App />)
       await openYears()

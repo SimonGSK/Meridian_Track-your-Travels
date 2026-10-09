@@ -18,6 +18,8 @@ type Props = {
   onShowRoute: (route: Route) => void
   /** The time-lapse of all the years: its steps, the one shown if it's on, and its controls */
   lapse?: Lapse
+  /** The year shown, wrapped: its card to keep or share */
+  onWrap?: () => void
 }
 
 type Lapse = {
@@ -125,7 +127,7 @@ function summaryOf({ places, countryCount, firstVisits, continents, flights, km 
 }
 
 /** The Visited tab's years: a year's places month by month, and its flights; the globe shows just that year */
-export default function YearsPanel({ years, review, onYearChange, noteOf, onShow, onShowRoute, lapse }: Props) {
+export default function YearsPanel({ years, review, onYearChange, noteOf, onShow, onShowRoute, lapse, onWrap }: Props) {
   if (lapse?.shown) return <TimeLapse {...lapse} shown={lapse.shown} />
   if (!review) {
     return (
@@ -168,6 +170,11 @@ export default function YearsPanel({ years, review, onYearChange, noteOf, onShow
           <span key={line}>{line}</span>
         ))}
       </p>
+      {onWrap && (
+        <button type="button" className="primary-button year-wrap" onClick={onWrap}>
+          ✨ Your {year}, wrapped
+        </button>
+      )}
       {lapse && lapse.steps.length > 1 && (
         <button type="button" className="primary-button secondary lapse-play" onClick={lapse.onPlay}>
           ▶ Replay your travels, {lapse.steps[0].year}–{lapse.steps.at(-1)!.year}

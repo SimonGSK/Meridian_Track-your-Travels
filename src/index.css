@@ -2438,6 +2438,12 @@ code {
   }
 }
 
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
 @keyframes slide-from-bottom {
   from {
     opacity: 0;
@@ -2740,6 +2746,45 @@ code {
 
 .compare .layer {
   margin: 4px 0 6px;
+}
+
+/* A year, wrapped: its card full screen, over everything, with Share, Save and Close under it */
+.wrapped {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 16px;
+  background: rgba(2, 6, 13, 0.96);
+  animation: fade-in 0.2s ease-out;
+}
+
+.wrapped-card {
+  height: min(calc(100dvh - 110px), calc((100vw - 32px) * 16 / 9));
+  width: auto;
+  aspect-ratio: 9 / 16;
+  border-radius: 18px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+}
+
+.wrapped-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.wrapped-actions .primary-button {
+  width: auto;
+  padding: 10px 22px;
+}
+
+.year-wrap {
+  width: 100%;
+  margin-bottom: 12px;
 }
 
 /* The time-lapse */
