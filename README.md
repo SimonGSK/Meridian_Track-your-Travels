@@ -1,4 +1,4 @@
-# Meridian · Track your Travels
+# Meridian
 
 An interactive 3D globe for keeping track of where you've been. Mark the countries, states and cities you've visited and when, log your flights and see them grouped into trips, look back on each year or replay them all as a time-lapse, keep a wishlist, compare your travels with a friend's, and test your geography with twelve games.
 
@@ -113,6 +113,8 @@ Meridian can be installed as an app, which opens in its own window from the dock
 - **Chrome or Edge**: the **Install Meridian** button in the Settings tab, or the install icon at the end of the address bar.
 - **Safari on a Mac**: File › Add to Dock.
 - **iPhone or iPad**: in Safari, Share › Add to Home Screen.
+
+It's called just Meridian. An app installed under an earlier name (it was "Meridian · Countries of the World", then "Meridian · Track your Travels") can keep that name in its window and menus until the browser updates it, which Chrome does now and then when it opens the app; to have it at once, uninstall the app and install it again. Your places are kept by the browser for the address, not by the app, so they stay, as long as you don't tick "Also clear data" when uninstalling (download a backup first, to be safe).
 
 After the first visit it works offline, installed or not: the globe, your places and flights, the cities and airports, and every game. The build writes a service worker (`sw.js`, by `vite.offline.ts`) that keeps a copy of every file of the app, with a version made from their contents. Online, the page comes from the network, so a new build is noticed. The new version takes over the next time the app is opened, and the old copy is cleared. The service worker runs only in the production build served over the web (not `npm run dev`, nor the screensaver). Browsers allow one only on `https://` or `localhost`.
 
