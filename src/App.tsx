@@ -319,16 +319,23 @@ export default function App({ compareOnOpen = false }: { compareOnOpen?: boolean
   // the real one doesn't know your friend
   const compareOpen = view === 'visited' && visitedView === 'compare' && !showsGame(game) && !previewing
   const compareShown = compareOpen && !!comparison && friendShown && colorVisited === visited
-  const marked = useMemo(
-    () =>
-      compareShown && comparison
-        ? new Map([
-            ...comparison.both.map((c) => [c.properties.name, theme.correct] as const),
-            ...comparison.onlyFriend.map((c) => [c.properties.name, theme.wishlist] as const),
-          ])
-        : undefined,
-    [compareShown, comparison, theme],
-  )
+  // A year picked in the Years tab: its places first visited then, and those visited again a darker shade, as in the
+  // time-lapse
+  const yearPicked = lapseStep ? null : yearShown
+  const marked = useMemo(() => {
+    if (compareShown && comparison) {
+      return new Map([
+        ...comparison.both.map((c) => [c.properties.name, theme.correct] as const),
+        ...comparison.onlyFriend.map((c) => [c.properties.name, theme.wishlist] as const),
+      ])
+    }
+    if (yearPicked) {
+      return new Map(
+        yearPicked.places.map((c) => [c.properties.name, yearPicked.firstVisits.has(c) ? theme.correct : revisitColor(theme)]),
+      )
+    }
+    return undefined
+  }, [compareShown, comparison, yearPicked, theme])
   const colorWishlist = yearShown || compareShown || showsGame(game) || !settings.showWishlist ? NO_VISITS : wishlist
   // The heat map shades your places by how many times you've been; one marked visited without dates counts once
   const heatShown = colorVisited === visited && settings.showVisitHeat && !compareShown
@@ -683,13 +690,14 @@ export default function App({ compareOnOpen = false }: { compareOnOpen?: boolean
             ]}
           />
         )}
-        {lapseStep && (
+        {(lapseStep || (yearPicked && yearPicked.places.length > 0)) && (
           <GlobeKey
-            title={String(lapseStep.year)}
+            title={String((lapseStep ?? yearPicked)!.year)}
             items={[
               { label: 'New', color: theme.correct },
               { label: 'Again', color: revisitColor(theme) },
-              { label: 'Earlier', color: theme.visited },
+              // The time-lapse shows the years before too
+              ...(lapseStep ? [{ label: 'Earlier', color: theme.visited }] : []),
             ]}
           />
         )}

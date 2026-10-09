@@ -614,8 +614,8 @@ describe('App', () => {
       expect(legend()).toBeInTheDocument()
       await userEvent.click(screen.getByRole('button', { name: 'Visited' }))
       await userEvent.click(screen.getByRole('tab', { name: 'Years' }))
-      // 2024, the newest: France, in the plain visited color
-      expect(painted()).toEqual({ France: DEFAULT_THEME.visited })
+      // 2024, the newest: France, been before, so in the darker green, not a shade of the heat map
+      expect(painted()).toEqual({ France: revisitColor(DEFAULT_THEME) })
       expect(legend()).not.toBeInTheDocument()
     })
   })
@@ -783,7 +783,7 @@ describe('App', () => {
 
       await userEvent.click(screen.getByRole('button', { name: 'Visited' }))
       await userEvent.click(screen.getByRole('tab', { name: 'Years' }))
-      expect(painted()).toEqual({ Japan: DEFAULT_THEME.visited })
+      expect(painted()).toEqual({ Japan: DEFAULT_THEME.correct })
       await userEvent.click(screen.getByRole('tab', { name: 'Countries' }))
 
       await userEvent.click(screen.getByRole('button', { name: 'Design' }))
@@ -1177,25 +1177,27 @@ describe('App', () => {
     }
     const all = { Japan: DEFAULT_THEME.visited, France: DEFAULT_THEME.visited, Denmark: DEFAULT_THEME.visited }
 
-    it('shows just the year on the globe while it is open: its places and flights, no city pins', async () => {
+    it('shows just the year on the globe while it is open: its places, new ones in green, and flights, no city pins', async () => {
       render(<App />)
       await waitFor(() => expect(drawn()).toEqual(['CPH-NRT', 'CPH-CDG', 'CPH-BKK']))
       await waitFor(() => expect(pinned()).toEqual(['Copenhagen']))
       await openYears()
       expect(screen.getByText('2 years')).toBeInTheDocument()
       expect(screen.getByRole('heading', { name: '2024' })).toBeInTheDocument()
-      expect(painted()).toEqual({ Japan: DEFAULT_THEME.visited })
+      expect(painted()).toEqual({ Japan: DEFAULT_THEME.correct })
+      expect(screen.getByRole('list', { name: '2024: New, Again' })).toBeInTheDocument() // the key
       expect(drawn()).toEqual(['CPH-NRT'])
       expect(pinned()).toEqual([])
 
       await userEvent.click(screen.getByRole('button', { name: 'Earlier year' }))
       expect(screen.getByRole('heading', { name: '2019' })).toBeInTheDocument()
-      expect(painted()).toEqual({ France: DEFAULT_THEME.visited })
+      expect(painted()).toEqual({ France: DEFAULT_THEME.correct })
       expect(drawn()).toEqual(['CPH-CDG'])
 
       // Everything again once the years are left
       await userEvent.click(screen.getByRole('tab', { name: 'Countries' }))
       expect(painted()).toEqual(all)
+      expect(screen.queryByRole('figure', { name: /^20/ })).not.toBeInTheDocument()
       expect(drawn()).toEqual(['CPH-NRT', 'CPH-CDG', 'CPH-BKK'])
       expect(pinned()).toEqual(['Copenhagen'])
     })
@@ -1246,11 +1248,11 @@ describe('App', () => {
       expect(lit()).toEqual(['CPH-NRT'])
       expect(screen.getByRole('button', { name: 'Replay' })).toBeInTheDocument()
 
-      // Back to the years: the year picked, as before
+      // Back to the years: the year picked, as before, with Japan new and France again, but not the years before
       await userEvent.click(screen.getByRole('button', { name: 'Back to the years' }))
       expect(screen.getByRole('list', { name: 'Month by month' })).toBeInTheDocument()
-      expect(painted()).toEqual({ Japan: DEFAULT_THEME.visited, France: DEFAULT_THEME.visited })
-      expect(key()).not.toBeInTheDocument()
+      expect(painted()).toEqual({ Japan: DEFAULT_THEME.correct, France: revisitColor(DEFAULT_THEME) })
+      expect(screen.getByRole('list', { name: '2024: New, Again' })).toBeInTheDocument()
     }, 10_000)
 
     it('ends the time-lapse on leaving the years', async () => {
@@ -1270,7 +1272,7 @@ describe('App', () => {
       expect(painted()).toEqual(all)
       await userEvent.click(screen.getByRole('button', { name: 'Visited' }))
       expect(screen.getByRole('heading', { name: '2019' })).toBeInTheDocument()
-      expect(painted()).toEqual({ France: DEFAULT_THEME.visited })
+      expect(painted()).toEqual({ France: DEFAULT_THEME.correct })
     })
 
     it("shows the year even with visited places and flights hidden in the layers", async () => {
@@ -1279,7 +1281,7 @@ describe('App', () => {
       await waitFor(() => expect(painted()).toEqual({}))
       expect(drawn()).toEqual([])
       await openYears()
-      expect(painted()).toEqual({ Japan: DEFAULT_THEME.visited })
+      expect(painted()).toEqual({ Japan: DEFAULT_THEME.correct })
       expect(drawn()).toEqual(['CPH-NRT'])
     })
 
