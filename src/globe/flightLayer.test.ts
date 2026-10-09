@@ -128,6 +128,28 @@ describe('createFlightLayer', () => {
   })
 })
 
+describe('a journey flown once', () => {
+  it('waits at the start until its time, flies its flights in its own time, and stays where it ends', () => {
+    const layer = createFlightLayer(RADIUS)
+    const legs = [
+      { from: { lat: -10, lng: 0 }, to: { lat: 10, lng: 0 } },
+      { from: { lat: 10, lng: 0 }, to: { lat: 10, lng: 20 } },
+    ]
+    layer.show([], [{ key: 'followed', legs, timing: { startsAt: 100, seconds: [4, 4], stop: STOP_SECONDS } }])
+    const plane = layer.object.children.find((c) => c.type === 'Sprite') as Sprite
+    const where = (at: number) => {
+      layer.tick(at, camera(), 800, 800)
+      const { x, y, z } = plane.position
+      return [Math.round((Math.asin(y / plane.position.length()) * 180) / Math.PI), Math.round((Math.atan2(x, z) * 180) / Math.PI)]
+    }
+    expect(where(50)).toEqual([-10, 0]) // not off yet
+    expect(where(102)).toEqual([0, 0]) // halfway along the first
+    expect(where(104 + STOP_SECONDS / 2)).toEqual([10, 0]) // waiting at the stop
+    expect(where(500)).toEqual([10, 20]) // landed at the end, and stays
+    layer.dispose()
+  })
+})
+
 describe('legAt', () => {
   it('goes through the legs in order, waiting where each lands, then starts over', () => {
     const legs = [10, 5]
@@ -136,6 +158,10 @@ describe('legAt', () => {
     expect(legAt(legs, 10 + STOP_SECONDS / 2)).toEqual({ leg: 0, t: 1 }) // waiting, where the first landed
     expect(legAt(legs, 10 + STOP_SECONDS + 1)).toEqual({ leg: 1, t: 0.2 })
     expect(legAt(legs, 15 + STOP_SECONDS * 1.5)).toEqual({ leg: 1, t: 1 }) // waiting at the end, before starting over
+  })
+
+  it('goes straight on from each, without stops', () => {
+    expect(legAt([10, 5], 11, 0)).toEqual({ leg: 1, t: 0.2 })
   })
 })
 

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react'
 import Globe, { type GlobeMethods } from 'react-globe.gl'
 import { MeshPhongMaterial } from 'three'
 import { countries, tinyPlaces, type CountryFeature } from './countries'
@@ -55,6 +55,8 @@ import GlobeKey from './ui/GlobeKey'
 import { useNewAchievements } from './visited/useNewAchievements'
 import { describeVisits, formatVisitDate, type VisitDate } from './data/visitDates'
 import { cityOf } from './data/airports'
+import { FOLLOW_LEAD_IN, FOLLOW_STOP, followLandings, followSeconds } from './globe/follow'
+import FollowBar from './ui/FollowBar'
 import UndoToast from './ui/UndoToast'
 import UpdateToast from './pwa/UpdateToast'
 import { useUpdateReady } from './pwa/useUpdateReady'
@@ -110,6 +112,8 @@ const NO_VISITS: ReadonlySet<string> = new Set()
 /** How much the land's height shows in a picture of the Earth */
 const RELIEF = 40
 const NO_FLIGHTS = { lines: [], journeys: [] }
+/** How long the last landing shows before the whole trip, and the panel, come back */
+const FOLLOW_END = 1.5
 
 
 /** Phones show one panel at a time, as a sheet over the globe */
@@ -381,6 +385,49 @@ export default function App({ compareOnOpen = false }: { compareOnOpen?: boolean
   /** Turns the globe to a year's places and flights, as it shows just them */
   const showYear = (year: YearReview | null) => year && flyToSee(spotsOf(year))
 
+  // Following a trip: its plane flies its flights once, from when it starts (on the planes' clock), and the globe turns
+  // to each flight in turn. On phones the panel makes way for it, and comes back at the end (`reopen`)
+  const [following, setFollowing] = useState<{ legs: Route[]; startedAt: number; reopen: boolean } | null>(null)
+  /** The flight being followed */
+  const [followLeg, setFollowLeg] = useState(0)
+  const followTrip = useCallback(
+    (legs: Route[]) => {
+      selectCountry(null)
+      setShownRoutes(legs)
+      setFollowLeg(0)
+      setFollowing({ legs, startedAt: performance.now() / 1000, reopen: isPhone() })
+      if (isPhone()) setView(null)
+    },
+    [selectCountry],
+  )
+  /** At the end of the trip, or with Stop: the Flights list again, if it made way */
+  const finishFollowing = useCallback(() => {
+    if (following?.reopen) setView('visited')
+    setFollowing(null)
+  }, [following])
+  useEffect(() => {
+    if (!following) return
+    const { legs } = following
+    flyToSee(spotsOfRoute(legs[0]))
+    // As each flight lands, the globe turns to the next as the plane flies on, and at the end to the whole trip
+    const landings = followLandings(legs.map(followSeconds))
+    const timers = landings.map((lands, i) =>
+      setTimeout(() => {
+        if (i + 1 < legs.length) {
+          setFollowLeg(i + 1)
+          flyToSee(spotsOfRoute(legs[i + 1]))
+        } else {
+          flyToSee(legs.flatMap(spotsOfRoute))
+        }
+      }, lands * 1000),
+    )
+    const done = setTimeout(finishFollowing, (landings.at(-1)! + FOLLOW_END) * 1000)
+    return () => {
+      timers.forEach(clearTimeout)
+      clearTimeout(done)
+    }
+  }, [following, flyToSee, finishFollowing])
+
   // A selected country with states isn't raised: it stays flat so its states can be picked on the globe
   const editing = !playing && selected && hasRegions(selected) ? selected : null
   const editingRegions = useMemo(() => (editing && regions ? regionsOf(regions, editing) : []), [editing, regions])
@@ -584,6 +631,26 @@ export default function App({ compareOnOpen = false }: { compareOnOpen?: boolean
       const line = { key: `city-${cityAnswer.city.id}`, from: cityAnswer.guess.position, to: cityAnswer.city, highlighted: true }
       return { lines: [line], journeys: [{ key: line.key, legs: [line], highlighted: true }] }
     }
+    // Following a trip: just it, the flight being flown standing out, and its plane flying it once
+    if (following) {
+      const { legs, startedAt } = following
+      return {
+        lines: uniqueRoutes(legs).map((route) => ({
+          key: route.flight.id,
+          from: route.from,
+          to: route.to,
+          highlighted: uniqueRoutes([route, legs[followLeg]]).length === 1,
+        })),
+        journeys: [
+          {
+            key: 'following',
+            legs,
+            highlighted: true,
+            timing: { startsAt: startedAt + FOLLOW_LEAD_IN, seconds: legs.map(followSeconds), stop: FOLLOW_STOP },
+          },
+        ],
+      }
+    }
     if (showsGame(game) || compareOpen || (!yearShown && !settings.showFlights)) return NO_FLIGHTS
     // In the time-lapse, the flights so far, that year's standing out
     const picked = lapseStep ? lapseStep.newFlights : (shownRoutes ?? [])
@@ -617,7 +684,19 @@ export default function App({ compareOnOpen = false }: { compareOnOpen?: boolean
       ],
       journeys,
     }
-  }, [cityAnswer, routes, upcomingRoutes, lapseStep, yearShown, compareOpen, settings.showFlights, game, shownRoutes])
+  }, [
+    cityAnswer,
+    following,
+    followLeg,
+    routes,
+    upcomingRoutes,
+    lapseStep,
+    yearShown,
+    compareOpen,
+    settings.showFlights,
+    game,
+    shownRoutes,
+  ])
   useFlightLayer(globe, flightsShown.lines, flightsShown.journeys, { color: theme.flight, highlight: theme.selected })
   const cityAt = useCallback(
     (point: Point | null) => (globe && point && pinned.length > 0 ? (pinAt(globe, pinned, point)?.city ?? null) : null),
@@ -724,6 +803,7 @@ export default function App({ compareOnOpen = false }: { compareOnOpen?: boolean
 
   // Leaving the Games panel ends the game
   const changeView = (next: ViewId | null) => {
+    setFollowing(null)
     if (view === 'games' && next !== 'games') {
       quitGame()
       setChosenGame(null)
@@ -746,7 +826,8 @@ export default function App({ compareOnOpen = false }: { compareOnOpen?: boolean
     const onKeyDown = (e: KeyboardEvent) => {
       // The preview's own Escape leaves it, back to the panels as they were
       if (e.key !== 'Escape' || previewing) return
-      if (selected) selectCountry(null)
+      if (following) setFollowing(null)
+      else if (selected) selectCountry(null)
       else if (shownRoutes) setShownRoutes(null)
       else {
         quitGame()
@@ -755,7 +836,7 @@ export default function App({ compareOnOpen = false }: { compareOnOpen?: boolean
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [selected, shownRoutes, selectCountry, quitGame, previewing])
+  }, [following, selected, shownRoutes, selectCountry, quitGame, previewing])
 
   /** The screensaver's preview, from Settings: nothing picked, from the screensaver's view */
   const startPreview = () => {
@@ -810,7 +891,16 @@ export default function App({ compareOnOpen = false }: { compareOnOpen?: boolean
         data-testid="globe"
         aria-busy={!globe}
         style={previewing ? undefined : { cursor: hoverable ? 'pointer' : findingCity ? 'crosshair' : 'grab' }}
-        {...(previewing ? {} : pointerHandlers)}
+        {...(previewing
+          ? {}
+          : {
+              ...pointerHandlers,
+              // Taking hold of the globe stops following a trip
+              onPointerDown: (e: ReactPointerEvent) => {
+                setFollowing(null)
+                pointerHandlers.onPointerDown(e)
+              },
+            })}
       >
         {globeView}
       </div>
@@ -837,11 +927,22 @@ export default function App({ compareOnOpen = false }: { compareOnOpen?: boolean
           <span>drag to spin</span>
           <span>{isPhone() ? 'pinch to zoom' : 'scroll to zoom'}</span>
         </p>
-        {pickedTrip && !playing && (
-          <p className="globe-caption">
-            {pickedTrip.name.trim() && <strong>{pickedTrip.name}</strong>}
-            {pickedTrip.note && <span>{pickedTrip.note}</span>}
-          </p>
+        {following ? (
+          <FollowBar
+            name={tripNameOf(following.legs.map((route) => route.flight.id))?.name.trim() || null}
+            leg={following.legs[followLeg]}
+            index={followLeg}
+            count={following.legs.length}
+            onStop={finishFollowing}
+          />
+        ) : (
+          pickedTrip &&
+          !playing && (
+            <p className="globe-caption">
+              {pickedTrip.name.trim() && <strong>{pickedTrip.name}</strong>}
+              {pickedTrip.note && <span>{pickedTrip.note}</span>}
+            </p>
+          )
         )}
         {compareShown && friend && (
           <GlobeKey
@@ -889,6 +990,7 @@ export default function App({ compareOnOpen = false }: { compareOnOpen?: boolean
             <VisitedTab
               view={visitedView}
               onViewChange={(next) => {
+                setFollowing(null)
                 setVisitedView(next)
                 if (next === 'years') showYear(review)
               }}
@@ -970,6 +1072,7 @@ export default function App({ compareOnOpen = false }: { compareOnOpen?: boolean
                   onDate={setFlightDate}
                   onShow={(route) => showRoutes([route])}
                   onShowTrip={showRoutes}
+                  onFollowTrip={followTrip}
                   nameOf={tripNameOf}
                   onName={(legs, name) => setTripName(legs, name, flights.map((f) => f.id))}
                 />

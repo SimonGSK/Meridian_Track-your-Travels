@@ -1304,6 +1304,62 @@ describe('App', () => {
       await waitFor(() => expect(planes()).toEqual(['CPH-DXB DXB-BKK BKK-CPH', 'LHR-CDG']))
     })
 
+    it('follows a trip on the globe, flight by flight, then shows it whole', async () => {
+      withFlights(fly('CPH', 'DXB'), fly('DXB', 'BKK'), fly('BKK', 'CPH'), fly('LHR', 'CDG'))
+      render(<App />)
+      await openFlights()
+      const follow = await screen.findByRole('button', { name: /^Follow the trip/ })
+      vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+      try {
+        const bar = () => screen.queryByRole('status', { name: 'Following a trip' })
+        const planes = () => (flightLayer.show.mock.calls.at(-1)?.[1] ?? []) as { key: string; timing?: object }[]
+        fireEvent.click(follow)
+        expect(bar()).toHaveTextContent('Copenhagen → Dubai1 of 3')
+        // Just the trip, its plane flying it once, the first flight standing out
+        expect(drawn()).toEqual(['CPH-DXB!', 'DXB-BKK', 'BKK-CPH'])
+        expect(planes()).toEqual([expect.objectContaining({ key: 'following', timing: expect.any(Object) })])
+
+        act(() => vi.advanceTimersByTime(6_000)) // landed in Dubai, and straight on
+        expect(bar()).toHaveTextContent('Dubai → Bangkok2 of 3')
+        expect(drawn()).toEqual(['CPH-DXB', 'DXB-BKK!', 'BKK-CPH'])
+
+        act(() => vi.advanceTimersByTime(60_000)) // home, and a moment after
+        expect(bar()).not.toBeInTheDocument()
+        expect(drawn()).toEqual(['CPH-DXB!', 'DXB-BKK!', 'BKK-CPH!', 'LHR-CDG']) // all flights again, the trip picked
+
+        // Stopped early with Escape, or Stop
+        fireEvent.click(follow)
+        expect(bar()).toBeInTheDocument()
+        fireEvent.keyDown(window, { key: 'Escape' })
+        expect(bar()).not.toBeInTheDocument()
+        fireEvent.click(follow)
+        fireEvent.click(within(bar()!).getByRole('button', { name: 'Stop' }))
+        expect(bar()).not.toBeInTheDocument()
+      } finally {
+        vi.useRealTimers()
+      }
+    })
+
+    it('on a phone, puts the flights away while following a trip, and brings them back at the end', async () => {
+      const matchMedia = window.matchMedia
+      window.matchMedia = ((query: string) => ({ matches: query.includes('max-width: 640px'), media: query })) as typeof window.matchMedia
+      withFlights(fly('CPH', 'DXB'), fly('DXB', 'CPH'))
+      try {
+        render(<App />)
+        await openFlights()
+        const follow = await screen.findByRole('button', { name: /^Follow the trip/ })
+        vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+        fireEvent.click(follow)
+        expect(sidePanel()).not.toBeInTheDocument()
+        act(() => vi.advanceTimersByTime(60_000))
+        expect(sidePanel()).toHaveAccessibleName('Visited')
+        expect(screen.getByRole('tab', { name: 'Flights' })).toHaveAttribute('aria-selected', 'true')
+      } finally {
+        vi.useRealTimers()
+        window.matchMedia = matchMedia
+      }
+    })
+
     it('adds a flight from the Visited tab', async () => {
       render(<App />)
       await openFlights()

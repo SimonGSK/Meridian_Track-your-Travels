@@ -4,7 +4,7 @@ import { flightStats, formatDistance, type Route } from '../data/flights'
 import { countdown } from '../data/plans'
 import { stopsOf, tripsByDate, tripsOf } from '../data/trips'
 import { formatVisitDate, type VisitDate } from '../data/visitDates'
-import { CloseIcon, PencilIcon } from '../icons'
+import { CloseIcon, PencilIcon, PlayIcon } from '../icons'
 import StatsBox from '../ui/StatsBox'
 import { noAutofill } from '../ui/noAutofill'
 import AirportSearch from './AirportSearch'
@@ -30,6 +30,8 @@ type Props = {
   nameOf?: (legs: readonly string[]) => TripName | null
   /** Names a trip; with neither a name nor a note, it has none */
   onName?: (legs: readonly string[], name: TripName) => void
+  /** Follows a trip on the globe, flight by flight */
+  onFollowTrip?: (routes: Route[]) => void
 }
 
 const oneDecimal = new Intl.NumberFormat('en-US', { maximumFractionDigits: 1 })
@@ -88,7 +90,7 @@ function FlightRow({ route, countdown, editing, onEdit, onShow, onRemove, onDate
 
 /** The Visited tab's flights: what they add up to, a form to add one, and the list, grouped into trips */
 export default function FlightsPanel(props: Props) {
-  const { routes, upcoming = [], airports, onAdd, onRemove, onDate, onShow, onShowTrip, nameOf, onName } = props
+  const { routes, upcoming = [], airports, onAdd, onRemove, onDate, onShow, onShowTrip, nameOf, onName, onFollowTrip } = props
   const [from, setFrom] = useState<Airport | null>(null)
   const [to, setTo] = useState<Airport | null>(null)
   // Kept for the next leg too, which is likely the same trip
@@ -218,6 +220,17 @@ export default function FlightsPanel(props: Props) {
                       aria-label={name ? `Rename the trip ${name}` : `Name the trip ${stops}`}
                     >
                       <PencilIcon size={14} />
+                    </button>
+                  )}
+                  {onFollowTrip && (
+                    <button
+                      type="button"
+                      className="remove-button note-button"
+                      onClick={() => onFollowTrip(trip.routes)}
+                      aria-label={`Follow the trip ${name ?? stops}`}
+                      title="Follow it on the globe, flight by flight"
+                    >
+                      <PlayIcon size={14} />
                     </button>
                   )}
                 </div>

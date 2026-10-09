@@ -1442,6 +1442,34 @@ code {
   pointer-events: none;
 }
 
+/* While following a trip: which flight, and Stop */
+.follow-bar {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 100%;
+  padding: 4px 4px 4px 16px;
+  border: 1px solid var(--accent);
+  border-radius: 20px;
+  background: var(--panel);
+  font-size: 14px;
+}
+
+.follow-text {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 10px;
+  min-width: 0;
+}
+
+.follow-count {
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
 /* A picked trip's name and note */
 .globe-caption {
   display: flex;
