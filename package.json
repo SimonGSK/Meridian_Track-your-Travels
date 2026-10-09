@@ -20,7 +20,8 @@
     "data:cities": "node scripts/extract-cities.mjs",
     "data:map": "node scripts/extract-map.mjs",
     "data:airports": "node scripts/fetch-airports.mjs",
-    "data:icons": "node scripts/make-icons.mjs"
+    "data:icons": "node scripts/make-icons.mjs",
+    "data:night-lights": "node scripts/make-night-lights.mjs"
   },
   "dependencies": {
     "@fontsource-variable/fraunces": "^5.3.0",

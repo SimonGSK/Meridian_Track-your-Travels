@@ -179,6 +179,8 @@ export function createCountryLayer(
       }
     },
     setSeeThrough(on) {
+      // See-through, it's drawn with the other see-through things: before the night, which darkens it
+      land.renderOrder = on ? -2 : 0
       if (land.material.transparent === on) return
       land.material.transparent = on
       land.material.needsUpdate = true

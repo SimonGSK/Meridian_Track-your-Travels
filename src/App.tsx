@@ -103,6 +103,8 @@ import { countryColor } from './globe/colors'
 const RENDERER_CONFIG = { antialias: true, alpha: true, powerPreference: 'high-performance' } as const
 
 const NO_VISITS: ReadonlySet<string> = new Set()
+/** How much the land's height shows in a picture of the Earth */
+const RELIEF = 40
 
 
 /** Phones show one panel at a time, as a sheet over the globe */
@@ -266,6 +268,9 @@ export default function App({ compareOnOpen = false }: { compareOnOpen?: boolean
             specularMap: imagery.water,
             specular: '#4a5a6a',
             shininess: theme.oceanShininess,
+            // Mountains catch the light, and cast shade
+            bumpMap: imagery.relief,
+            bumpScale: RELIEF,
           })
         : new MeshPhongMaterial({ color: theme.ocean, shininess: theme.oceanShininess }),
     [theme, imagery],
@@ -556,7 +561,14 @@ export default function App({ compareOnOpen = false }: { compareOnOpen?: boolean
   }, [cityAnswer, cities, settings.showCities, game, yearShown, compareOpen, visitedCities, editing, selected])
   usePinLayer(globe, pinned, cityAnswer ? theme.correct : theme.pin, screensaver || previewing ? SCREENSAVER_PIN_FADE : PIN_FADE)
   // Night as it is now, lit by the cities; not in games, where it would hide what to find
-  useNightLayer(globe, settings.showDayNight && !showsGame(game), (settings.showCityLights && cities) || NO_LIGHTS)
+  // With a picture of the Earth's lights at night, the cities are lit in it, rather than as dots
+  const nightPicture = settings.showCityLights ? (imagery?.night ?? null) : null
+  useNightLayer(
+    globe,
+    settings.showDayNight && !showsGame(game),
+    (!nightPicture && settings.showCityLights && cities) || NO_LIGHTS,
+    nightPicture,
+  )
 
   // Each route once, with a plane flying it; those picked in the list stand out. In "find the city", a plane flies
   // from where you clicked to the city

@@ -82,7 +82,7 @@ const { PLACES, PIN_AT, globe, layer, regionLayer, pinLayer, flightLayer, nightL
     regionLayer: { object: {}, show: vi.fn(), setOutlineColor: vi.fn(), setFillOpacity: vi.fn(), dispose: vi.fn() },
     pinLayer: { object: {}, show: vi.fn(), setColor: vi.fn(), setFade: vi.fn(), dispose: vi.fn() },
     flightLayer: { object: {}, show: vi.fn(), setColors: vi.fn(), tick: vi.fn(), dispose: vi.fn() },
-    nightLayer: { object: { night: true }, setSun: vi.fn(), setLights: vi.fn(), dispose: vi.fn() },
+    nightLayer: { object: { night: true }, setSun: vi.fn(), setLights: vi.fn(), setPicture: vi.fn(), dispose: vi.fn() },
     planLayer: { object: {}, show: vi.fn(), setColor: vi.fn(), dispose: vi.fn() },
   }
 })
