@@ -19,6 +19,7 @@ import {
   DEFAULT_THEME,
   NIGHT,
   POLITICAL,
+  REALISTIC,
   heatColor,
   hoveredRegionColor,
   plannedColor,
@@ -69,8 +70,16 @@ const { PLACES, PIN_AT, globe, layer, regionLayer, pinLayer, flightLayer, nightL
       getGlobeRadius: () => 100,
     },
     sceneObjects,
-    layer: { object: {}, paint: vi.fn(), setBorders: vi.fn(), setRings: vi.fn(), emphasize: vi.fn(), dispose: vi.fn() },
-    regionLayer: { object: {}, show: vi.fn(), setOutlineColor: vi.fn(), dispose: vi.fn() },
+    layer: {
+      object: {},
+      paint: vi.fn(),
+      setSeeThrough: vi.fn(),
+      setBorders: vi.fn(),
+      setRings: vi.fn(),
+      emphasize: vi.fn(),
+      dispose: vi.fn(),
+    },
+    regionLayer: { object: {}, show: vi.fn(), setOutlineColor: vi.fn(), setFillOpacity: vi.fn(), dispose: vi.fn() },
     pinLayer: { object: {}, show: vi.fn(), setColor: vi.fn(), setFade: vi.fn(), dispose: vi.fn() },
     flightLayer: { object: {}, show: vi.fn(), setColors: vi.fn(), tick: vi.fn(), dispose: vi.fn() },
     nightLayer: { object: { night: true }, setSun: vi.fn(), setLights: vi.fn(), dispose: vi.fn() },
@@ -1612,6 +1621,22 @@ describe('App', () => {
       const colors = lastColors()
       expect(colors.Denmark).not.toBe(colors.Germany)
       expect(new Set(Object.values(colors))).toEqual(new Set(POLITICAL.land))
+    })
+
+    it('shows the Earth from space in the realistic design: plain land not painted, your places see-through', async () => {
+      localStorage.setItem('countries-app.visited', JSON.stringify(['Denmark']))
+      render(<App />)
+      await userEvent.click(screen.getByRole('button', { name: 'Design' }))
+      await userEvent.click(screen.getByRole('button', { name: /^Realistic/ }))
+      const lastPaint = (name: string) => layer.paint.mock.calls.filter(([c]) => c.properties.name === name).at(-1)!.slice(1)
+      expect(lastPaint('Denmark')).toEqual([REALISTIC.visited, REALISTIC.imagery!.tint])
+      expect(lastPaint('France')).toEqual([REALISTIC.land, 0])
+      expect(layer.setSeeThrough).toHaveBeenLastCalledWith(true)
+      expect(regionLayer.setFillOpacity).toHaveBeenLastCalledWith(REALISTIC.imagery!.tint)
+
+      await userEvent.click(screen.getByRole('button', { name: /^Midnight/ }))
+      expect(lastPaint('France')).toEqual([DEFAULT_THEME.land, 1])
+      expect(layer.setSeeThrough).toHaveBeenLastCalledWith(false)
     })
 
     it('keeps the chosen design after a reload', async () => {

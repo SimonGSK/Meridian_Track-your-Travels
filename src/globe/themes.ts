@@ -1,11 +1,13 @@
 import { Color } from 'three'
+import earthImage from '../assets/earth-blue-marble.jpg'
+import earthWater from '../assets/earth-water.png'
 
 /** A visual design for the globe. */
 export type Theme = {
   id: string
   name: string
   description: string
-  /** The color that stands for the design in the swatch picker */
+  /** The color, or picture (any CSS background), that stands for the design in the swatch picker */
   swatch: string
   ocean: string
   oceanShininess: number
@@ -27,6 +29,12 @@ export type Theme = {
   wrong: string
   background: string
   atmosphere: string
+  /**
+   * A picture of the Earth on the globe, instead of colored land on a colored
+   * sea: only places colored (visited, picked…) are painted over it, letting
+   * `tint` of their color through, and `water` marks the sea, to shine.
+   */
+  imagery?: { map: string; water?: string; tint: number }
 }
 
 export const MIDNIGHT: Theme = {
@@ -161,7 +169,32 @@ export const MINIMAL: Theme = {
   atmosphere: '#ffffff',
 }
 
-export const THEMES: readonly Theme[] = [MIDNIGHT, CLASSIC, VINTAGE, POLITICAL, NIGHT, MINIMAL]
+/** The Earth as seen from space: NASA's Blue Marble, with its sea to shine (both by way of three-globe) */
+export const REALISTIC: Theme = {
+  id: 'realistic',
+  name: 'Realistic',
+  description: 'The Earth as seen from space: oceans, forests, deserts, ice and snow',
+  swatch: `center / cover url(${earthImage})`,
+  ocean: '#0b2342',
+  oceanShininess: 18,
+  // Not painted over the picture: it's for the rings around small islands, and what the heat map shades from
+  land: '#d8cfb8',
+  border: '#ffffff',
+  borderOpacity: 0.3,
+  hover: '#ffd166',
+  selected: '#ffc857',
+  visited: '#ff9f1c',
+  wishlist: '#c3a6ff',
+  pin: '#ff4d4d',
+  flight: '#e6f6ff',
+  correct: '#7dff9b',
+  wrong: '#ff5c5c',
+  background: '#02060d',
+  atmosphere: '#6fb3ff',
+  imagery: { map: earthImage, water: earthWater, tint: 0.45 },
+}
+
+export const THEMES: readonly Theme[] = [MIDNIGHT, CLASSIC, VINTAGE, POLITICAL, NIGHT, MINIMAL, REALISTIC]
 export const DEFAULT_THEME = MIDNIGHT
 
 export const themeById = (id: string) => THEMES.find((t) => t.id === id) ?? DEFAULT_THEME

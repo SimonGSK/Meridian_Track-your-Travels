@@ -31,8 +31,10 @@ export const EMPHASIS_SIZE_PX = 16
 
 export type CountryLayer = {
   object: Group
-  /** Recolor one country */
-  paint(country: CountryFeature, color: ColorRepresentation): void
+  /** Recolor one country, see-through by `opacity` once the land is (see setSeeThrough) */
+  paint(country: CountryFeature, color: ColorRepresentation, opacity?: number): void
+  /** Whether the land lets the globe under it show through, where it's painted less than opaque */
+  setSeeThrough(on: boolean): void
   setBorders(color: ColorRepresentation, opacity: number): void
   /**
    * Rings around these places: the tiny ones, none, or in the letter hunt the small islands too. In
@@ -83,8 +85,8 @@ export function createCountryLayer(
   landGeometry.setAttribute('normal', new Float32BufferAttribute(normals, 3))
   landGeometry.setIndex(indices)
 
-  // Starts out white; the caller paints each country
-  const colors = new BufferAttribute(new Float32Array(vertexCount * 3).fill(1), 3)
+  // Starts out white; the caller paints each country, and how opaque
+  const colors = new BufferAttribute(new Float32Array(vertexCount * 4).fill(1), 4)
   landGeometry.setAttribute('color', colors)
 
   const land = new Mesh(landGeometry, new MeshLambertMaterial({ vertexColors: true }))
@@ -157,15 +159,15 @@ export function createCountryLayer(
   const paintColor = new Color()
   return {
     object,
-    paint(country, color) {
+    paint(country, color, opacity = 1) {
       const range = ranges.get(country)
       if (!range) return
       paintColor.set(color)
       for (let i = range.start; i < range.start + range.count; i++) {
-        colors.setXYZ(i, paintColor.r, paintColor.g, paintColor.b)
+        colors.setXYZW(i, paintColor.r, paintColor.g, paintColor.b, opacity)
       }
       // Only re-upload this country's colors to the GPU (three.js clears the ranges after uploading)
-      colors.addUpdateRange(range.start * 3, range.count * 3)
+      colors.addUpdateRange(range.start * 4, range.count * 4)
       colors.needsUpdate = true
 
       painted.set(country, paintColor.clone())
@@ -175,6 +177,11 @@ export function createCountryLayer(
         markerColors.setXYZ(marker, ring.r, ring.g, ring.b)
         markerColors.needsUpdate = true
       }
+    },
+    setSeeThrough(on) {
+      if (land.material.transparent === on) return
+      land.material.transparent = on
+      land.material.needsUpdate = true
     },
     setBorders(color, opacity) {
       lines.material.color.set(color)

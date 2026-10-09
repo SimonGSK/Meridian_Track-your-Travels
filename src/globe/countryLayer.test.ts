@@ -52,6 +52,20 @@ describe('createCountryLayer', () => {
     expect(new Set(allColors())).toEqual(new Set([hex(LAND)]))
   })
 
+  it('paints a country see-through, for a design with a picture of the Earth under the land', () => {
+    const denmark = countries.find((c) => c.properties.name === 'Denmark')!
+    const material = land.material as MeshLambertMaterial
+    expect(material.transparent).toBe(false)
+    layer.setSeeThrough(true)
+    expect(material.transparent).toBe(true)
+    layer.paint(denmark, HOVER, 0.6)
+    const alphas = new Set(Array.from({ length: colors.count }, (_, i) => colors.getW(i)))
+    expect([...alphas].map((a) => a.toFixed(2)).sort()).toEqual(['0.60', '1.00'])
+    layer.paint(denmark, LAND)
+    layer.setSeeThrough(false)
+    expect(material.transparent).toBe(false)
+  })
+
   it('queues both countries for upload when switching hover in one frame', () => {
     const [a, b] = countries
     colors.clearUpdateRanges()
