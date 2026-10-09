@@ -1720,7 +1720,8 @@ describe('App', () => {
       expect(lastPaint('Denmark')).toEqual([REALISTIC.visited, REALISTIC.imagery!.tint])
       expect(lastPaint('France')).toEqual([REALISTIC.land, 0])
       expect(layer.setSeeThrough).toHaveBeenLastCalledWith(true)
-      expect(regionLayer.setFillOpacity).toHaveBeenLastCalledWith(REALISTIC.imagery!.tint)
+      // The states are drawn once their shapes have loaded, in the background
+      await waitFor(() => expect(regionLayer.setFillOpacity).toHaveBeenLastCalledWith(REALISTIC.imagery!.tint))
 
       await userEvent.click(screen.getByRole('button', { name: /^Midnight/ }))
       expect(lastPaint('France')).toEqual([DEFAULT_THEME.land, 1])
