@@ -168,6 +168,8 @@ const tooltip = () => screen.queryByRole('tooltip')
 const countryPanel = () => screen.queryByRole('complementary')
 const panelHeading = () => countryPanel()?.querySelector('h2') ?? null
 const sidePanel = () => document.getElementById('side-panel')
+/** Opens a continent's places under its bar, in the Visited tab */
+const openContinent = (continent: string) => userEvent.click(within(sidePanel()!).getByRole('button', { name: continent }))
 /** Explore's gear, opening the design and layers */
 const openLayers = () => userEvent.click(screen.getByRole('button', { name: 'Design and layers' }))
 /** Names of countries currently raised on the globe */
@@ -542,7 +544,7 @@ describe('App', () => {
       render(<App />)
       await userEvent.click(screen.getByRole('button', { name: 'Visited' }))
       await userEvent.type(screen.getByRole('searchbox'), 'japan{Enter}')
-      expect(within(sidePanel()!).getByRole('list', { name: 'Visited countries' })).toHaveTextContent('Japan')
+      expect(within(sidePanel()!).getByRole('list', { name: 'Visited in Asia' })).toHaveTextContent('Japan') // its continent opened
       expect(painted()).toEqual({ Japan: DEFAULT_THEME.visited })
     })
 
@@ -568,6 +570,7 @@ describe('App', () => {
       expect(visits.getByRole('list', { name: 'Visits' })).toHaveTextContent('Jun 20192019')
 
       await userEvent.click(within(screen.getByRole('navigation')).getByRole('button', { name: 'Visited' }))
+      await openContinent('Europe')
       expect(screen.getByRole('button', { name: /^Denmark/ })).toHaveTextContent('2 visits, last Jun 2019')
     })
 
@@ -788,6 +791,7 @@ describe('App', () => {
     it('puts a country removed from the list back, from the note or with Cmd+Z', async () => {
       render(<App />)
       await userEvent.click(screen.getByRole('button', { name: 'Visited' }))
+      await openContinent('Europe')
       await userEvent.click(screen.getByRole('button', { name: 'Remove Denmark' }))
       expect(note()).toHaveTextContent('Removed Denmark')
       expect(painted()).toEqual({ France: DEFAULT_THEME.visited })
@@ -873,6 +877,7 @@ describe('App', () => {
     it('offers to undo only the last removal', async () => {
       render(<App />)
       await userEvent.click(screen.getByRole('button', { name: 'Visited' }))
+      await openContinent('Europe')
       await userEvent.click(screen.getByRole('button', { name: 'Remove Denmark' }))
       await userEvent.click(screen.getByRole('button', { name: 'Remove France' }))
       expect(note()).toHaveTextContent('Removed France')
@@ -975,7 +980,7 @@ describe('App', () => {
       expect(list.getAllByRole('listitem').map((li) => li.querySelector('.row-name')!.textContent)).toEqual(['Japan', 'Peru'])
 
       await userEvent.click(list.getByRole('button', { name: 'Been to Japan: add it to your visited atlas' }))
-      expect(within(sidePanel()!).getByRole('list', { name: 'Visited countries' })).toHaveTextContent('Japan')
+      expect(within(sidePanel()!).getByRole('list', { name: 'Visited in Asia' })).toHaveTextContent('Japan')
       expect(painted()).toEqual({ Japan: DEFAULT_THEME.visited, Peru: DEFAULT_THEME.wishlist })
       expect(wishes()).toEqual(['Peru'])
     })
@@ -1131,6 +1136,7 @@ describe('App', () => {
       click(800)
       fireEvent.keyDown(window, { key: 'Escape' })
       await userEvent.click(within(screen.getByRole('navigation')).getByRole('button', { name: 'Visited' }))
+      await openContinent('North America')
       expect(screen.getByRole('button', { name: /^United States/ })).toHaveTextContent('1 of 51 states')
     })
 
@@ -1239,6 +1245,7 @@ describe('App', () => {
     it('notes the cities visited in the Visited list', async () => {
       await addAarhusAndClose()
       await userEvent.click(within(screen.getByRole('navigation')).getByRole('button', { name: 'Visited' }))
+      await openContinent('Europe')
       expect(screen.getByRole('button', { name: /^Denmark/ })).toHaveTextContent('1 city')
     })
 
@@ -1612,7 +1619,8 @@ describe('App', () => {
       await userEvent.click(screen.getByRole('switch', { name: /Visited countries/ }))
       expect(painted()).toEqual({})
       await userEvent.click(within(screen.getByRole('navigation')).getByRole('button', { name: 'Visited' }))
-      expect(screen.getByRole('list', { name: 'Visited countries' })).toHaveTextContent('Denmark')
+      await openContinent('Europe')
+      expect(screen.getByRole('list', { name: 'Visited in Europe' })).toHaveTextContent('Denmark')
     })
 
     it('hides the island markers, and remembers it', async () => {

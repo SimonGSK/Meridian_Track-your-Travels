@@ -147,11 +147,13 @@ test.describe('visited', () => {
     await page.getByRole('button', { name: 'Visited', exact: true }).click()
     await page.getByRole('searchbox', { name: 'Add a country' }).fill('Denmark')
     await page.keyboard.press('Enter')
-    const list = page.getByRole('list', { name: 'Visited countries' })
+    // Its continent opens, to see it there
+    const list = page.getByRole('list', { name: 'Visited in Europe' })
     await expect(list).toContainText('Denmark')
 
     await page.reload()
     await page.getByRole('button', { name: 'Visited', exact: true }).click()
+    await page.getByRole('button', { name: 'Europe', exact: true }).click()
     await expect(list).toContainText('Denmark')
     await expect(page.getByLabel('Your atlas')).toContainText('1 / 197')
   })
@@ -163,12 +165,14 @@ test.describe('visited', () => {
     await expect(tooltip(page)).toBeVisible()
     await page.mouse.click(x, y)
     const name = (await panel(page).getByRole('heading', { level: 2 }).textContent())!
+    const continent = (await panel(page).locator('.panel-meta').textContent())!.split(' · ')[0]
 
     await panel(page).getByRole('button', { name: 'Add to visited atlas' }).click()
     await expect(panel(page).getByRole('button', { name: 'In visited atlas' })).toHaveAttribute('aria-pressed', 'true')
 
     await page.getByRole('button', { name: 'Visited', exact: true }).first().click()
-    await expect(page.getByRole('list', { name: 'Visited countries' })).toContainText(name)
+    await page.getByRole('button', { name: continent, exact: true }).click()
+    await expect(page.getByRole('list', { name: `Visited in ${continent}` })).toContainText(name)
   })
 })
 
@@ -189,6 +193,7 @@ test.describe('visited states', () => {
 
     await page.reload()
     await page.getByRole('button', { name: 'Visited', exact: true }).click()
+    await page.getByRole('button', { name: 'Oceania', exact: true }).click()
     await expect(page.getByRole('button', { name: /^Australia/ })).toContainText('1 of 9 states and territories')
     await page.getByRole('button', { name: /^Australia/ }).click()
     await statesLine.click()
@@ -216,6 +221,7 @@ test.describe('visited cities', () => {
 
     await page.reload()
     await page.getByRole('button', { name: 'Visited', exact: true }).click()
+    await page.getByRole('button', { name: 'Asia', exact: true }).click()
     await expect(page.getByRole('button', { name: /^Japan/ })).toContainText('2 cities')
     await page.getByRole('button', { name: /^Japan/ }).click()
     await expect(visitedCities).toContainText('Kyoto')
@@ -396,10 +402,11 @@ test.describe('undo', () => {
       await add.fill(name)
       await add.press('Enter')
     }
-    const list = page.getByRole('list', { name: 'Visited countries' })
+    await page.getByRole('button', { name: 'Asia', exact: true }).click()
+    const list = page.getByRole('list', { name: 'Visited in Asia' })
     await expect(list).toContainText('Japan')
     await page.getByRole('button', { name: 'Remove Japan' }).click()
-    await expect(list).not.toContainText('Japan')
+    await expect(page.getByRole('button', { name: 'Remove Japan' })).toBeHidden()
     await expect(page.getByText('Removed Japan')).toBeVisible()
     await page.getByRole('button', { name: 'Undo' }).click()
     await expect(list).toContainText('Japan')
@@ -436,7 +443,7 @@ test.describe('wishlist', () => {
 
     await wishlist.getByRole('button', { name: 'Been to Peru: add it to your visited atlas' }).click()
     await expect(wishlist).toHaveCount(0)
-    await expect(page.getByRole('list', { name: 'Visited countries' })).toContainText('Peru')
+    await expect(page.getByRole('list', { name: 'Visited in South America' })).toContainText('Peru')
     await expect(page.getByText('1 visited')).toBeVisible()
   })
 })
@@ -471,6 +478,7 @@ test.describe('year in review', () => {
     await expect(page.getByText(/^No dates yet/)).toBeVisible()
 
     await page.getByRole('tab', { name: 'Countries' }).click()
+    await page.getByRole('button', { name: 'Asia', exact: true }).click()
     await page.getByRole('button', { name: /^Japan/ }).click()
     const visits = panel(page).getByRole('region', { name: 'Visits' })
     await visits.getByRole('combobox', { name: 'Year' }).selectOption('2023')
@@ -518,7 +526,8 @@ test.describe('settings', () => {
     // The page starts over with the backup
     await expect(page.getByText('2 visited')).toBeVisible()
     await page.getByRole('button', { name: 'Visited', exact: true }).click()
-    await expect(page.getByRole('list', { name: 'Visited countries' })).toContainText('Japan')
+    await page.getByRole('button', { name: 'Asia', exact: true }).click()
+    await expect(page.getByRole('list', { name: 'Visited in Asia' })).toContainText('Japan')
   })
 })
 
