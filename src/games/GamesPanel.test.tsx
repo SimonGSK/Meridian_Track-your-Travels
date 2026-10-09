@@ -47,6 +47,33 @@ describe('GamesPanel: choosing a game', () => {
     expect(screen.queryByRole('button', { name: /^Easy/ })).not.toBeInTheDocument()
   })
 
+  it('groups the games by what they ask about, after the daily challenge', () => {
+    setup()
+    const titles = (category: string) =>
+      within(screen.getByRole('list', { name: category }))
+        .getAllByRole('button')
+        .map((b) => b.querySelector('strong')!.textContent)
+    expect(screen.getAllByRole('heading', { level: 3 }).map((h) => h.textContent)).toEqual([
+      'Countries',
+      'Flags',
+      'Capitals',
+      'Cities',
+      'Facts',
+    ])
+    expect(titles('Countries')).toEqual([
+      'Find the country',
+      'Name that country',
+      'Shape quiz',
+      'Neighbours',
+      'Letter hunt',
+      'Name them all',
+    ])
+    expect(titles('Flags')).toEqual(['Flag quiz'])
+    expect(titles('Capitals')).toEqual(['Capital quiz', 'Whose capital?'])
+    expect(titles('Cities')).toEqual(['Find the city'])
+    expect(titles('Facts')).toEqual(['Higher or lower'])
+  })
+
   it('asks for the difficulty after choosing a game, then starts it', async () => {
     const { onStart } = setup()
     await userEvent.click(screen.getByRole('button', { name: /Shape quiz/ }))
