@@ -21,17 +21,20 @@ import { LAND_ALTITUDE } from './style'
 
 type LatLng = { lat: number; lng: number }
 
-/**
- * A route to draw: from where to where, whether it's the one picked, whether
- * it was flown back too, and whether it's still to come (dashed, no plane yet)
- */
+/** A route to draw: from where to where, whether it's the one picked, and whether it's still to come (dashed) */
 export type FlightLine = {
   key: string
   from: LatLng
   to: LatLng
   highlighted?: boolean
-  bothWays?: boolean
   upcoming?: boolean
+}
+
+/** A plane's way round: a trip's flights, flown one after another, then again; picked, it stands out */
+export type FlightJourney = {
+  key: string
+  legs: readonly { from: LatLng; to: LatLng }[]
+  highlighted?: boolean
 }
 
 /** Routes leave from just above the land, so their ends aren't hidden in it */
@@ -48,6 +51,9 @@ const LINE_OPACITY = 0.5
 export const PLANE_SIZE_PX = 18
 /** Dashes along a flight still to come, per radian */
 const DASHES_PER_RADIAN = 24
+
+/** How long a plane waits where it lands, before the next flight of its trip */
+export const STOP_SECONDS = 2
 
 /**
  * A plane takes its time, more for long flights, then sets off again: Copenhagen to Bangkok about 28 seconds,
@@ -70,6 +76,20 @@ export function flightPath(from: LatLng, to: LatLng, globeRadius: number, sample
   })
 }
 
+/**
+ * Where a plane is `time` into its round of legs that take these `seconds`, waiting STOP_SECONDS where each lands:
+ * which leg, and how far along it (1 while waiting)
+ */
+export function legAt(seconds: readonly number[], time: number) {
+  let left = time
+  for (let leg = 0; leg < seconds.length; leg++) {
+    if (left < seconds[leg]) return { leg, t: left / seconds[leg] }
+    left -= seconds[leg] + STOP_SECONDS
+    if (left < 0) return { leg, t: 1 }
+  }
+  return { leg: seconds.length - 1, t: 1 }
+}
+
 /** Where along its path a plane is, `t` from 0 to 1 */
 export function pointAlong(path: readonly Vector3[], t: number, into = new Vector3()) {
   const position = Math.min(Math.max(t, 0), 1) * (path.length - 1)
@@ -77,12 +97,13 @@ export function pointAlong(path: readonly Vector3[], t: number, into = new Vecto
   return into.copy(path[i]).lerp(path[i + 1], position - i)
 }
 
-/** A plane on a route flown both ways flies back on every other trip */
-type Plane = { sprite: Sprite; path: Vector3[]; seconds: number; offset: number; bothWays: boolean }
+/** A plane, flying a trip's legs (their paths, and how long each takes) in turn, waiting at each stop */
+type Plane = { sprite: Sprite; paths: Vector3[][]; seconds: number[]; total: number; offset: number }
 
 export type FlightLayer = {
   object: Group
-  show(lines: readonly FlightLine[]): void
+  /** Draws these routes, and a plane flying each of these journeys */
+  show(lines: readonly FlightLine[], journeys?: readonly FlightJourney[]): void
   setColors(line: ColorRepresentation, highlight: ColorRepresentation): void
   /** Moves the planes to where they are at `seconds`, facing their way on screen */
   tick(seconds: number, camera: PerspectiveCamera, width: number, height: number): void
@@ -93,11 +114,11 @@ export type FlightLayer = {
 const offsetOf = (key: string) => [...key].reduce((sum, ch) => (sum * 31 + ch.charCodeAt(0)) % 997, 7) / 997
 
 /**
- * Flights as thin arcs above the globe, each with a little plane flying
- * along it from where the flight left, and back again on the next trip if
- * it was flown both ways. The planes keep their size on screen and turn to
- * face the way they're flying. Flights still to come are dashed, with no
- * plane yet.
+ * Flights as thin arcs above the globe, and a little plane for each trip,
+ * flying its flights in the order flown, waiting a moment at each stop, then
+ * setting off again: one plane a trip keeps the globe calm. The planes keep
+ * their size on screen and turn to face the way they're flying. Flights
+ * still to come are dashed.
  */
 export function createFlightLayer(globeRadius: number): FlightLayer {
   const object = new Group()
@@ -131,7 +152,7 @@ export function createFlightLayer(globeRadius: number): FlightLayer {
 
   return {
     object,
-    show(routes) {
+    show(routes, journeys = []) {
       clear()
       for (const route of routes) {
         const highlighted = !!route.highlighted
@@ -149,12 +170,16 @@ export function createFlightLayer(globeRadius: number): FlightLayer {
         )
         object.add(mesh)
         lines.push({ mesh, highlighted })
-        if (route.upcoming) continue
+      }
+      for (const journey of journeys) {
+        if (journey.legs.length === 0) continue
+        const paths = journey.legs.map(({ from, to }) => flightPath(from, to, globeRadius))
+        const seconds = journey.legs.map(({ from, to }) => flightSeconds(geoDistance([from.lng, from.lat], [to.lng, to.lat])))
+        const total = seconds.reduce((sum, leg) => sum + leg + STOP_SECONDS, 0)
         const sprite = new Sprite(new SpriteMaterial({ map: texture, sizeAttenuation: false, transparent: true, alphaTest: 0.5 }))
         sprite.renderOrder = 2
-        const seconds = flightSeconds(radians)
         object.add(sprite)
-        planes.push({ sprite, path, seconds, offset: offsetOf(route.key) * seconds, highlighted, bothWays: !!route.bothWays })
+        planes.push({ sprite, paths, seconds, total, offset: offsetOf(journey.key) * total, highlighted: !!journey.highlighted })
       }
       paint()
     },
@@ -167,16 +192,15 @@ export function createFlightLayer(globeRadius: number): FlightLayer {
       // Sprites that don't scale with distance are sized by the camera's projection
       const scale = PLANE_SIZE_PX / ((camera.projectionMatrix.elements[5] * height) / 2)
       for (const plane of planes) {
-        const trips = (seconds + plane.offset) / plane.seconds
-        const back = plane.bothWays && Math.floor(trips) % 2 === 1
-        const t = back ? 1 - (trips % 1) : trips % 1
-        pointAlong(plane.path, t, here)
+        const { leg, t } = legAt(plane.seconds, (seconds + plane.offset) % plane.total)
+        const path = plane.paths[leg]
+        pointAlong(path, t, here)
         plane.sprite.position.copy(here)
         plane.sprite.scale.setScalar(scale)
-        // Face the way it's going, as it looks on screen
-        pointAlong(plane.path, back ? t - 0.01 : t + 0.01, ahead)
-        const start = here.clone().project(camera)
-        const end = ahead.project(camera)
+        // Face the way it's going, as it looks on screen; waiting, the way it landed
+        const facing = Math.min(t, 0.99)
+        const start = pointAlong(path, facing).project(camera)
+        const end = pointAlong(path, facing + 0.01, ahead).project(camera)
         const dx = (end.x - start.x) * width
         const dy = (end.y - start.y) * height
         if (dx || dy) plane.sprite.material.rotation = Math.atan2(dy, dx) - Math.PI / 2

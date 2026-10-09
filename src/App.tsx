@@ -66,7 +66,8 @@ import VisitedTab, { type VisitedView } from './visited/VisitedTab'
 import YearsPanel from './visited/YearsPanel'
 import { reviewOf, spotsOf, spotsOfStep, timelineOf, yearsOf, type YearReview } from './visited/yearInReview'
 import { useTimeLapse } from './visited/useTimeLapse'
-import { routeOf, flownBothWays, uniqueRoutes, type Route } from './data/flights'
+import { routeOf, uniqueRoutes, type Route } from './data/flights'
+import { tripsOf } from './data/trips'
 import { regionFills, regionOutlines, regionProgress } from './visited/regionsView'
 import Tooltip from './Tooltip'
 import {
@@ -105,6 +106,7 @@ const RENDERER_CONFIG = { antialias: true, alpha: true, powerPreference: 'high-p
 const NO_VISITS: ReadonlySet<string> = new Set()
 /** How much the land's height shows in a picture of the Earth */
 const RELIEF = 40
+const NO_FLIGHTS = { lines: [], journeys: [] }
 
 
 /** Phones show one panel at a time, as a sheet over the globe */
@@ -570,42 +572,48 @@ export default function App({ compareOnOpen = false }: { compareOnOpen?: boolean
     nightPicture,
   )
 
-  // Each route once, with a plane flying it; those picked in the list stand out. In "find the city", a plane flies
-  // from where you clicked to the city
-  const flightLines = useMemo(() => {
+  // Each route once, and a plane for each trip, flying its flights in order; those picked in the list stand out. In
+  // "find the city", a plane flies from where you clicked to the city
+  const flightsShown = useMemo(() => {
     if (cityAnswer?.guess.position) {
-      return [{ key: `city-${cityAnswer.city.id}`, from: cityAnswer.guess.position, to: cityAnswer.city, highlighted: true }]
+      const line = { key: `city-${cityAnswer.city.id}`, from: cityAnswer.guess.position, to: cityAnswer.city, highlighted: true }
+      return { lines: [line], journeys: [{ key: line.key, legs: [line], highlighted: true }] }
     }
-    if (showsGame(game) || compareOpen || (!yearShown && !settings.showFlights)) return []
+    if (showsGame(game) || compareOpen || (!yearShown && !settings.showFlights)) return NO_FLIGHTS
     // In the time-lapse, the flights so far, that year's standing out
     const picked = lapseStep ? lapseStep.newFlights : (shownRoutes ?? [])
     const flown = lapseStep ? lapseStep.flights : yearShown ? yearShown.flights : routes
-    // A route flown both ways has its plane flying back on every other trip
-    const backToo = flownBothWays(flown)
     const isPicked = (route: Route) => picked.some((p) => uniqueRoutes([route, p]).length === 1)
     const lines = uniqueRoutes(flown).map((route) => ({
       key: route.flight.id,
       from: route.from,
       to: route.to,
       highlighted: isPicked(route),
-      bothWays: backToo(route),
+    }))
+    const journeys = tripsOf(flown).map((trip) => ({
+      key: trip.routes[0].flight.id,
+      legs: trip.routes,
+      highlighted: trip.routes.some(isPicked),
     }))
     // Flights booked, dashed, on the globe as it is: each route once (dashes there and back would fill each other's
     // gaps), and not over one flown already
-    if (lapseStep || yearShown) return lines
+    if (lapseStep || yearShown) return { lines, journeys }
     const booked = uniqueRoutes(upcomingRoutes).filter((route) => !flown.some((f) => uniqueRoutes([f, route]).length === 1))
-    return [
-      ...lines,
-      ...booked.map((route) => ({
-        key: `upcoming-${route.flight.id}`,
-        from: route.from,
-        to: route.to,
-        highlighted: isPicked(route),
-        upcoming: true,
-      })),
-    ]
+    return {
+      lines: [
+        ...lines,
+        ...booked.map((route) => ({
+          key: `upcoming-${route.flight.id}`,
+          from: route.from,
+          to: route.to,
+          highlighted: isPicked(route),
+          upcoming: true,
+        })),
+      ],
+      journeys,
+    }
   }, [cityAnswer, routes, upcomingRoutes, lapseStep, yearShown, compareOpen, settings.showFlights, game, shownRoutes])
-  useFlightLayer(globe, flightLines, { color: theme.flight, highlight: theme.selected })
+  useFlightLayer(globe, flightsShown.lines, flightsShown.journeys, { color: theme.flight, highlight: theme.selected })
   const cityAt = useCallback(
     (point: Point | null) => (globe && point && pinned.length > 0 ? (pinAt(globe, pinned, point)?.city ?? null) : null),
     [globe, pinned],
