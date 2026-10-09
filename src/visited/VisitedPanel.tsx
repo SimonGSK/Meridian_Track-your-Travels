@@ -34,10 +34,9 @@ const TERRITORY_COUNT = countries.length - COUNTRY_COUNT
 const COUNTRIES_IN = new Map(
   CONTINENTS.map((continent) => [continent, countries.filter((c) => isCountry(c) && c.properties.continent === continent).length]),
 )
-const INHABITED = CONTINENTS.filter((continent) => COUNTRIES_IN.get(continent)! > 0)
 const MAX_RESULTS = 6
-// No spaces: aria-labelledby reads spaces as separators between ids
-const headingId = (continent: Continent) => `visited-${continent.replace(/\s+/g, '-')}`
+// No spaces: aria-controls reads spaces as separators between ids
+const placesId = (continent: Continent) => `visited-in-${continent.replace(/\s+/g, '-')}`
 
 /** A small flag in front of a place's name in a list */
 export function Flag({ country }: { country: CountryFeature }) {
@@ -52,6 +51,8 @@ export default function VisitedPanel(props: Props) {
   const { visited, onAdd, onRemove, onShow, note, cityCount = 0, wishlist = NO_WISHES, onWish, onUnwish } = props
   const { plans = NO_PLANS, onUnplan } = props
   const [query, setQuery] = useState('')
+  /** The continent whose places are listed under its bar */
+  const [open, setOpen] = useState<Continent | null>(null)
 
   const visitedList = countries.filter((c) => visited.has(c.properties.name)).sort(byName)
   const notVisited = countries.filter((c) => !visited.has(c.properties.name))
@@ -68,10 +69,14 @@ export default function VisitedPanel(props: Props) {
   const noteFor = (c: CountryFeature) =>
     [isCountry(c) ? null : 'Territory', note?.(c)].filter(Boolean).join(' · ') || null
 
+  // Adding a place opens its continent, to see it there
   const add = (country: CountryFeature) => {
     onAdd(country.properties.name)
     setQuery('')
+    setOpen(country.properties.continent)
   }
+  // Every continent with countries, and Antarctica too once you've been to one of its territories
+  const continents = CONTINENTS.filter((continent) => COUNTRIES_IN.get(continent)! > 0 || visitedIn(continent).length > 0)
 
   return (
     <div className="visited">
@@ -98,31 +103,75 @@ export default function VisitedPanel(props: Props) {
 
       <h3>By continent</h3>
       <ul className="continent-stats" aria-label="Countries visited by continent">
-        {INHABITED.map((continent) => {
+        {continents.map((continent) => {
           const total = COUNTRIES_IN.get(continent)!
-          const count = visitedIn(continent).filter(isCountry).length
+          const places = visitedIn(continent)
+          const count = places.filter(isCountry).length
+          const isOpen = open === continent
           return (
-            <li key={continent}>
-              <span className="continent-name">{continent}</span>
-              <span className="continent-count">
-                {count} / {total}
-              </span>
-              <span className="continent-percent">{percentLabel(count, total)}</span>
-              <div
-                className="progress small"
-                role="progressbar"
-                aria-label={`${continent}: ${count} of ${total} countries`}
-                aria-valuemin={0}
-                aria-valuemax={total}
-                aria-valuenow={count}
-                aria-valuetext={percentLabel(count, total)}
-              >
-                <div style={{ width: `${(count / total) * 100}%` }} />
+            <li key={continent} className={isOpen ? 'open' : undefined}>
+              {/* The whole bar opens the continent's places; the button, for the keyboard */}
+              <div className="continent-row" onClick={() => setOpen(isOpen ? null : continent)}>
+                <button type="button" className="continent-name" aria-expanded={isOpen} aria-controls={placesId(continent)}>
+                  {continent}
+                </button>
+                {total > 0 ? (
+                  <>
+                    <span className="continent-count">
+                      {count} / {total}
+                    </span>
+                    <span className="continent-percent">{percentLabel(count, total)}</span>
+                    <div
+                      className="progress small"
+                      role="progressbar"
+                      aria-label={`${continent}: ${count} of ${total} countries`}
+                      aria-valuemin={0}
+                      aria-valuemax={total}
+                      aria-valuenow={count}
+                      aria-valuetext={percentLabel(count, total)}
+                    >
+                      <div style={{ width: `${(count / total) * 100}%` }} />
+                    </div>
+                  </>
+                ) : (
+                  <span className="continent-count">{places.length === 1 ? '1 place' : `${places.length} places`}</span>
+                )}
               </div>
+              {isOpen &&
+                (places.length === 0 ? (
+                  <p id={placesId(continent)} className="muted continent-none">
+                    None yet in {continent}.
+                  </p>
+                ) : (
+                  <ul id={placesId(continent)} className="country-list continent-places" aria-label={`Visited in ${continent}`}>
+                    {places.map((c) => (
+                      <li key={c.properties.name} className="country-item">
+                        <button type="button" className="country-row" onClick={() => onShow(c)}>
+                          <Flag country={c} />
+                          <span className="row-text">
+                            <span className="row-name">{c.properties.name}</span>
+                            {noteFor(c) && <span className="row-note">{noteFor(c)}</span>}
+                          </span>
+                        </button>
+                        <button
+                          type="button"
+                          className="icon-button small"
+                          onClick={() => onRemove(c.properties.name)}
+                          aria-label={`Remove ${c.properties.name}`}
+                        >
+                          ×
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                ))}
             </li>
           )
         })}
       </ul>
+      {visitedList.length === 0 && (
+        <p className="muted">None yet. Search below, or click a country on the globe and mark it as visited.</p>
+      )}
 
       <form
         className="search"
@@ -232,7 +281,7 @@ export default function VisitedPanel(props: Props) {
                     type="button"
                     className="link-button been-there"
                     aria-label={`Been to ${c.properties.name}: add it to your visited atlas`}
-                    onClick={() => onAdd(c.properties.name)}
+                    onClick={() => add(c)}
                   >
                     Been there
                   </button>
@@ -251,43 +300,6 @@ export default function VisitedPanel(props: Props) {
         </>
       )}
 
-      <h3>Your countries</h3>
-      {visitedList.length === 0 ? (
-        <p className="muted">
-          None yet. Search above, or click a country on the globe and mark it as visited.
-        </p>
-      ) : (
-        <ul className="continent-groups" aria-label="Visited countries">
-          {CONTINENTS.filter((continent) => visitedIn(continent).length > 0).map((continent) => (
-            <li key={continent}>
-              <h4 id={headingId(continent)}>
-                {continent} <span className="muted">{visitedIn(continent).length}</span>
-              </h4>
-              <ul className="country-list" aria-labelledby={headingId(continent)}>
-                {visitedIn(continent).map((c) => (
-                  <li key={c.properties.name} className="country-item">
-                    <button type="button" className="country-row" onClick={() => onShow(c)}>
-                      <Flag country={c} />
-                      <span className="row-text">
-                        <span className="row-name">{c.properties.name}</span>
-                        {noteFor(c) && <span className="row-note">{noteFor(c)}</span>}
-                      </span>
-                    </button>
-                    <button
-                      type="button"
-                      className="icon-button small"
-                      onClick={() => onRemove(c.properties.name)}
-                      aria-label={`Remove ${c.properties.name}`}
-                    >
-                      ×
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </li>
-          ))}
-        </ul>
-      )}
     </div>
   )
 }
