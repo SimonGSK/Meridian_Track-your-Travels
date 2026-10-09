@@ -11,6 +11,7 @@ import { PIN_FADE, createPinLayer, type Pin, type PinLayer } from './pinLayer'
 import { createFlightLayer, type FlightLayer, type FlightLine } from './flightLayer'
 import { loadAirports, type Airport } from '../data/airports'
 import { createRegionLayer, type RegionLayer } from './regionLayer'
+import { createPlanLayer, type PlanLayer } from './planLayer'
 import { createNightLayer, type Light } from './nightLayer'
 import { subsolarPoint } from './sun'
 import { approach, isClick, type LatLng, type Point } from './interaction'
@@ -396,6 +397,32 @@ export function useFlightLayer(
     fly()
     return () => cancelAnimationFrame(frame)
   }, [globe, lines])
+}
+
+/** Places you're going to, outlined in dashes of `color` */
+export function usePlanLayer(globe: GlobeMethods | null, places: readonly CountryFeature[], color: string) {
+  const layer = useRef<PlanLayer | null>(null)
+
+  useEffect(() => {
+    if (!globe) return
+    const scene = globe.scene()
+    const created = createPlanLayer(globe.getGlobeRadius())
+    scene.add(created.object)
+    layer.current = created
+    return () => {
+      scene.remove(created.object)
+      created.dispose()
+      layer.current = null
+    }
+  }, [globe])
+
+  useEffect(() => {
+    layer.current?.setColor(color)
+  }, [globe, color])
+
+  useEffect(() => {
+    layer.current?.show(places)
+  }, [globe, places])
 }
 
 /** Pins in `color`, at `pins`, fading out near the edge of the globe as `fade` says */

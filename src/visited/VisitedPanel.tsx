@@ -2,7 +2,8 @@ import { useState } from 'react'
 import { countries, searchCountries, type CountryFeature } from '../countries'
 import { CONTINENTS, type Continent } from '../data/continents'
 import { flagUrl } from '../flags'
-import { StarIcon } from '../icons'
+import { CloseIcon, StarIcon } from '../icons'
+import { countdown, formatDay, type Day } from '../data/plans'
 import { percentLabel } from './percentLabel'
 import StatsBox from '../ui/StatsBox'
 import { noAutofill } from '../ui/noAutofill'
@@ -20,6 +21,9 @@ type Props = {
   wishlist?: ReadonlySet<string>
   onWish?: (name: string) => void
   onUnwish?: (name: string) => void
+  /** Visits planned, by place: the day you're going */
+  plans?: Readonly<Record<string, Day>>
+  onUnplan?: (name: string) => void
 }
 
 const byName = (a: CountryFeature, b: CountryFeature) => a.properties.name.localeCompare(b.properties.name)
@@ -42,9 +46,11 @@ export function Flag({ country }: { country: CountryFeature }) {
 }
 
 const NO_WISHES: ReadonlySet<string> = new Set()
+const NO_PLANS: Readonly<Record<string, Day>> = {}
 
 export default function VisitedPanel(props: Props) {
   const { visited, onAdd, onRemove, onShow, note, cityCount = 0, wishlist = NO_WISHES, onWish, onUnwish } = props
+  const { plans = NO_PLANS, onUnplan } = props
   const [query, setQuery] = useState('')
 
   const visitedList = countries.filter((c) => visited.has(c.properties.name)).sort(byName)
@@ -54,6 +60,10 @@ export default function VisitedPanel(props: Props) {
   const visitedTerritories = visitedList.length - visitedCountries
   const visitedIn = (continent: Continent) => visitedList.filter((c) => c.properties.continent === continent)
   const wishes = countries.filter((c) => wishlist.has(c.properties.name)).sort(byName)
+  // Soonest first
+  const upcoming = countries
+    .filter((c) => plans[c.properties.name])
+    .sort((a, b) => plans[a.properties.name].localeCompare(plans[b.properties.name]))
   // A second line under the name: "Territory", and states and cities visited
   const noteFor = (c: CountryFeature) =>
     [isCountry(c) ? null : 'Territory', note?.(c)].filter(Boolean).join(' · ') || null
@@ -164,6 +174,40 @@ export default function VisitedPanel(props: Props) {
         </ul>
       )}
       {query.trim() && matches.length === 0 && <p className="muted">No matching countries.</p>}
+
+      {upcoming.length > 0 && (
+        <>
+          <h3>Upcoming</h3>
+          <ul className="country-list" aria-label="Upcoming">
+            {upcoming.map((c) => {
+              const day = plans[c.properties.name]
+              return (
+                <li key={c.properties.name} className="country-item">
+                  <button type="button" className="country-row" onClick={() => onShow(c)}>
+                    <Flag country={c} />
+                    <span className="row-text">
+                      <span className="row-name">{c.properties.name}</span>
+                      <span className="row-note">
+                        {formatDay(day)} · <strong className="countdown">{countdown(day)}</strong>
+                      </span>
+                    </span>
+                  </button>
+                  {onUnplan && (
+                    <button
+                      type="button"
+                      className="icon-button small"
+                      onClick={() => onUnplan(c.properties.name)}
+                      aria-label={`Not going to ${c.properties.name} after all`}
+                    >
+                      <CloseIcon size={14} />
+                    </button>
+                  )}
+                </li>
+              )
+            })}
+          </ul>
+        </>
+      )}
 
       {onWish && onUnwish && (
         <>

@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { useEffect, useImperativeHandle, useRef, type Ref } from 'react'
 import type { GlobeProps } from 'react-globe.gl'
 import App from './App'
-import { countries, findCountryAt, tinyPlaces } from './countries'
+import { countries, findCountryAt, tinyPlaces, type CountryFeature } from './countries'
 import { LETTER_HUNT_RINGS, TINY_COUNTRIES } from './games/globeView'
 import { subsolarPoint } from './globe/sun'
 import { capitalOf } from './data/capitals'
@@ -15,13 +15,23 @@ import { SETTINGS_KEY } from './explore/useSettings'
 import { loadCities } from './data/cities'
 import { loadAirports } from './data/airports'
 import { loadRegions } from './data/regions'
-import { DEFAULT_THEME, NIGHT, POLITICAL, heatColor, hoveredRegionColor, revisitColor, visitedRegionColor } from './globe/themes'
+import {
+  DEFAULT_THEME,
+  NIGHT,
+  POLITICAL,
+  heatColor,
+  hoveredRegionColor,
+  plannedColor,
+  revisitColor,
+  visitedRegionColor,
+} from './globe/themes'
+import { dayOf } from './data/plans'
 import { INITIAL_VIEW, SCREENSAVER_VIEW } from './globe/interaction'
 import { SCREENSAVER_PIN_FADE } from './globe/pinLayer'
 
 // WebGL doesn't exist in jsdom, so the globe is replaced by a stand-in that
 // exposes what the app passes to it. Screen positions map to places by x.
-const { PLACES, PIN_AT, globe, layer, regionLayer, pinLayer, flightLayer, nightLayer, sceneObjects } = vi.hoisted(() => {
+const { PLACES, PIN_AT, globe, layer, regionLayer, pinLayer, flightLayer, nightLayer, planLayer, sceneObjects } = vi.hoisted(() => {
   const listeners = new Map<string, Set<() => void>>()
   const sceneObjects = new Set<object>()
   const controls = {
@@ -64,6 +74,7 @@ const { PLACES, PIN_AT, globe, layer, regionLayer, pinLayer, flightLayer, nightL
     pinLayer: { object: {}, show: vi.fn(), setColor: vi.fn(), setFade: vi.fn(), dispose: vi.fn() },
     flightLayer: { object: {}, show: vi.fn(), setColors: vi.fn(), tick: vi.fn(), dispose: vi.fn() },
     nightLayer: { object: { night: true }, setSun: vi.fn(), setLights: vi.fn(), dispose: vi.fn() },
+    planLayer: { object: {}, show: vi.fn(), setColor: vi.fn(), dispose: vi.fn() },
   }
 })
 
@@ -82,6 +93,7 @@ vi.mock('./globe/picking', () => ({
     PLACES[x] ?? (x >= 2000 && x < 2400 ? { lat: 12.3, lng: -64 + (x - 2000) * 0.02 } : null),
 }))
 vi.mock('./globe/regionLayer', () => ({ createRegionLayer: () => regionLayer }))
+vi.mock('./globe/planLayer', () => ({ createPlanLayer: () => planLayer }))
 vi.mock('./globe/nightLayer', async (importOriginal) => ({
   ...(await importOriginal<typeof import('./globe/nightLayer')>()),
   createNightLayer: () => nightLayer,
@@ -835,6 +847,76 @@ describe('App', () => {
       expect(note()).toHaveTextContent('Removed France')
       await userEvent.click(screen.getByRole('button', { name: 'Undo' }))
       expect(saved('visited')).toEqual(['France'])
+    })
+  })
+
+  describe('upcoming trips', () => {
+    const saved = (key: string) => JSON.parse(localStorage.getItem(`countries-app.${key}`) ?? 'null')
+    /** A day this many days from now */
+    const inDays = (n: number) => {
+      const now = new Date()
+      return dayOf(new Date(now.getFullYear(), now.getMonth(), now.getDate() + n))
+    }
+    const outlined = () => ((planLayer.show.mock.calls.at(-1)?.[0] ?? []) as CountryFeature[]).map((c) => c.properties.name)
+    beforeAll(() => loadAirports(), 20_000)
+    beforeEach(() => planLayer.show.mockClear())
+
+    it('plans a visit from its panel: tinted and outlined on the globe, counted down to in the Visited tab', async () => {
+      render(<App />)
+      click(100)
+      await userEvent.click(within(countryPanel()!).getByRole('button', { name: 'Plan a visit' }))
+      fireEvent.change(within(countryPanel()!).getByLabelText("The day you're going"), { target: { value: inDays(23) } })
+      await userEvent.click(within(countryPanel()!).getByRole('button', { name: 'Done' }))
+      expect(within(countryPanel()!).getByText(/^Going/)).toHaveTextContent(/in 23 days$/)
+      expect(saved('plans')).toEqual({ Denmark: inDays(23) })
+      expect(painted()).toEqual({ Denmark: plannedColor(DEFAULT_THEME, DEFAULT_THEME.land as string) })
+      expect(outlined()).toEqual(['Denmark'])
+
+      await userEvent.click(screen.getByRole('button', { name: 'Visited' }))
+      expect(screen.getByRole('list', { name: 'Upcoming' })).toHaveTextContent(/Denmark.*in 23 days/)
+      await userEvent.click(screen.getByRole('button', { name: 'Not going to Denmark after all' }))
+      expect(saved('plans')).toEqual({})
+      expect(outlined()).toEqual([])
+      expect(screen.getByText('Not going to Denmark')).toBeInTheDocument()
+      await userEvent.click(screen.getByRole('button', { name: 'Undo' }))
+      expect(saved('plans')).toEqual({ Denmark: inDays(23) })
+    })
+
+    it('puts a place in your atlas when the day comes, with the visit, or takes it back if you did not go', async () => {
+      localStorage.setItem('countries-app.plans', JSON.stringify({ Peru: inDays(0), Japan: inDays(5) }))
+      localStorage.setItem('countries-app.wishlist', JSON.stringify(['Peru']))
+      render(<App />)
+      await waitFor(() => expect(saved('plans')).toEqual({ Japan: inDays(5) }))
+      expect(saved('visited')).toEqual(['Peru'])
+      expect(saved('visit-dates')).toEqual({ Peru: [inDays(0).slice(0, 7)] })
+      expect(saved('wishlist')).toEqual([])
+      expect(screen.getByText('Welcome to Peru! In your visited atlas now')).toBeInTheDocument()
+      await userEvent.click(screen.getByRole('button', { name: 'Undo' }))
+      expect(saved('visited')).toEqual([])
+      expect(saved('visit-dates')).toEqual({})
+      expect(saved('wishlist')).toEqual(['Peru'])
+    })
+
+    it("draws a flight booked dashed, with no plane, and doesn't count it yet", async () => {
+      const nextYear = new Date().getFullYear() + 1
+      localStorage.setItem(
+        'countries-app.flights',
+        JSON.stringify([
+          { id: 'a', from: 'CPH', to: 'BKK' },
+          { id: 'b', from: 'CPH', to: 'NRT', date: `${nextYear}-03` },
+        ]),
+      )
+      render(<App />)
+      const lines = () =>
+        ((flightLayer.show.mock.calls.at(-1)?.[0] ?? []) as { key: string; upcoming?: boolean }[]).map(
+          (line) => `${line.key}${line.upcoming ? ' (to come)' : ''}`,
+        )
+      await waitFor(() => expect(lines()).toEqual(['a', 'upcoming-b (to come)']))
+      await userEvent.click(screen.getByRole('button', { name: 'Visited' }))
+      await userEvent.click(screen.getByRole('tab', { name: 'Flights' }))
+      expect(screen.getByText('Flights', { selector: 'dt' }).nextElementSibling).toHaveTextContent('1')
+      expect(screen.getByRole('list', { name: 'Upcoming flights' })).toHaveTextContent(/Copenhagen → Narita.*in \d+ months/)
+      expect(screen.getByRole('list', { name: 'Flights' })).not.toHaveTextContent('Narita')
     })
   })
 

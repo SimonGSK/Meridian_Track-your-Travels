@@ -26,6 +26,8 @@ The design (navy and amber, after a mock-up made in Lovable) has a top bar with 
 
   Countries you want to visit go on your wishlist: press "Add to wishlist" in a country's panel, or the ☆ next to a search result. They're colored on the globe in their own color (lilac in Midnight), and listed under Wishlist in the Visited tab with their continent. "Been there" moves one to your visited atlas, and visiting a place any other way takes it off the wishlist too.
 
+  **Upcoming trips.** "Plan a visit" in a country's panel takes the day you're going (from tomorrow). Until then the place is tinted with the flight color (light blue in Midnight) and outlined in dashes on the globe, and counted down to in its panel ("Going 18 Nov 2026 · in 40 days") and under Upcoming in the Visited tab, soonest first. On the day, the place goes into your visited atlas with a visit that month, off the wishlist, with a note to take it back if you didn't go after all. Flights can be dated in a month still to come too: they're drawn dashed, with no plane yet, listed under Upcoming in Flights ("next month", "in 3 months"), and don't count in the figures, the years or the achievements until their month comes.
+
   A visited country's panel has its visits: add each one as a month and year, or just the year if you don't remember the month. The Visited list shows the latest ("3 visits, last May 2023"). The pencil next to a visit adds a note, like "honeymoon" or "rained all week" (up to 200 characters), shown under its date and next to the place in that year's review. Removing a visit removes its note.
 
   The heat map, a switch under "Visited countries" in the layers, shades your places by how many times you've been instead of one color. The shades go from near the land color for one visit to the full visited color for four or more, with a key at the bottom, beside "drag to spin" (or above it where there isn't room). A place marked visited without dates counts once. It gives way to a year shown in the Years view.
@@ -98,7 +100,7 @@ The screensaver doesn't update by itself. After changing your places or design, 
 
 ## Backup
 
-Visited places, when you went and your notes, states, cities, flights and trip names, the wishlist, a friend you compare with, best scores and times, daily challenges, the design and the settings are saved in your browser (`localStorage`). Nothing is sent anywhere, so clearing the browser's site data, or moving to another browser or computer, would leave them behind. In the Settings tab, **Download backup** saves all of it to a file (`meridian-backup-2026-10-04.json`, readable JSON), and shows when you last did. **Restore from a backup…** reads one, says what it holds and when it was made, and only replaces what's in this browser when you confirm. Every part of the file is checked the way the app checks it when loading, so a damaged or foreign file is refused as a whole rather than half restored.
+Visited places, when you went and your notes, states, cities, flights and trip names, the wishlist, visits planned, a friend you compare with, best scores and times, daily challenges, the design and the settings are saved in your browser (`localStorage`). Nothing is sent anywhere, so clearing the browser's site data, or moving to another browser or computer, would leave them behind. In the Settings tab, **Download backup** saves all of it to a file (`meridian-backup-2026-10-04.json`, readable JSON), and shows when you last did. **Restore from a backup…** reads one, says what it holds and when it was made, and only replaces what's in this browser when you confirm. Every part of the file is checked the way the app checks it when loading, so a damaged or foreign file is refused as a whole rather than half restored.
 
 Removing something by mistake is easy to take back: removing a country, a visit, a city, a flight, a place on the wishlist or a friend shows a note at the bottom ("Removed Japan · Undo") for eight seconds. **Undo**, or Cmd/Ctrl+Z when you're not typing, puts it back as it was: a visit with its note, a flight where it was among the others (so its trip stays the same). Only the last removal can be undone.
 
@@ -125,7 +127,7 @@ npm run dev
 
 Then open http://localhost:5173.
 
-To see the app with someone's travels already in it, run `npm run dev:demo` and open http://localhost:5174. It has 42 places with visits over ten years (some with notes, and several visited again and again for the heat map), states, cities, nine trips, a wishlist, best scores and a daily streak. Being on another port, its data is kept apart from yours. The sample data is put in when nothing is saved there yet; add `?reset` to the address to start over. It's only in this mode, not in the build.
+To see the app with someone's travels already in it, run `npm run dev:demo` and open http://localhost:5174. It has 42 places with visits over ten years (some with notes, and several visited again and again for the heat map), states, cities, nine trips, a wishlist, a trip to India coming up (with its flights booked) and one to Chile, best scores and a daily streak. Being on another port, its data is kept apart from yours. The sample data is put in when nothing is saved there yet; add `?reset` to the address to start over. It's only in this mode, not in the build.
 
 ## Scripts
 

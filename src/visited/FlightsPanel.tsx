@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { cityOf, type Airport } from '../data/airports'
 import { flightStats, formatDistance, type Route } from '../data/flights'
+import { countdown } from '../data/plans'
 import { stopsOf, tripsByDate, tripsOf } from '../data/trips'
 import { formatVisitDate, type VisitDate } from '../data/visitDates'
 import { CloseIcon, PencilIcon } from '../icons'
@@ -11,8 +12,10 @@ import MonthYearSelect from './MonthYearSelect'
 import { TRIP_NAME_MAX, TRIP_NOTE_MAX, type TripName } from './useTripNames'
 
 type Props = {
-  /** Your flights with their cities, in the order added */
+  /** Your flights with their cities, in the order added: those flown */
   routes: Route[]
+  /** Flights booked: dated in a month or year still to come */
+  upcoming?: Route[]
   /** Every airport, or null while they load */
   airports: Airport[] | null
   onAdd: (from: string, to: string, date: VisitDate | null) => void
@@ -33,6 +36,8 @@ const oneDecimal = new Intl.NumberFormat('en-US', { maximumFractionDigits: 1 })
 
 type RowProps = {
   route: Route
+  /** How long until it, for a flight still to come */
+  countdown?: string
   /** Its date being changed */
   editing: boolean
   onEdit: () => void
@@ -42,7 +47,7 @@ type RowProps = {
 }
 
 /** A flight in the list: its route, its date (which can be changed) and a button to remove it */
-function FlightRow({ route, editing, onEdit, onShow, onRemove, onDate }: RowProps) {
+function FlightRow({ route, countdown, editing, onEdit, onShow, onRemove, onDate }: RowProps) {
   const when = route.flight.date
   const name = `flight from ${cityOf(route.from)} to ${cityOf(route.to)}`
   return (
@@ -53,7 +58,7 @@ function FlightRow({ route, editing, onEdit, onShow, onRemove, onDate }: RowProp
             {cityOf(route.from)} → {cityOf(route.to)}
           </span>
           <span className="row-note">
-            {route.from.code} → {route.to.code} · {formatDistance(route.km)}
+            {[`${route.from.code} → ${route.to.code}`, formatDistance(route.km), countdown].filter(Boolean).join(' · ')}
           </span>
         </span>
       </button>
@@ -71,7 +76,7 @@ function FlightRow({ route, editing, onEdit, onShow, onRemove, onDate }: RowProp
       </button>
       {editing && (
         <div className="flight-date-editor">
-          <MonthYearSelect label={`When you took the ${name}`} value={when ?? null} onChange={onDate} optional />
+          <MonthYearSelect label={`When you took the ${name}`} value={when ?? null} onChange={onDate} optional future />
           <button type="button" className="link-button" onClick={onEdit}>
             Done
           </button>
@@ -83,7 +88,7 @@ function FlightRow({ route, editing, onEdit, onShow, onRemove, onDate }: RowProp
 
 /** The Visited tab's flights: what they add up to, a form to add one, and the list, grouped into trips */
 export default function FlightsPanel(props: Props) {
-  const { routes, airports, onAdd, onRemove, onDate, onShow, onShowTrip, nameOf, onName } = props
+  const { routes, upcoming = [], airports, onAdd, onRemove, onDate, onShow, onShowTrip, nameOf, onName } = props
   const [from, setFrom] = useState<Airport | null>(null)
   const [to, setTo] = useState<Airport | null>(null)
   // Kept for the next leg too, which is likely the same trip
@@ -140,13 +145,35 @@ export default function FlightsPanel(props: Props) {
           <AirportSearch label="To" airports={airports} value={to} onChange={setTo} />
           <div className="city-choice">
             <span className="city-choice-label">When (optional)</span>
-            <MonthYearSelect label="When you flew" value={date} onChange={setDate} optional />
+            <MonthYearSelect label="When you flew" value={date} onChange={setDate} optional future />
           </div>
           <button type="submit" className="primary-button" disabled={!from || !to || from === to}>
             Add flight
           </button>
           {from && to && from === to && <p className="input-hint">From and To are the same airport.</p>}
         </form>
+      )}
+
+      {upcoming.length > 0 && (
+        <>
+          <h3>Upcoming</h3>
+          <ul className="flight-list" aria-label="Upcoming flights">
+            {[...upcoming]
+              .sort((a, b) => a.flight.date!.localeCompare(b.flight.date!))
+              .map((route) => (
+                <FlightRow
+                  key={route.flight.id}
+                  route={route}
+                  countdown={countdown(route.flight.date!)}
+                  editing={editing === route.flight.id}
+                  onEdit={() => setEditing(editing === route.flight.id ? null : route.flight.id)}
+                  onShow={() => onShow(route)}
+                  onRemove={() => onRemove(route.flight.id)}
+                  onDate={(d) => onDate(route.flight.id, d)}
+                />
+              ))}
+          </ul>
+        </>
       )}
 
       <h3>Your flights</h3>

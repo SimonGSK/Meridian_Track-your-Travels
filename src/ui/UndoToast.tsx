@@ -1,11 +1,9 @@
 import { useEffect } from 'react'
 import { CloseIcon } from '../icons'
+import type { Removal } from './useUndo'
 
 /** How long the note stays, to change your mind */
 export const UNDO_MS = 8000
-
-/** Something just removed, and how to put it back */
-export type Removal = { message: string; undo: () => void }
 
 type Props = {
   /** The last thing removed, until undone or gone */

@@ -174,6 +174,10 @@ export const visitedRegionColor = (theme: Theme) => darker(theme.visited)
 /** Visited states of the country pointed at: a darker shade of the hover color */
 export const hoveredRegionColor = (theme: Theme) => darker(theme.hover)
 
+/** A place you're going to, not been to yet: its land tinted with the flight color */
+export const plannedColor = (theme: Theme, land: string) =>
+  '#' + new Color(land).lerp(new Color(theme.flight), 0.5).getHexString()
+
 /** In the replay, places visited again in a year: a darker shade of the color for those first visited then */
 export const revisitColor = (theme: Theme) => darker(theme.correct)
 

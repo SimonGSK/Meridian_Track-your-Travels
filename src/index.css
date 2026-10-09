@@ -28,6 +28,8 @@
   --blue: #8ec3e6;
   /* The wishlist, as on the Midnight globe */
   --wish: #9b8cf2;
+  /* Trips to come, as flights on the Midnight globe */
+  --plan: #9fd3ff;
   --good: #8fd694;
   --bad: #ff6b5e;
 
@@ -681,6 +683,56 @@ input[type='checkbox'] {
 .wish-button.on {
   border-color: var(--wish);
   color: var(--wish);
+}
+
+.plan-button:hover {
+  color: var(--plan);
+}
+
+/* A visit planned, under the wishlist: dashed, as on the globe */
+.plan-visit {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 7px 8px 7px 14px;
+  border: 1px dashed var(--plan);
+  border-radius: 6px;
+  color: var(--plan);
+  font-size: 14px;
+}
+
+.plan-text {
+  flex: 1;
+  min-width: 0;
+  color: var(--text);
+}
+
+.plan-visit .remove-button {
+  opacity: 1;
+}
+
+.plan-visit input[type='date'] {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface-raised);
+  color: var(--text);
+  font: inherit;
+  color-scheme: dark;
+}
+
+.plan-visit input[type='date']:focus {
+  border-color: var(--plan);
+  outline: none;
+}
+
+/* How long until it, in the lists */
+.countdown {
+  color: var(--plan);
+  font-weight: 600;
 }
 
 /* The screensaver's preview: the way out, while the mouse moves */
