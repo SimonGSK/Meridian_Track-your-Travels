@@ -7,8 +7,8 @@
  * the globe, your places and the games all work without a connection. The
  * page itself comes from the network when there is one, so updates arrive;
  * everything else, named by its contents, comes from the copy. A new
- * version takes over the next time the app is opened, and clears the old
- * copy.
+ * version takes over the next time the app is opened, or at once when the
+ * page asks (its "Reload"), and clears the old copy.
  */
 export function serviceWorkerSource(files: readonly string[], version: string) {
   return `// Written by the build: see src/pwa/serviceWorker.ts
@@ -18,6 +18,11 @@ const CACHE = 'meridian-' + VERSION
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(FILES)))
+})
+
+self.addEventListener('message', (event) => {
+  // The page's "Reload": take over now, rather than the next time the app is opened
+  if (event.data === 'skip-waiting') self.skipWaiting()
 })
 
 self.addEventListener('activate', (event) => {

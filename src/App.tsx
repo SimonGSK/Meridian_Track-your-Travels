@@ -56,6 +56,9 @@ import { useNewAchievements } from './visited/useNewAchievements'
 import { describeVisits, formatVisitDate, type VisitDate } from './data/visitDates'
 import { cityOf } from './data/airports'
 import UndoToast from './ui/UndoToast'
+import UpdateToast from './pwa/UpdateToast'
+import { useUpdateReady } from './pwa/useUpdateReady'
+import { applyUpdate } from './pwa/update'
 import { useUndo } from './ui/useUndo'
 import { useFlights } from './visited/useFlights'
 import { useTripNames } from './visited/useTripNames'
@@ -153,6 +156,8 @@ export default function App({ compareOnOpen = false }: { compareOnOpen?: boolean
   )
   // The last thing removed, with a note to undo it for a few seconds
   const { removal, offerUndo, clearRemoval } = useUndo()
+  // A new version of the app, downloaded while it's open, to reload into
+  const [update, dismissUpdate] = useUpdateReady()
   const removePlace = useCallback(
     (name: string) => {
       removeVisited(name)
@@ -1017,6 +1022,7 @@ export default function App({ compareOnOpen = false }: { compareOnOpen?: boolean
       <FlagCorner country={playing ? null : hovered} />
       {/* Notes at the bottom, one over the other */}
       <div className="toasts">
+        {update && !previewing && <UpdateToast onReload={() => applyUpdate(update)} onDismiss={dismissUpdate} />}
         <AchievementToast
           achievements={newAchievements}
           onOpen={() => {
