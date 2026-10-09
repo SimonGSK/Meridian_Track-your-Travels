@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test, type Locator, type Page } from '@playwright/test'
 
 // These run against the real WebGL globe. The app starts looking at North
 // Africa, so the middle of the screen is always over land on load.
@@ -826,5 +826,41 @@ test.describe('touch', { tag: '@touch' }, () => {
     await expect(panel(page)).toBeVisible()
     await expect(panel(page).getByRole('heading', { level: 2 })).not.toBeEmpty()
     await expect(tooltip(page)).toBeHidden()
+  })
+
+  test("a sheet swiped down closes, a tab's or a country's", async ({ page }) => {
+    await openGlobe(page)
+    /** A finger down from an element's top, `by` pixels, quickly */
+    const swipeDown = (sheet: Locator, by = 250) =>
+      sheet.evaluate(async (el, by) => {
+        // The page's own, which the tests' types (for Node) don't know
+        const { Touch, TouchEvent } = globalThis as unknown as {
+          Touch: new (init: { identifier: number; target: EventTarget; clientX: number; clientY: number }) => object
+          TouchEvent: new (type: string, init: { bubbles: boolean; cancelable: boolean; touches: object[]; changedTouches: object[] }) => Event
+        }
+        const { left, top, width } = el.getBoundingClientRect()
+        const x = left + width / 2
+        const at = (y: number) => [new Touch({ identifier: 1, target: el, clientX: x, clientY: y })]
+        const fire = (type: string, y: number) =>
+          el.dispatchEvent(new TouchEvent(type, { bubbles: true, cancelable: true, touches: type === 'touchend' ? [] : at(y), changedTouches: at(y) }))
+        fire('touchstart', top + 10)
+        for (let step = 1; step <= 5; step++) {
+          fire('touchmove', top + 10 + (by * step) / 5)
+          await new Promise((done) => setTimeout(done, 16))
+        }
+        fire('touchend', top + 10 + by)
+      }, by)
+
+    await page.getByRole('button', { name: 'Visited' }).tap()
+    const sheet = page.getByRole('region', { name: 'Visited', exact: true })
+    await expect(sheet).toBeVisible()
+    await swipeDown(sheet)
+    await expect(sheet).toBeHidden()
+
+    const { x, y } = center(page)
+    await page.touchscreen.tap(x, y)
+    await expect(panel(page)).toBeVisible()
+    await swipeDown(panel(page))
+    await expect(panel(page)).toBeHidden()
   })
 })

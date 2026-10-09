@@ -15,7 +15,7 @@ An interactive 3D globe for keeping track of where you've been. Mark the countri
 
 Spin the globe, hover a country to see its name and flag, and click it to fly there and see its capital, inhabitants and area.
 
-The design (navy and amber, after a mock-up made in Lovable) has a top bar with the five tabs, where the globe is looking and how many places you've visited. The selected country shows on the left: its ISO code, capital, inhabitants and area, the cities you've visited there, its states, and a button to put it in your visited atlas. The open tab's cards are on the right. On phones the tabs move to the bottom and panels open as sheets, with the tab's name and a close button above the cards, which scroll under them.
+The design (navy and amber, after a mock-up made in Lovable) has a top bar with the five tabs, where the globe is looking and how many places you've visited. The selected country shows on the left: its ISO code, capital, inhabitants and area, the cities you've visited there, its states, and a button to put it in your visited atlas. The open tab's cards are on the right. On phones the tabs move to the bottom and panels open as sheets, with the tab's name and a close button above the cards, which scroll under them. A sheet, a tab's or a country's, can also be swiped down to close it: from its top (the little bar), or from anywhere in it once it's scrolled to the top. It follows the finger, and closes once let go a quarter of the way down or flicked; otherwise it springs back.
 
 - **Explore**: two round buttons in the corner, so the globe has the room. The magnifying glass opens a search of the whole atlas, countries by any name and cities. The layers button opens the designs as swatches and the layers to show or hide (visited countries and their heat map by visits, the wishlist, visited states, city pins, flights, rings around small islands, day and night). On phones both are shown in the sheet.
 
@@ -163,7 +163,7 @@ npx playwright install chromium
 ## Tests
 
 - **Unit and component tests** (Vitest and Testing Library, in jsdom): the data, the game rules, the globe's layers against a real three.js camera, every panel, and the whole app with a stand-in for the WebGL globe. About 980 tests, covering over 99% of the lines.
-- **End-to-end tests** (Playwright): the real app with its WebGL globe in headless Chromium, on a desktop and a phone (touch, tab bar, sheets): hovering and clicking countries, visited places, states, cities and flights kept after reloading, the wishlist, a friend's link, the settings, a year in review and its time-lapse, a backup downloaded and restored, undoing a removal, the designs, every game, the screensaver and its preview (41 tests). In CI they run on the production build, with the service worker.
+- **End-to-end tests** (Playwright): the real app with its WebGL globe in headless Chromium, on a desktop and a phone (touch, tab bar, sheets): hovering and clicking countries, visited places, states, cities and flights kept after reloading, the wishlist, a friend's link, the settings, a year in review and its time-lapse, a backup downloaded and restored, undoing a removal, the designs, every game, the screensaver and its preview (42 tests). In CI they run on the production build, with the service worker.
 
 `.github/workflows/tests.yml` runs all of it on GitHub for every pull request and every push to `main`: lint, the unit tests, the build (which type-checks), and the end-to-end tests. `.github/workflows/deploy.yml` then puts each push to `main` online (see Online).
 

@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { CloseIcon } from '../icons'
+import { useSwipeToClose } from './swipeToClose'
 
 type Props = {
   title: string
@@ -11,11 +12,14 @@ type Props = {
 /**
  * The column on the right with the open tab's cards. On phones it's a
  * sheet from the bottom, with the tab's name and a close button above the
- * cards, which scroll under it rather than under the button.
+ * cards, which scroll under it rather than under the button; swiped down,
+ * it closes.
  */
 export default function SidePanel({ title, onClose, children }: Props) {
+  const sheet = useSwipeToClose<HTMLElement>(onClose)
   return (
-    <section id="side-panel" className="side-panel" aria-labelledby="side-panel-title">
+    <section ref={sheet} id="side-panel" className="side-panel" aria-labelledby="side-panel-title">
+      <span className="sheet-grabber" aria-hidden="true" />
       <header className="sheet-header">
         <h2 id="side-panel-title" className="sheet-title">
           {title}
@@ -24,7 +28,9 @@ export default function SidePanel({ title, onClose, children }: Props) {
           <CloseIcon />
         </button>
       </header>
-      <div className="side-panel-body">{children}</div>
+      <div className="side-panel-body" data-sheet-scroll>
+        {children}
+      </div>
     </section>
   )
 }

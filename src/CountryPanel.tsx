@@ -6,6 +6,7 @@ import CityPicker from './CityPicker'
 import RegionPicker from './RegionPicker'
 import VisitsCard from './visited/VisitsCard'
 import PlanVisit from './visited/PlanVisit'
+import { useSwipeToClose } from './nav/swipeToClose'
 
 type Props = {
   country: CountryFeature
@@ -32,9 +33,12 @@ export default function CountryPanel(props: Props) {
   const facts = factsOf(country)
   const code = isoCode ?? isoAlpha2
   const regionCount = regions?.regions && `${regions.regions.length} ${regions.label.toLowerCase()}`
+  // On phones, a sheet to swipe down to close
+  const sheet = useSwipeToClose<HTMLElement>(onClose)
 
   return (
-    <aside className="panel country-panel" aria-labelledby="country-panel-title">
+    <aside ref={sheet} className="panel country-panel" aria-labelledby="country-panel-title">
+      <span className="sheet-grabber" aria-hidden="true" />
       <header className="card-header">
         <span className="card-label">Selected {kind === 'country' ? 'country' : 'territory'}</span>
         {code && <span className="card-meta">ISO {code}</span>}
