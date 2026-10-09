@@ -865,6 +865,12 @@ test.describe('touch', { tag: '@touch' }, () => {
     await expect(sheet).toBeVisible()
     await swipeDown(sheet)
     await expect(sheet).toBeHidden()
+    // The globe slides back down from where the sheet pushed it: tap once it's there
+    await page
+      .getByTestId('globe')
+      .evaluate((el) =>
+        Promise.all((el as unknown as { getAnimations(): { finished: Promise<unknown> }[] }).getAnimations().map((a) => a.finished)),
+      )
 
     const { x, y } = center(page)
     await page.touchscreen.tap(x, y)
