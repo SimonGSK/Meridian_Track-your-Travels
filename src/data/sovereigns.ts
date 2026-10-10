@@ -1,4 +1,4 @@
-import { countryByAlpha2, type CountryFeature } from '../countries'
+import { countries, countryByAlpha2, type CountryFeature } from '../countries'
 
 /**
  * The country each territory belongs to, by its code: being in Greenland is
@@ -61,4 +61,18 @@ export function countryOfPlace(place: CountryFeature): CountryFeature | null {
   if (place.properties.kind === 'country') return place
   const code = SOVEREIGNS[place.properties.name]
   return code ? countryByAlpha2(code) : null
+}
+
+/** The countries places are in, each once: Greenland and the Faroe Islands are both Denmark */
+export function countriesOf(places: Iterable<CountryFeature>): Set<CountryFeature> {
+  return new Set([...places].map(countryOfPlace).filter((country) => country !== null))
+}
+
+/**
+ * The places been to, by name: those visited, and the countries their
+ * territories belong to, as being in Greenland is being in Denmark
+ */
+export function beenTo(visited: ReadonlySet<string>): ReadonlySet<string> {
+  const places = countries.filter((c) => visited.has(c.properties.name))
+  return new Set([...visited, ...[...countriesOf(places)].map((c) => c.properties.name)])
 }

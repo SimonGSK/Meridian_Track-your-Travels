@@ -26,9 +26,12 @@ describe('achievements', () => {
     for (const { names } of REGIONS) for (const name of names) expect(countryNames).toContain(name)
   })
 
-  it('count the countries visited, not the territories', () => {
+  it('count the countries been to, a territory as the country it belongs to', () => {
     expect(progress('countries-10', { visited: new Set(['Greenland', 'Denmark']) })).toEqual({ have: 1, need: 10, done: false })
     expect(progress('countries-1', { visited: new Set(['Denmark']) }).done).toBe(true)
+    expect(progress('countries-1', { visited: new Set(['Greenland']) }).done).toBe(true) // Denmark
+    expect(progress('countries-1', { visited: new Set(['Antarctica']) }).done).toBe(false) // no one's
+    expect(progress('scandinavia', { visited: new Set(['Faroe Islands', 'Norway', 'Sweden']) }).done).toBe(true)
   })
 
   it('are earned for Scandinavia with Denmark, Norway and Sweden, the Nordics also needing Finland and Iceland', () => {

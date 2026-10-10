@@ -47,6 +47,24 @@ describe('VisitedPanel', () => {
     expect(stat('Territories')).toHaveTextContent(/^2 \/ \d+$/)
   })
 
+  it('counts the country a territory visited belongs to, as being there', () => {
+    setup(['Iceland', 'Greenland'])
+    expect(stat('Countries')).toHaveTextContent('2 / 197') // Iceland, and Denmark in Greenland
+    expect(stat('Territories')).toHaveTextContent(/^1 \/ \d+$/)
+    expect(screen.getByRole('progressbar', { name: 'Europe: 2 of 46 countries' })).toBeInTheDocument()
+    expect(screen.getByRole('progressbar', { name: 'North America: 0 of 23 countries' })).toBeInTheDocument()
+  })
+
+  it("lists a country been to only in a territory under its continent, saying where, with nothing to remove", async () => {
+    const { onShow } = setup(['Iceland', 'Greenland', 'Faroe Islands'])
+    await toggle('Europe')
+    expect(listed('Europe')).toEqual(['DenmarkIn Faroe Islands and Greenland', 'Faroe IslandsTerritory', 'Iceland'])
+    expect(screen.queryByRole('button', { name: 'Remove Denmark' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Remove Faroe Islands' })).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: /^Denmark/ }))
+    expect(onShow).toHaveBeenCalledWith(expect.objectContaining({ properties: expect.objectContaining({ name: 'Denmark' }) }))
+  })
+
   it('invites you to add countries when none are visited', () => {
     setup()
     expect(screen.getByText(/None yet/)).toBeInTheDocument()

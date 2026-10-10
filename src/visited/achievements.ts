@@ -1,6 +1,7 @@
 import { countries } from '../countries'
 import { CONTINENTS } from '../data/continents'
 import { regionIdsOf } from '../data/regions'
+import { beenTo } from '../data/sovereigns'
 import { countriesIn } from '../games/allGame'
 
 /** What achievements are earned from: everything you've been to and flown */
@@ -34,8 +35,15 @@ export type Achievement = {
 }
 
 const allCountries = countries.filter((c) => c.properties.kind === 'country')
-const visitedCountries = (atlas: Atlas) => allCountries.filter((c) => atlas.visited.has(c.properties.name))
-const count = (atlas: Atlas, names: readonly string[]) => names.filter((n) => atlas.visited.has(n)).length
+// A territory visited counts for its country: being in Greenland is being in Denmark
+const visitedCountries = (atlas: Atlas) => {
+  const been = beenTo(atlas.visited)
+  return allCountries.filter((c) => been.has(c.properties.name))
+}
+const count = (atlas: Atlas, names: readonly string[]) => {
+  const been = beenTo(atlas.visited)
+  return names.filter((n) => been.has(n)).length
+}
 
 /** Every one of a group of countries */
 const allOf = (id: string, group: Group, title: string, description: string, names: readonly string[]): Achievement => ({
@@ -215,9 +223,10 @@ export const ACHIEVEMENTS: Achievement[] = [
   milestone(150, 'Almost everywhere'),
   milestone(allCountries.length, 'Every country', `All ${allCountries.length} countries`),
 
-  atLeast('every-continent', 'Continents', 'Every continent', 'A country on each of the six continents with countries', LIVED_ON.length, (atlas) =>
-    LIVED_ON.filter((c) => countriesIn(c).some((country) => atlas.visited.has(country.properties.name))).length,
-  ),
+  atLeast('every-continent', 'Continents', 'Every continent', 'A country on each of the six continents with countries', LIVED_ON.length, (atlas) => {
+    const been = beenTo(atlas.visited)
+    return LIVED_ON.filter((c) => countriesIn(c).some((country) => been.has(country.properties.name))).length
+  }),
   ...LIVED_ON.map((continent) =>
     allOf(
       `all-${continent.toLowerCase().replace(/ /g, '-')}`,
