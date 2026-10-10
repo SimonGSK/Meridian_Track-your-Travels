@@ -36,7 +36,7 @@ import SidePanel from './nav/SidePanel'
 import Card from './ui/Card'
 import { isScreensaver } from './screensaver'
 import PreviewExit from './design/PreviewExit'
-import SettingsPanel, { type SettingId } from './settings/SettingsPanel'
+import MorePanel, { type MoreId } from './more/MorePanel'
 import VisitedPanel from './visited/VisitedPanel'
 import { useVisited } from './visited/useVisited'
 import { useVisitedRegions } from './visited/useVisitedRegions'
@@ -141,11 +141,11 @@ export default function App({ compareOnOpen = false }: { compareOnOpen?: boolean
   /** The screensaver shown in the app, from Settings, to have a look: only the globe, until left */
   const [previewing, setPreviewing] = useState(false)
   // Big screens start with Explore open; phones with just the globe
-  const [view, setView] = useState<ViewId | null>(() => (compareOnOpen ? 'visited' : isPhone() ? null : 'explore'))
+  const [view, setView] = useState<ViewId | null>(() => (compareOnOpen ? 'more' : isPhone() ? null : 'explore'))
   /** The game whose setup is open in the Games tab */
   const [chosenGame, setChosenGame] = useState<GameId | null>(null)
-  /** The setting opened in the Settings tab, kept while the screensaver is previewed from it */
-  const [openSetting, setOpenSetting] = useState<SettingId | null>(null)
+  /** What's opened in the More tab, kept while the screensaver is previewed from it */
+  const [moreOpen, setMoreOpen] = useState<MoreId | null>(compareOnOpen ? 'compare' : null)
   const { visited, add: addVisited, remove: removeVisited } = useVisited()
   const { wishlist: wished, add: addWish, remove: removeWish } = useWishlist()
   // A friend to compare with, shown on the globe until switched off (at once, when their link was opened)
@@ -264,7 +264,7 @@ export default function App({ compareOnOpen = false }: { compareOnOpen?: boolean
     if (due.length > 0 && !screensaver) arrive(due)
   }, [plans, today, screensaver, arrive])
   // A friend's link opened: their comparison
-  const [visitedView, setVisitedView] = useState<VisitedView>(compareOnOpen ? 'compare' : 'countries')
+  const [visitedView, setVisitedView] = useState<VisitedView>('countries')
   /** A flight or trip picked in the list, shown on the globe (and highlighted) until the view moves on */
   const [shownRoutes, setShownRoutes] = useState<Route[] | null>(null)
   // A trip picked in the list, or one of its flights, says what it's called on the globe
@@ -482,10 +482,10 @@ export default function App({ compareOnOpen = false }: { compareOnOpen?: boolean
       : showsGame(game) || !settings.showVisited
         ? NO_VISITS
         : visited
-  // While the Compare tab is open, the globe shows just countries (your friend has no states, cities or flights), and,
+  // While comparing is open in More, the globe shows just countries (your friend has no states, cities or flights), and,
   // switched on, where you've both been and where only they have, over your places. Not in the screensaver's preview:
   // the real one doesn't know your friend
-  const compareOpen = view === 'visited' && visitedView === 'compare' && !showsGame(game) && !previewing
+  const compareOpen = view === 'more' && moreOpen === 'compare' && !showsGame(game) && !previewing
   const compareShown = compareOpen && !!comparison && friendShown && colorVisited === visited
   // A year picked in the Years tab: its places first visited then, and those visited again a darker shade, as in the
   // time-lapse
@@ -812,7 +812,7 @@ export default function App({ compareOnOpen = false }: { compareOnOpen?: boolean
       quitGame()
       setChosenGame(null)
     }
-    if (next !== 'settings') setOpenSetting(null)
+    if (next !== 'more') setMoreOpen(null)
     setView(next)
     if (next === 'visited' && visitedView === 'years' && !showsGame(game)) showYear(review)
   }
@@ -999,24 +999,6 @@ export default function App({ compareOnOpen = false }: { compareOnOpen?: boolean
               places={visited.size}
               flights={routes.length}
               years={years.length}
-              earned={earnedIds(atlas).size}
-              achievementCount={ACHIEVEMENTS.length}
-              friend={friend?.name ?? null}
-              achievements={<AchievementsPanel atlas={atlas} />}
-              compare={
-                <CompareView
-                  visited={visited}
-                  friend={friend}
-                  comparison={comparison}
-                  onFriend={changeFriend}
-                  shown={friendShown}
-                  onShownChange={setFriendShown}
-                  wishlist={wishlist}
-                  onWish={addWish}
-                  onUnwish={unwish}
-                  onShow={showCountry}
-                />
-              }
               countries={
                 <VisitedPanel
                   visited={visited}
@@ -1092,9 +1074,31 @@ export default function App({ compareOnOpen = false }: { compareOnOpen?: boolean
               </Card>
             </>
           )}
-          {view === 'settings' && (
+          {view === 'more' && (
             <>
-              <SettingsPanel open={openSetting} onOpen={setOpenSetting} onPreview={startPreview} />
+              <MorePanel
+                open={moreOpen}
+                onOpen={setMoreOpen}
+                earned={earnedIds(atlas).size}
+                achievementCount={ACHIEVEMENTS.length}
+                achievements={<AchievementsPanel atlas={atlas} />}
+                friend={friend?.name ?? null}
+                compare={
+                  <CompareView
+                    visited={visited}
+                    friend={friend}
+                    comparison={comparison}
+                    onFriend={changeFriend}
+                    shown={friendShown}
+                    onShownChange={setFriendShown}
+                    wishlist={wishlist}
+                    onWish={addWish}
+                    onUnwish={unwish}
+                    onShow={showCountry}
+                  />
+                }
+                onPreview={startPreview}
+              />
             </>
           )}
           {view === 'games' && (
@@ -1141,8 +1145,8 @@ export default function App({ compareOnOpen = false }: { compareOnOpen?: boolean
           achievements={newAchievements}
           onOpen={() => {
             clearAchievements()
-            setVisitedView('achievements')
-            changeView('visited')
+            setMoreOpen('achievements')
+            changeView('more')
           }}
           onDismiss={clearAchievements}
         />
