@@ -489,7 +489,7 @@ test.describe('year in review', () => {
 
     await page.getByRole('tab', { name: 'Years' }).click()
     await expect(page.getByRole('heading', { name: '2023' })).toBeVisible()
-    await expect(page.getByText('1 country on 1 continent, a new one.')).toBeVisible()
+    await expect(page.getByText('1 country on 1 continent, 1 new place.')).toBeVisible()
     const april = page.getByRole('list', { name: 'April' })
     await expect(april).toContainText('Japan')
     await expect(april).toContainText('First visit')
