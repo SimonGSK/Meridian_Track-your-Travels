@@ -341,19 +341,19 @@ test.describe('screensaver preview', () => {
 test.describe('explore', () => {
   test('layers switch off, and stay off after reloading', async ({ page }) => {
     await openGlobe(page)
-    // The layers are in the Design tab, under the designs
-    const designTab = page.getByRole('button', { name: 'Design', exact: true })
+    // Explore is open from the start on big screens, as a magnifying glass and a layers button
+    const layersButton = page.getByRole('button', { name: 'Style and layers' })
     const visitedSwitch = page.getByRole('switch', { name: /Visited countries/ })
     const markerSwitch = page.getByRole('switch', { name: /Small islands/ })
     const pinSwitch = page.getByRole('switch', { name: /City pins/ })
-    await designTab.click()
+    await layersButton.click()
     await expect(visitedSwitch).toBeChecked()
     await visitedSwitch.click()
     await markerSwitch.click()
     await pinSwitch.click()
 
     await page.reload()
-    await designTab.click()
+    await layersButton.click()
     await expect(visitedSwitch).not.toBeChecked()
     await expect(markerSwitch).not.toBeChecked()
     await expect(pinSwitch).not.toBeChecked()
@@ -545,14 +545,14 @@ test.describe('design', () => {
     await expect(tooltip(page)).toBeVisible()
 
     const before = await page.screenshot({ clip: globeArea })
-    await page.getByRole('button', { name: 'Design', exact: true }).click()
+    await page.getByRole('button', { name: 'Style and layers' }).click()
     await page.getByRole('button', { name: /Night/ }).click()
     await expect(page.getByRole('button', { name: /Night/ })).toHaveAttribute('aria-pressed', 'true')
     await page.mouse.move(x, y)
     await expect.poll(async () => (await page.screenshot({ clip: globeArea })).equals(before)).toBe(false)
 
     await page.reload()
-    await page.getByRole('button', { name: 'Design', exact: true }).click()
+    await page.getByRole('button', { name: 'Style and layers' }).click()
     await expect(page.getByRole('button', { name: /Night/ })).toHaveAttribute('aria-pressed', 'true')
   })
 })
