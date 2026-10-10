@@ -107,20 +107,22 @@ function TimeLapse({ steps, shown, onPlay, onPause, onStop }: Lapse & { shown: N
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`
 const monthId = (month: number | null) => `year-month-${month ?? 'any'}`
 
-/** "6 countries and 1 territory on 4 continents, 2 of them new." and "8 flights, 21,400 km." */
-function summaryOf({ places, countryCount, firstVisits, continents, flights, km }: YearReview) {
+/**
+ * "6 countries on 4 continents, 5 new places." and "8 flights, 21,400 km.". A territory counts as its country, so
+ * Iceland and Greenland are 2 countries; only places that are no country's, like Antarctica, are counted apart. The
+ * new places are those in green, first visited that year: Greenland is one, even after Denmark.
+ */
+function summaryOf({ places, countryCount, noCountry, firstVisits, continents, flights, km }: YearReview) {
   const lines: string[] = []
   if (places.length > 0) {
-    const territories = places.length - countryCount
     const counted = [
       countryCount > 0 && plural(countryCount, 'country', 'countries'),
-      territories > 0 && plural(territories, 'territory', 'territories'),
+      noCountry.length > 0 && plural(noCountry.length, 'territory', 'territories'),
     ]
       .filter(Boolean)
       .join(' and ')
-    const firsts = firstVisits.size
-    const first = firsts === 0 ? '' : firsts < places.length ? `, ${firsts} of them new` : places.length === 1 ? ', a new one' : ', all new'
-    lines.push(`${counted} on ${plural(continents.length, 'continent')}${first}.`)
+    const fresh = firstVisits.size > 0 ? `, ${plural(firstVisits.size, 'new place')}` : ''
+    lines.push(`${counted} on ${plural(continents.length, 'continent')}${fresh}.`)
   }
   if (flights.length > 0) lines.push(`${plural(flights.length, 'flight')}, ${formatDistance(km)}.`)
   return lines
@@ -185,7 +187,7 @@ export default function YearsPanel({ years, review, onYearChange, noteOf, onShow
         label={`Places in ${year}`}
         stats={[
           { label: 'Countries', value: review.countryCount },
-          { label: 'First visits', value: [...firstVisits].filter((c) => c.properties.kind === 'country').length },
+          { label: 'First visits', value: firstVisits.size },
           { label: 'Continents', value: review.continents.length },
         ]}
       />

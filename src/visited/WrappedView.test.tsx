@@ -15,7 +15,7 @@ describe('WrappedView', () => {
     const onClose = vi.fn()
     render(<WrappedView review={reviewOf(2024, travels)} onClose={onClose} />)
     expect(screen.getByRole('dialog', { name: 'Your 2024, wrapped' })).toBeInTheDocument()
-    expect(screen.getByRole('img')).toHaveAccessibleName('In 2024: 2 countries, 1 of them new, on 2 continents.')
+    expect(screen.getByRole('img')).toHaveAccessibleName('In 2024: 2 countries, 1 new place, on 2 continents.')
     // Saved once it's drawn (there's no canvas to draw on here)
     expect(screen.getByRole('button', { name: 'Save image' })).toBeDisabled()
     await userEvent.click(screen.getByRole('button', { name: 'Close' }))

@@ -43,8 +43,22 @@ describe('reviewOf', () => {
     )
     expect(names(review.places)).toEqual(['Greenland', 'Japan', 'Kenya'])
     expect([...review.names]).toEqual(['Greenland', 'Japan', 'Kenya'])
-    expect(review.countryCount).toBe(2) // Greenland is a territory
+    // Japan, Kenya, and Denmark for Greenland
+    expect(review.countryCount).toBe(3)
+    expect(names([...review.firstVisits]).sort()).toEqual(['Greenland', 'Japan', 'Kenya'])
+    expect(review.noCountry).toEqual([])
     expect(review.continents).toEqual(['Africa', 'Asia', 'North America'])
+  })
+
+  it("counts a territory's country once, and the territory as a first visit, even after the country", () => {
+    const review = reviewOf(2026, travels({ Greenland: ['2026-06'], Denmark: ['2019', '2026-09'] }))
+    expect(review.countryCount).toBe(1) // Denmark once
+    expect(names([...review.firstVisits])).toEqual(['Greenland'])
+  })
+
+  it("keeps apart the places that are no country's", () => {
+    const review = reviewOf(2026, travels({ Antarctica: ['2026-01'], Chile: ['2026-01'] }))
+    expect([review.countryCount, names(review.noCountry)]).toEqual([1, ['Antarctica']])
   })
 
   it('goes month by month, with the places dated only by the year last', () => {
@@ -118,7 +132,7 @@ describe('timelineOf', () => {
     ])
     expect(steps.map((s) => names(s.newPlaces))).toEqual([['France', 'Greenland'], ['Kenya'], ['Japan']]) // France came back, but isn't new
     expect(steps.map((s) => names(s.revisits))).toEqual([[], [], ['France']])
-    expect(steps.map((s) => s.countryCount)).toEqual([1, 2, 3]) // Greenland is a territory
+    expect(steps.map((s) => s.countryCount)).toEqual([2, 3, 4]) // Greenland counts as Denmark
     expect(steps.map((s) => s.continents)).toEqual([2, 3, 4])
   })
 

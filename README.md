@@ -40,7 +40,7 @@ The design (navy and amber, after a mock-up made in Lovable) has a top bar with 
 
   Under Years, a review of each year you've dated a visit or a flight, from the newest, with ‹ › for the others. It has:
 
-  - a summary ("6 countries on 4 continents, 5 of them new." and "5 flights, 25.6K km.");
+  - a summary ("6 countries on 4 continents, 5 new places." and "5 flights, 25.6K km."). A territory counts as the country it belongs to, so a year with Iceland and Greenland is 2 countries, Iceland and Denmark. Only places that are no country's (Antarctica, Western Sahara, the Siachen Glacier) are counted apart, as territories. The new places are those first visited that year, territories too, and they're the ones in green: Greenland is new the first time you're there, even if you'd been to Denmark. The time-lapse and the wrapped card count the same way;
   - the countries, first visits (places whose earliest visit is that year) and continents;
   - the flights, how far, and the longest;
   - "Your most travelled year" on the year with the most places.
@@ -183,6 +183,7 @@ src/
   flags.ts             country → flag image URL
   data/
     names.ts           display names, alternative spellings, countries vs territories
+    sovereigns.ts      the country each territory belongs to (Greenland to Denmark)
     continents.ts      each place's continent
     westernSahara.ts   shows all of Western Sahara (see below)
     countries-50m.json    the country shapes, with lakes cut out
