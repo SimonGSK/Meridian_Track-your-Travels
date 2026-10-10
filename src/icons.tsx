@@ -170,3 +170,33 @@ export const GearIcon = ({ size = 24 }: Props) =>
       <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" />
     </>,
   )
+
+export const DownloadIcon = ({ size = 24 }: Props) =>
+  svg(
+    size,
+    <>
+      <path d="M12 4v11" />
+      <path d="m7.5 10.5 4.5 4.5 4.5-4.5" />
+      <path d="M5 19.5h14" />
+    </>,
+  )
+
+export const PhoneIcon = ({ size = 24 }: Props) =>
+  svg(
+    size,
+    <>
+      <rect x="7" y="3" width="10" height="18" rx="2.2" />
+      <path d="M11 17.5h2" />
+    </>,
+  )
+
+export const MonitorIcon = ({ size = 24 }: Props) =>
+  svg(
+    size,
+    <>
+      <rect x="3" y="4.5" width="18" height="12" rx="1.8" />
+      <path d="M9 20h6M12 16.5V20" />
+    </>,
+  )
+
+export const ChevronIcon = ({ size = 16 }: Props) => svg(size, <path d="m9.5 6 6 6-6 6" />)

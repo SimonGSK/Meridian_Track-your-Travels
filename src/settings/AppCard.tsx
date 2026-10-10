@@ -1,12 +1,14 @@
+import type { ReactNode } from 'react'
 import { isIos, useInstall } from '../pwa/install'
 import { CheckIcon } from '../icons'
 import Card from '../ui/Card'
 
-/** Installing Meridian as an app, and using it offline */
-export default function AppCard() {
+/** Installing Meridian as an app, and using it offline. `back` is a way back, above the rest. */
+export default function AppCard({ back }: { back?: ReactNode }) {
   const { canInstall, installed, install } = useInstall()
   return (
     <Card label="App" meta="OFFLINE">
+      {back}
       <p className="muted">
         Install Meridian as an app: it opens in its own window, from your home screen or dock. Once opened, it works
         without internet too: the globe, your places and the games.

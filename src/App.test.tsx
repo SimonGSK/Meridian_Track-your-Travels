@@ -407,12 +407,28 @@ describe('App', () => {
       render(<App />)
       await userEvent.click(screen.getByRole('button', { name: 'Settings' }))
       expect(sidePanel()).toHaveAccessibleName('Settings')
-      expect(within(sidePanel()!).getByRole('button', { name: 'Download backup' })).toBeInTheDocument()
-      expect(within(sidePanel()!).getByRole('region', { name: 'App' })).toHaveTextContent('works without internet')
-      expect(within(sidePanel()!).getByRole('region', { name: /Screensaver/ })).toBeInTheDocument()
+      const panel = within(sidePanel()!)
+      await userEvent.click(panel.getByRole('button', { name: 'Backup' }))
+      expect(panel.getByRole('button', { name: 'Download backup' })).toBeInTheDocument()
+      await userEvent.click(panel.getByRole('button', { name: '← All settings' }))
+      await userEvent.click(panel.getByRole('button', { name: 'App' }))
+      expect(panel.getByRole('region', { name: 'App' })).toHaveTextContent('works without internet')
+      await userEvent.click(panel.getByRole('button', { name: '← All settings' }))
+      await userEvent.click(panel.getByRole('button', { name: 'Screensaver' }))
+      expect(panel.getByRole('region', { name: /Screensaver/ })).toBeInTheDocument()
       await userEvent.click(screen.getByRole('button', { name: 'Design' }))
       expect(within(sidePanel()!).queryByRole('region', { name: /Screensaver/ })).not.toBeInTheDocument()
       expect(within(sidePanel()!).queryByRole('region', { name: /Backup/ })).not.toBeInTheDocument()
+    })
+
+    it('opens Settings to the list again after another tab', async () => {
+      render(<App />)
+      await userEvent.click(screen.getByRole('button', { name: 'Settings' }))
+      await userEvent.click(within(sidePanel()!).getByRole('button', { name: 'Backup' }))
+      await userEvent.click(screen.getByRole('button', { name: 'Design' }))
+      await userEvent.click(screen.getByRole('button', { name: 'Settings' }))
+      expect(within(sidePanel()!).getByRole('list')).toHaveTextContent('Backup')
+      expect(within(sidePanel()!).queryByRole('button', { name: 'Download backup' })).not.toBeInTheDocument()
     })
 
     it('switches design with the swatches', async () => {
@@ -427,6 +443,7 @@ describe('App', () => {
   describe("the screensaver's preview", () => {
     const openPreview = async () => {
       await userEvent.click(screen.getByRole('button', { name: 'Settings' }))
+      await userEvent.click(screen.getByRole('button', { name: 'Screensaver' }))
       await userEvent.click(screen.getByRole('button', { name: 'Preview' }))
     }
 

@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useRef, useState, type ReactNode } from 'react'
 import { readStored } from '../storage'
 import Card from '../ui/Card'
 import {
@@ -16,13 +16,15 @@ import {
 type Props = {
   /** After restoring: start over with the restored atlas */
   onRestored?: () => void
+  /** A way back, above the rest */
+  back?: ReactNode
 }
 
 const dateFormat = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
 const isDateString = (value: unknown): value is string => typeof value === 'string' && !Number.isNaN(Date.parse(value))
 
 /** Saving everything to a file, and restoring it here or in another browser */
-export default function BackupCard({ onRestored = () => window.location.reload() }: Props) {
+export default function BackupCard({ onRestored = () => window.location.reload(), back }: Props) {
   const [lastBackup, setLastBackup] = useState(() => readStored(LAST_BACKUP_KEY, null, isDateString))
   const [pending, setPending] = useState<Backup | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -64,6 +66,7 @@ export default function BackupCard({ onRestored = () => window.location.reload()
 
   return (
     <Card label="Backup" className="backup">
+      {back}
       <p className="muted">
         Your places, flights and records are saved in this browser only. Download a backup to keep them safe, or to
         move them to another browser.

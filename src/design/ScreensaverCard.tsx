@@ -1,10 +1,10 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { SCREENSAVER_FILE, packPlaces, screensaverAddress } from '../screensaver'
 import Card from '../ui/Card'
 
 /** How to make the globe your Mac's screensaver, and its address with your places in it */
-/** `onPreview` shows it in the app, to have a look */
-export default function ScreensaverCard({ onPreview }: { onPreview: () => void }) {
+/** `onPreview` shows it in the app, to have a look. `back` is a way back, above the rest. */
+export default function ScreensaverCard({ onPreview, back }: { onPreview: () => void; back?: ReactNode }) {
   const [copied, setCopied] = useState(false)
   // Read when shown, so it has the places added since
   const places = packPlaces()
@@ -21,6 +21,7 @@ export default function ScreensaverCard({ onPreview }: { onPreview: () => void }
 
   return (
     <Card label="Screensaver" meta="MAC">
+      {back}
       <p className="muted">Your Mac can show the spinning globe, with your places on it, as its screensaver.</p>
       <ol className="steps">
         <li>
