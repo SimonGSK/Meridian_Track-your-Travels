@@ -1869,8 +1869,8 @@ code {
 
 .theme-list {
   display: grid;
-  gap: 10px;
-  margin: 16px 0 0;
+  gap: 6px;
+  margin: 12px 0 0;
   padding: 0;
   list-style: none;
 }
@@ -1879,8 +1879,8 @@ code {
   width: 100%;
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 10px 12px;
+  gap: 12px;
+  padding: 7px 10px;
   border: 1px solid var(--line);
   border-radius: 10px;
   background: var(--surface-raised);
@@ -1902,19 +1902,20 @@ code {
 
 .theme-option strong {
   display: block;
-  margin-bottom: 2px;
+  margin-bottom: 1px;
   font-family: var(--font-serif);
-  font-size: 17px;
+  font-size: 15px;
 }
 
 .theme-option .muted {
-  font-size: 13px;
+  font-size: 12.5px;
+  line-height: 1.4;
 }
 
 .theme-preview {
   flex: none;
-  width: 56px;
-  height: 56px;
+  width: 40px;
+  height: 40px;
 }
 
 /* Games */
@@ -3020,4 +3021,89 @@ code {
   align-items: center;
   gap: 8px;
   color: var(--good);
+}
+
+/*
+ * Phones: text and buttons a size down, so the sheets read like an app's
+ * rather than a poster's. Text to type in stays at 16px, below which an
+ * iPhone zooms in on it.
+ */
+@media (max-width: 640px) {
+  body {
+    font-size: 15px;
+  }
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+  .muted {
+    font-size: 13px;
+  }
+  .primary-button {
+    padding: 9px 14px;
+    font-size: 14px;
+  }
+  .link-button {
+    font-size: 14px;
+  }
+  .atlas-button {
+    margin-top: 14px;
+    padding: 10px 14px;
+    font-size: 14px;
+  }
+  .wish-button {
+    padding: 7px 14px;
+    font-size: 13px;
+  }
+  .row-name {
+    font-size: 14.5px;
+  }
+  .layer {
+    padding: 3px 4px 3px 6px;
+    font-size: 14px;
+  }
+  .eye {
+    width: 30px;
+    height: 30px;
+  }
+  .game-card {
+    padding: 10px 12px;
+  }
+  .game-card strong {
+    font-size: 14.5px;
+  }
+  .game-card .muted {
+    font-size: 12.5px;
+  }
+  .game-heading {
+    font-size: 20px;
+  }
+  .game-prompt {
+    font-size: 14px;
+  }
+  .game-target {
+    font-size: 26px;
+  }
+  .game-flag {
+    max-width: 170px;
+  }
+  .big-score {
+    font-size: 42px;
+  }
+  .year-heading {
+    font-size: 34px;
+  }
+  .year-summary {
+    font-size: 14px;
+  }
+  .country-name {
+    font-size: 26px;
+  }
+  .achievement {
+    padding: 6px 9px;
+  }
+  .achievement-title {
+    font-size: 14px;
+  }
 }
