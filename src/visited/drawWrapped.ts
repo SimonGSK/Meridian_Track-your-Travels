@@ -1,6 +1,6 @@
 import { geoOrthographic, geoPath } from 'd3-geo'
 import { countries, type CountryFeature } from '../countries'
-import { MIDNIGHT, revisitColor } from '../globe/themes'
+import { MIDNIGHT } from '../globe/themes'
 import type { Wrapped } from './wrapped'
 
 /** The card's size: a phone's story, 9 by 16 */
@@ -25,8 +25,9 @@ const COLORS = {
   ocean: MIDNIGHT.ocean,
   land: MIDNIGHT.land as string,
   border: MIDNIGHT.border,
+  /** First visits green, as the "new" figure; the rest in the visited color, as on the globe */
   newPlace: MIDNIGHT.correct,
-  again: revisitColor(MIDNIGHT),
+  again: MIDNIGHT.visited,
   glow: 'rgba(59, 130, 200, 0.45)',
 }
 
@@ -51,7 +52,7 @@ function roundedRect(ctx: Ctx, x: number, y: number, width: number, height: numb
   else ctx.rect(x, y, width, height)
 }
 
-/** The world from above the year's places, those new that year green, those visited again a darker green */
+/** The world from above the year's places, those new that year green, those visited before in the visited color */
 function drawGlobe(ctx: Ctx, w: Wrapped, cx: number, cy: number, radius: number) {
   const glow = ctx.createRadialGradient(cx, cy, radius * 0.92, cx, cy, radius * 1.28)
   glow.addColorStop(0, COLORS.glow)

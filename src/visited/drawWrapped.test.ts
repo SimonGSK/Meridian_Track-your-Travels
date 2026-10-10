@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { countries } from '../countries'
+import { MIDNIGHT } from '../globe/themes'
 import { CARD_HEIGHT, CARD_WIDTH, drawWrapped } from './drawWrapped'
 import type { Wrapped } from './wrapped'
 
@@ -7,6 +8,8 @@ import type { Wrapped } from './wrapped'
 function recording() {
   const texts: { text: string; font: string; fill: string }[] = []
   const images: unknown[] = []
+  /** The color of each shape filled */
+  const fills: string[] = []
   const gradient = { addColorStop() {} }
   const target: Record<string | symbol, unknown> = {
     font: '',
@@ -18,6 +21,9 @@ function recording() {
     drawImage(image: unknown) {
       images.push(image)
     },
+    fill(this: { fillStyle: unknown }) {
+      fills.push(String(this.fillStyle))
+    },
     createLinearGradient: () => gradient,
     createRadialGradient: () => gradient,
   }
@@ -28,7 +34,7 @@ function recording() {
       return true
     },
   }) as unknown as CanvasRenderingContext2D
-  return { context, texts, images }
+  return { context, texts, images, fills }
 }
 
 const byName = (name: string) => countries.find((c) => c.properties.name === name)!
@@ -76,6 +82,13 @@ describe('drawWrapped', () => {
         'Longest: Copenhagen → Tokyo · 8,700 km',
       ]),
     )
+  })
+
+  it('colors the places first visited green, as the "new" figure, and those visited before as on the globe', () => {
+    const { context, fills } = recording()
+    drawWrapped(context, year, flagsOf(year) as never)
+    expect(fills.filter((color) => color === MIDNIGHT.correct)).toHaveLength(2) // Japan and Peru
+    expect(fills.filter((color) => color === MIDNIGHT.visited)).toHaveLength(1) // France
   })
 
   it("draws each place's flag, the new ones first", () => {
