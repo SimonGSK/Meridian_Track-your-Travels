@@ -341,19 +341,19 @@ test.describe('screensaver preview', () => {
 test.describe('explore', () => {
   test('layers switch off, and stay off after reloading', async ({ page }) => {
     await openGlobe(page)
-    // Explore is open from the start on big screens, as a magnifying glass and a gear
-    const gear = page.getByRole('button', { name: 'Design and layers' })
+    // The layers are in the Design tab, under the designs
+    const designTab = page.getByRole('button', { name: 'Design', exact: true })
     const visitedSwitch = page.getByRole('switch', { name: /Visited countries/ })
     const markerSwitch = page.getByRole('switch', { name: /Small islands/ })
     const pinSwitch = page.getByRole('switch', { name: /City pins/ })
-    await gear.click()
+    await designTab.click()
     await expect(visitedSwitch).toBeChecked()
     await visitedSwitch.click()
     await markerSwitch.click()
     await pinSwitch.click()
 
     await page.reload()
-    await gear.click()
+    await designTab.click()
     await expect(visitedSwitch).not.toBeChecked()
     await expect(markerSwitch).not.toBeChecked()
     await expect(pinSwitch).not.toBeChecked()

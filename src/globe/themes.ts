@@ -8,9 +8,6 @@ import earthRelief from '../assets/earth-topology.png'
 export type Theme = {
   id: string
   name: string
-  description: string
-  /** The color, or picture (any CSS background), that stands for the design in the swatch picker */
-  swatch: string
   ocean: string
   oceanShininess: number
   /** One color for all land, or at least 5 so neighboring countries always differ */
@@ -44,8 +41,6 @@ export type Theme = {
 export const MIDNIGHT: Theme = {
   id: 'midnight',
   name: 'Midnight',
-  description: 'Slate land on a midnight sea, with amber for your places',
-  swatch: '#0f2133',
   ocean: '#0c1b2b',
   oceanShininess: 10,
   land: '#1f3a52',
@@ -66,8 +61,6 @@ export const MIDNIGHT: Theme = {
 export const CLASSIC: Theme = {
   id: 'classic',
   name: 'Classic',
-  description: 'Green land on a deep blue ocean',
-  swatch: '#1f6b52',
   ocean: '#0b2a4a',
   oceanShininess: 12,
   land: '#48a078',
@@ -88,8 +81,6 @@ export const CLASSIC: Theme = {
 export const POLITICAL: Theme = {
   id: 'political',
   name: 'Political',
-  description: 'Like a school atlas: every neighbor in its own color',
-  swatch: '#9b3a2c',
   ocean: '#8ec3e6',
   oceanShininess: 6,
   land: ['#f3d58b', '#b9d98f', '#f2b39b', '#c3b1e1', '#94d2c4'],
@@ -110,8 +101,6 @@ export const POLITICAL: Theme = {
 export const NIGHT: Theme = {
   id: 'night',
   name: 'Night',
-  description: 'Dark land with glowing neon borders',
-  swatch: '#2a1d4f',
   ocean: '#03060d',
   oceanShininess: 30,
   land: '#0d1b2a',
@@ -132,8 +121,6 @@ export const NIGHT: Theme = {
 export const VINTAGE: Theme = {
   id: 'vintage',
   name: 'Vintage',
-  description: 'Parchment land on a faded sea, like an old map',
-  swatch: '#e6d6ae',
   ocean: '#9fb5a4',
   oceanShininess: 2,
   land: '#ead9b0',
@@ -154,8 +141,6 @@ export const VINTAGE: Theme = {
 export const MINIMAL: Theme = {
   id: 'minimal',
   name: 'Minimal',
-  description: 'Quiet greys with crisp white borders',
-  swatch: '#aab6c3',
   ocean: '#dfe6ee',
   oceanShininess: 4,
   land: '#aab6c3',
@@ -180,8 +165,6 @@ export const MINIMAL: Theme = {
 export const REALISTIC: Theme = {
   id: 'realistic',
   name: 'Realistic',
-  description: 'The Earth as seen from space: oceans, forests, deserts, ice and snow',
-  swatch: `center / cover url(${earthImage})`,
   ocean: '#0b2342',
   oceanShininess: 18,
   // Not painted over the picture: it's for the rings around small islands, and what the heat map shades from

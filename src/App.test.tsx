@@ -170,8 +170,8 @@ const panelHeading = () => countryPanel()?.querySelector('h2') ?? null
 const sidePanel = () => document.getElementById('side-panel')
 /** Opens a continent's places under its bar, in the Visited tab */
 const openContinent = (continent: string) => userEvent.click(within(sidePanel()!).getByRole('button', { name: continent }))
-/** Explore's gear, opening the design and layers */
-const openLayers = () => userEvent.click(screen.getByRole('button', { name: 'Design and layers' }))
+/** The Design tab, with the designs and the layers */
+const openLayers = () => userEvent.click(screen.getByRole('button', { name: 'Design' }))
 /** Names of countries currently raised on the globe */
 const raised = () => [...sceneObjects].flatMap((o) => ('raised' in o ? [o.raised as string] : []))
 const flag = () => screen.queryByRole('img', { name: /^Flag of/ })
@@ -371,12 +371,12 @@ describe('App', () => {
   })
 
   describe('top bar and Explore', () => {
-    it('starts with Explore open, as a magnifying glass and a gear', () => {
+    it('starts with Explore open, as a magnifying glass', () => {
       render(<App />)
       expect(sidePanel()).toHaveAccessibleName('Explore')
       expect(screen.getByRole('button', { name: 'Explore' })).toHaveAttribute('aria-expanded', 'true')
       expect(screen.getByRole('button', { name: 'Search the atlas' })).toBeInTheDocument()
-      expect(screen.getByRole('button', { name: 'Design and layers' })).toBeInTheDocument()
+      expect(within(sidePanel()!).queryByRole('switch')).not.toBeInTheDocument()
       expect(screen.queryByRole('region', { name: /Games/ })).not.toBeInTheDocument()
     })
 
@@ -397,9 +397,11 @@ describe('App', () => {
       expect(globe.pointOfView).toHaveBeenLastCalledWith(expect.objectContaining({ lat: expect.any(Number) }), expect.any(Number))
     })
 
-    it('has the layers in the Design tab too', async () => {
+    it('has the designs and the layers in the Design tab, and only the search in Explore', async () => {
       render(<App />)
+      expect(within(sidePanel()!).queryByRole('group', { name: 'Design' })).not.toBeInTheDocument()
       await userEvent.click(screen.getByRole('button', { name: 'Design' }))
+      expect(within(sidePanel()!).getByRole('group', { name: 'Design' })).toBeInTheDocument()
       expect(within(sidePanel()!).getByRole('switch', { name: /City pins/ })).toBeChecked()
     })
 
@@ -431,12 +433,12 @@ describe('App', () => {
       expect(within(sidePanel()!).queryByRole('button', { name: 'Download backup' })).not.toBeInTheDocument()
     })
 
-    it('switches design with the swatches', async () => {
+    it('switches design with the tiny globes', async () => {
       render(<App />)
       await openLayers()
       await userEvent.click(within(screen.getByRole('group', { name: 'Design' })).getByRole('button', { name: 'Night' }))
       expect(layer.setBorders).toHaveBeenLastCalledWith(NIGHT.border, NIGHT.borderOpacity)
-      expect(screen.getByRole('region', { name: /Design & layers/ })).toHaveTextContent('NIGHT')
+      expect(screen.getByRole('region', { name: 'Style' })).toHaveTextContent(NIGHT.name)
     })
   })
 
