@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react'
 import { THEMES, landColor, type Theme } from '../globe/themes'
 
 type Props = {
@@ -35,28 +36,26 @@ function Preview({ theme }: { theme: Theme }) {
   )
 }
 
+/** Each design as a tiny globe, all in a row, with the one chosen named under them */
 export default function DesignPanel({ theme, onChange }: Props) {
   return (
     <>
-      <p className="muted">Choose how the globe looks. Your choice is saved in this browser.</p>
-      <ul className="theme-list">
+      <div className="theme-row" role="group" aria-label="Design" style={{ '--designs': THEMES.length } as CSSProperties}>
         {THEMES.map((t) => (
-          <li key={t.id}>
-            <button
-              type="button"
-              className="theme-option"
-              aria-pressed={t.id === theme.id}
-              onClick={() => onChange(t.id)}
-            >
-              <Preview theme={t} />
-              <span>
-                <strong>{t.name}</strong>
-                <span className="muted">{t.description}</span>
-              </span>
-            </button>
-          </li>
+          <button
+            key={t.id}
+            type="button"
+            className="theme-sample"
+            aria-label={t.name}
+            title={t.name}
+            aria-pressed={t.id === theme.id}
+            onClick={() => onChange(t.id)}
+          >
+            <Preview theme={t} />
+          </button>
         ))}
-      </ul>
+      </div>
+      <p className="theme-name">{theme.name}</p>
     </>
   )
 }

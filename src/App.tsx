@@ -983,10 +983,6 @@ export default function App({ compareOnOpen = false }: { compareOnOpen?: boolean
         <SidePanel title={VIEWS.find((v) => v.id === view)!.label} onClose={() => changeView(null)}>
           {view === 'explore' && (
             <ExplorePanel
-              settings={settings}
-              onChange={changeSettings}
-              theme={theme}
-              onThemeChange={setTheme}
               onFind={showCountry}
               cities={cities}
               compact={!isPhone()}
@@ -1088,7 +1084,7 @@ export default function App({ compareOnOpen = false }: { compareOnOpen?: boolean
           )}
           {view === 'design' && (
             <>
-              <Card label="Design" meta={theme.name.toUpperCase()}>
+              <Card label="Style">
                 <DesignPanel theme={theme} onChange={setTheme} />
               </Card>
               <Card label="Layers">

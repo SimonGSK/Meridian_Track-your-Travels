@@ -2,112 +2,57 @@ import { useEffect, useState, type MouseEvent } from 'react'
 import { searchCountries, type CountryFeature } from '../countries'
 import { countryOfCity, findCities, type City } from '../data/cities'
 import { normalizeName } from '../data/names'
-import { THEMES, type Theme } from '../globe/themes'
-import { LayersIcon, SearchIcon } from '../icons'
-import Card from '../ui/Card'
-import LayerList from './LayerList'
-import type { Settings } from './useSettings'
+import { SearchIcon } from '../icons'
 import { noAutofill } from '../ui/noAutofill'
 
 type Props = {
-  settings: Settings
-  onChange: (changes: Partial<Settings>) => void
-  theme: Theme
-  onThemeChange: (id: string) => void
   /** Shows a country found by searching */
   onFind: (country: CountryFeature) => void
   cities: readonly City[] | null
-  /** Just two buttons, opening the search and the design and layers. Phones show both open, in their sheet. */
+  /** Just a button, opening the search. Phones show it open, in their sheet. */
   compact?: boolean
 }
 
-type Tool = 'search' | 'settings'
-
 /**
- * The Explore tab: a search of the atlas, and the design and layers. On big
- * screens they're two round buttons, a magnifying glass and a gear, that
- * open them, so the globe has the room.
+ * The Explore tab: a search of the atlas. On big screens it's a round
+ * button, a magnifying glass, that opens it, so the globe has the room.
  */
 export default function ExplorePanel({ compact = true, ...props }: Props) {
-  const [open, setOpen] = useState<Tool | null>(null)
-  const toggle = (tool: Tool) => setOpen((current) => (current === tool ? null : tool))
+  const [open, setOpen] = useState(false)
   // Keeps the focus in the search, so it doesn't put itself away just before its button toggles it
   const keepFocus = (e: MouseEvent) => e.preventDefault()
 
-  // Escape closes what's open before anything else
+  // Escape closes the search before anything else
   useEffect(() => {
     if (!open) return
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key !== 'Escape') return
       e.stopPropagation()
-      setOpen(null)
+      setOpen(false)
     }
     document.addEventListener('keydown', onKeyDown, true)
     return () => document.removeEventListener('keydown', onKeyDown, true)
   }, [open])
 
-  if (!compact) {
-    return (
-      <>
-        <AtlasSearch cities={props.cities} onFind={props.onFind} />
-        <LayersCard {...props} />
-      </>
-    )
-  }
+  if (!compact) return <AtlasSearch cities={props.cities} onFind={props.onFind} />
 
   return (
     <div className="explore-tools">
       <div className="tool-row">
-        {open === 'search' && (
-          <AtlasSearch cities={props.cities} onFind={props.onFind} onClose={() => setOpen(null)} autoFocus />
-        )}
+        {open && <AtlasSearch cities={props.cities} onFind={props.onFind} onClose={() => setOpen(false)} autoFocus />}
         <button
           type="button"
           className="tool-button"
           aria-label="Search the atlas"
-          aria-expanded={open === 'search'}
+          aria-expanded={open}
           title="Search the atlas"
           onMouseDown={keepFocus}
-          onClick={() => toggle('search')}
+          onClick={() => setOpen((was) => !was)}
         >
           <SearchIcon size={20} />
         </button>
       </div>
-      <button
-        type="button"
-        className="tool-button"
-        aria-label="Design and layers"
-        aria-expanded={open === 'settings'}
-        title="Design and layers"
-        onMouseDown={keepFocus}
-        onClick={() => toggle('settings')}
-      >
-        <LayersIcon size={20} />
-      </button>
-      {open === 'settings' && <LayersCard {...props} />}
     </div>
-  )
-}
-
-function LayersCard({ settings, onChange, theme, onThemeChange }: Props) {
-  return (
-    <Card label="Design & layers" meta={theme.name.toUpperCase()}>
-      <div className="swatches" role="group" aria-label="Design">
-        {THEMES.map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            className="swatch"
-            style={{ background: t.swatch }}
-            aria-label={t.name}
-            title={t.name}
-            aria-pressed={t.id === theme.id}
-            onClick={() => onThemeChange(t.id)}
-          />
-        ))}
-      </div>
-      <LayerList settings={settings} onChange={onChange} />
-    </Card>
   )
 }
 
