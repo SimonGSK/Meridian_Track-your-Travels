@@ -37,7 +37,16 @@ describe('wrappedOf', () => {
   })
 
   it('counts the countries, the new places and the continents', () => {
-    expect([w.countries, w.newPlaces, w.continents]).toEqual([4, 4, 4]) // Greenland is a territory
+    // Greenland counts as Denmark, and is a new place
+    expect([w.countries, w.newPlaces, w.continents]).toEqual([5, 4, 4])
+  })
+
+  it('counts a territory as its country, and as a new place the first time there, as it shows in green', () => {
+    // Iceland, and Greenland: Denmark, visited before, but Greenland not
+    const year = wrappedOf(reviewOf(2026, travels({ Iceland: ['2026-06'], Greenland: ['2026-07'], Denmark: ['2019'] })))
+    expect([year.countries, year.newPlaces]).toEqual([2, 2])
+    expect(year.places.filter((p) => p.isNew)).toHaveLength(year.newPlaces)
+    expect(describeWrapped(year)).toBe('In 2026: 2 countries, 2 new places, on 2 continents.')
   })
 
   it('adds up the flights, how far and how many times around the Earth, and the longest', () => {
@@ -54,7 +63,7 @@ describe('wrappedOf', () => {
 
   it('says it in words', () => {
     expect(describeWrapped(w)).toBe(
-      'In 2024: 4 countries, 4 of them new, on 4 continents. 2 flights, 9,730 km. Longest flight: Copenhagen to Tokyo.',
+      'In 2024: 5 countries, 4 new places, on 4 continents. 2 flights, 9,730 km. Longest flight: Copenhagen to Tokyo.',
     )
   })
 

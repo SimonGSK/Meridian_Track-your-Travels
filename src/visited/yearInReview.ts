@@ -1,6 +1,7 @@
 import { countries, type CountryFeature } from '../countries'
 import { CONTINENTS, type Continent } from '../data/continents'
 import type { Route } from '../data/flights'
+import { countryOfPlace } from '../data/sovereigns'
 import { partsOf, type VisitDate } from '../data/visitDates'
 import { spotsOfRoute, type Spot } from '../globe/interaction'
 
@@ -27,9 +28,12 @@ export type YearReview = {
   places: CountryFeature[]
   /** Their names, for the globe */
   names: ReadonlySet<string>
-  /** Of those, the countries */
+  /** Countries been to that year: those visited, and those a territory visited belongs to (Greenland is Denmark's) */
   countryCount: number
-  /** Places first visited that year: their earliest date is in it */
+  /** Places visited that year that are no country's: Antarctica, Western Sahara, the Siachen Glacier */
+  noCountry: CountryFeature[]
+  /** Places first visited that year: their earliest date is in it. Territories too: Greenland is new the first time
+   * there, even after Denmark */
   firstVisits: ReadonlySet<CountryFeature>
   continents: Continent[]
   /** January first; the places with only the year come last */
@@ -43,8 +47,12 @@ export type YearReview = {
 }
 
 const yearOf = (date: VisitDate) => partsOf(date).year
-const isCountry = (c: CountryFeature) => c.properties.kind === 'country'
 const byName = (a: CountryFeature, b: CountryFeature) => a.properties.name.localeCompare(b.properties.name)
+
+/** The countries places are in, each once: Greenland and the Faroe Islands are both Denmark */
+function countriesOf(places: CountryFeature[]): Set<CountryFeature> {
+  return new Set(places.map(countryOfPlace).filter((country) => country !== null))
+}
 
 /** Visited places that have dates, and their dates */
 function datedPlaces({ visited, datesOf }: Travels) {
@@ -88,7 +96,8 @@ export function reviewOf(year: number, travels: Travels): YearReview {
     year,
     places,
     names: new Set(places.map((c) => c.properties.name)),
-    countryCount: places.filter(isCountry).length,
+    countryCount: countriesOf(places).size,
+    noCountry: places.filter((place) => !countryOfPlace(place)),
     firstVisits: new Set(
       thisYear.filter(({ dates }) => Math.min(...dates.map(yearOf)) === year).map(({ country }) => country),
     ),
@@ -112,7 +121,7 @@ export type TimelineStep = {
   year: number
   /** Places first visited by the end of the year, by name */
   names: ReadonlySet<string>
-  /** Of those, the countries */
+  /** The countries they're in: Greenland counts as Denmark */
   countryCount: number
   continents: number
   /** Places first visited that year */
@@ -139,7 +148,7 @@ export function timelineOf(travels: Travels): TimelineStep[] {
     return {
       year,
       names: new Set(places.map((c) => c.properties.name)),
-      countryCount: places.filter(isCountry).length,
+      countryCount: countriesOf(places).size,
       continents: CONTINENTS.filter((continent) => places.some((c) => c.properties.continent === continent)).length,
       newPlaces: firsts.filter((p) => p.year === year).map((p) => p.country).sort(byName),
       revisits: dates

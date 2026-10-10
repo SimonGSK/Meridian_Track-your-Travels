@@ -12,8 +12,9 @@ import type { YearReview } from './yearInReview'
 export type Wrapped = {
   year: number
   places: { country: CountryFeature; isNew: boolean }[]
-  /** Of the places, the countries, and how many were new */
+  /** The countries been to, Greenland counting as Denmark */
   countries: number
+  /** Places first visited that year, territories too: those in green */
   newPlaces: number
   continents: number
   flights: number
@@ -58,11 +59,10 @@ export function wrappedOf(review: YearReview): Wrapped {
 
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`
 
-/** The card in words, for screen readers and the share text: "In 2025: 12 countries, 5 of them new, on 3 continents…" */
+/** The card in words, for screen readers and the share text: "In 2025: 12 countries, 5 new places, on 3 continents…" */
 export function describeWrapped(w: Wrapped) {
-  const lines = [
-    `In ${w.year}: ${plural(w.countries, 'country', 'countries')}${w.newPlaces ? `, ${w.newPlaces} of them new` : ''}, on ${plural(w.continents, 'continent')}.`,
-  ]
+  const fresh = w.newPlaces > 0 ? `, ${plural(w.newPlaces, 'new place')}` : ''
+  const lines = [`In ${w.year}: ${plural(w.countries, 'country', 'countries')}${fresh}, on ${plural(w.continents, 'continent')}.`]
   if (w.flights) lines.push(`${plural(w.flights, 'flight')}, ${Math.round(w.km).toLocaleString('en-US')} km.`)
   if (w.longest) lines.push(`Longest flight: ${w.longest.from} to ${w.longest.to}.`)
   return lines.join(' ')
