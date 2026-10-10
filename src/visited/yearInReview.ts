@@ -1,7 +1,7 @@
 import { countries, type CountryFeature } from '../countries'
 import { CONTINENTS, type Continent } from '../data/continents'
 import type { Route } from '../data/flights'
-import { countryOfPlace } from '../data/sovereigns'
+import { countriesOf, countryOfPlace } from '../data/sovereigns'
 import { partsOf, type VisitDate } from '../data/visitDates'
 import { spotsOfRoute, type Spot } from '../globe/interaction'
 
@@ -48,11 +48,6 @@ export type YearReview = {
 
 const yearOf = (date: VisitDate) => partsOf(date).year
 const byName = (a: CountryFeature, b: CountryFeature) => a.properties.name.localeCompare(b.properties.name)
-
-/** The countries places are in, each once: Greenland and the Faroe Islands are both Denmark */
-function countriesOf(places: CountryFeature[]): Set<CountryFeature> {
-  return new Set(places.map(countryOfPlace).filter((country) => country !== null))
-}
 
 /** Visited places that have dates, and their dates */
 function datedPlaces({ visited, datesOf }: Travels) {

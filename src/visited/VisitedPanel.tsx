@@ -4,6 +4,7 @@ import { CONTINENTS, type Continent } from '../data/continents'
 import { flagUrl } from '../flags'
 import { CloseIcon, StarIcon } from '../icons'
 import { countdown, formatDay, type Day } from '../data/plans'
+import { countriesOf, countryOfPlace } from '../data/sovereigns'
 import { percentLabel } from './percentLabel'
 import StatsBox from '../ui/StatsBox'
 import { noAutofill } from '../ui/noAutofill'
@@ -44,6 +45,9 @@ export function Flag({ country }: { country: CountryFeature }) {
   return url ? <img className="mini-flag" src={url} alt="" /> : <span className="mini-flag" />
 }
 
+/** "Greenland", "Greenland and Faroe Islands", "A, B and C" */
+const listOf = (names: string[]) => (names.length < 2 ? names.join('') : `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`)
+
 const NO_WISHES: ReadonlySet<string> = new Set()
 const NO_PLANS: Readonly<Record<string, Day>> = {}
 
@@ -57,17 +61,25 @@ export default function VisitedPanel(props: Props) {
   const visitedList = countries.filter((c) => visited.has(c.properties.name)).sort(byName)
   const notVisited = countries.filter((c) => !visited.has(c.properties.name))
   const matches = searchCountries(query, notVisited, MAX_RESULTS)
-  const visitedCountries = visitedList.filter(isCountry).length
-  const visitedTerritories = visitedList.length - visitedCountries
+  // The countries been to: those visited, and those a territory visited belongs to, as Greenland is Denmark's
+  const been = [...countriesOf(visitedList)]
+  const visitedCountries = been.length
+  const visitedTerritories = visitedList.filter((c) => !isCountry(c)).length
   const visitedIn = (continent: Continent) => visitedList.filter((c) => c.properties.continent === continent)
+  /** Countries been to only in a territory of theirs, like Denmark in Greenland */
+  const throughTerritory = (country: CountryFeature) => !visited.has(country.properties.name)
+  const territoriesOf = (country: CountryFeature) =>
+    visitedList.filter((place) => place !== country && countryOfPlace(place) === country).map((place) => place.properties.name)
   const wishes = countries.filter((c) => wishlist.has(c.properties.name)).sort(byName)
   // Soonest first
   const upcoming = countries
     .filter((c) => plans[c.properties.name])
     .sort((a, b) => plans[a.properties.name].localeCompare(plans[b.properties.name]))
-  // A second line under the name: "Territory", and states and cities visited
+  // A second line under the name: "Territory", and states and cities visited; "In Greenland" for Denmark been to there
   const noteFor = (c: CountryFeature) =>
-    [isCountry(c) ? null : 'Territory', note?.(c)].filter(Boolean).join(' · ') || null
+    throughTerritory(c)
+      ? `In ${listOf(territoriesOf(c))}`
+      : [isCountry(c) ? null : 'Territory', note?.(c)].filter(Boolean).join(' · ') || null
 
   // Adding a place opens its continent, to see it there
   const add = (country: CountryFeature) => {
@@ -105,8 +117,10 @@ export default function VisitedPanel(props: Props) {
       <ul className="continent-stats" aria-label="Countries visited by continent">
         {continents.map((continent) => {
           const total = COUNTRIES_IN.get(continent)!
-          const places = visitedIn(continent)
-          const count = places.filter(isCountry).length
+          const countriesHere = been.filter((c) => c.properties.continent === continent)
+          // The places visited there, and the countries been to only in a territory elsewhere
+          const places = [...visitedIn(continent), ...countriesHere.filter(throughTerritory)].sort(byName)
+          const count = countriesHere.length
           const isOpen = open === continent
           return (
             <li key={continent} className={isOpen ? 'open' : undefined}>
@@ -153,14 +167,17 @@ export default function VisitedPanel(props: Props) {
                             {noteFor(c) && <span className="row-note">{noteFor(c)}</span>}
                           </span>
                         </button>
-                        <button
-                          type="button"
-                          className="icon-button small"
-                          onClick={() => onRemove(c.properties.name)}
-                          aria-label={`Remove ${c.properties.name}`}
-                        >
-                          ×
-                        </button>
+                        {/* Been to in a territory, not marked itself: nothing to remove */}
+                        {!throughTerritory(c) && (
+                          <button
+                            type="button"
+                            className="icon-button small"
+                            onClick={() => onRemove(c.properties.name)}
+                            aria-label={`Remove ${c.properties.name}`}
+                          >
+                            ×
+                          </button>
+                        )}
                       </li>
                     ))}
                   </ul>
