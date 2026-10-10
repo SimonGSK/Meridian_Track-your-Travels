@@ -170,8 +170,11 @@ const panelHeading = () => countryPanel()?.querySelector('h2') ?? null
 const sidePanel = () => document.getElementById('side-panel')
 /** Opens a continent's places under its bar, in the Visited tab */
 const openContinent = (continent: string) => userEvent.click(within(sidePanel()!).getByRole('button', { name: continent }))
-/** The Design tab, with the designs and the layers */
-const openLayers = () => userEvent.click(screen.getByRole('button', { name: 'Design' }))
+/** Explore's layers button, opening the designs and the layers, with Explore opened first if it isn't */
+const openLayers = async () => {
+  if (!screen.queryByRole('button', { name: 'Style and layers' })) await userEvent.click(screen.getByRole('button', { name: 'Explore' }))
+  await userEvent.click(screen.getByRole('button', { name: 'Style and layers' }))
+}
 /** Opens one of the small cards in the More tab */
 const openMore = async (name: string) => {
   await userEvent.click(screen.getByRole('button', { name: 'More' }))
@@ -376,11 +379,12 @@ describe('App', () => {
   })
 
   describe('top bar and Explore', () => {
-    it('starts with Explore open, as a magnifying glass', () => {
+    it('starts with Explore open, as a magnifying glass and a layers button', () => {
       render(<App />)
       expect(sidePanel()).toHaveAccessibleName('Explore')
       expect(screen.getByRole('button', { name: 'Explore' })).toHaveAttribute('aria-expanded', 'true')
       expect(screen.getByRole('button', { name: 'Search the atlas' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Style and layers' })).toBeInTheDocument()
       expect(within(sidePanel()!).queryByRole('switch')).not.toBeInTheDocument()
       expect(screen.queryByRole('region', { name: /Games/ })).not.toBeInTheDocument()
     })
@@ -402,10 +406,16 @@ describe('App', () => {
       expect(globe.pointOfView).toHaveBeenLastCalledWith(expect.objectContaining({ lat: expect.any(Number) }), expect.any(Number))
     })
 
-    it('has the designs and the layers in the Design tab, and only the search in Explore', async () => {
+    it("has the designs and the layers under Explore's layers button, and no Design tab", async () => {
       render(<App />)
+      expect(screen.getAllByRole('button', { name: /^(Explore|Visited|Games|Design|More)$/ }).map((b) => b.textContent)).toEqual([
+        'Explore',
+        'Visited',
+        'Games',
+        'More',
+      ])
       expect(within(sidePanel()!).queryByRole('group', { name: 'Design' })).not.toBeInTheDocument()
-      await userEvent.click(screen.getByRole('button', { name: 'Design' }))
+      await openLayers()
       expect(within(sidePanel()!).getByRole('group', { name: 'Design' })).toBeInTheDocument()
       expect(within(sidePanel()!).getByRole('switch', { name: /City pins/ })).toBeChecked()
     })
@@ -429,7 +439,7 @@ describe('App', () => {
       await userEvent.click(panel.getByRole('button', { name: '← Back' }))
       await userEvent.click(panel.getByRole('button', { name: 'Screensaver' }))
       expect(panel.getByRole('region', { name: /Screensaver/ })).toBeInTheDocument()
-      await userEvent.click(screen.getByRole('button', { name: 'Design' }))
+      await userEvent.click(screen.getByRole('button', { name: 'Explore' }))
       expect(within(sidePanel()!).queryByRole('region', { name: /Screensaver/ })).not.toBeInTheDocument()
       expect(within(sidePanel()!).queryByRole('region', { name: /Backup/ })).not.toBeInTheDocument()
     })
@@ -447,7 +457,7 @@ describe('App', () => {
     it('opens More to the list again after another tab', async () => {
       render(<App />)
       await openMore('Backup')
-      await userEvent.click(screen.getByRole('button', { name: 'Design' }))
+      await userEvent.click(screen.getByRole('button', { name: 'Visited' }))
       await userEvent.click(screen.getByRole('button', { name: 'More' }))
       expect(within(sidePanel()!).getByRole('list', { name: 'Settings' })).toHaveTextContent('Backup')
       expect(within(sidePanel()!).queryByRole('button', { name: 'Download backup' })).not.toBeInTheDocument()
@@ -550,8 +560,8 @@ describe('App', () => {
     it('switches between panels', async () => {
       render(<App />)
       await userEvent.click(screen.getByRole('button', { name: 'Visited' }))
-      await userEvent.click(screen.getByRole('button', { name: 'Design' }))
-      expect(sidePanel()).toHaveAccessibleName('Design')
+      await userEvent.click(screen.getByRole('button', { name: 'Games' }))
+      expect(sidePanel()).toHaveAccessibleName('Games')
     })
 
     it('closes the country panel first, then the side panel, on Escape', async () => {
@@ -1039,7 +1049,7 @@ describe('App', () => {
       expect(painted()).toEqual({ Japan: DEFAULT_THEME.correct })
       await userEvent.click(screen.getByRole('tab', { name: 'Countries' }))
 
-      await userEvent.click(screen.getByRole('button', { name: 'Design' }))
+      await openLayers()
       await userEvent.click(within(sidePanel()!).getByRole('switch', { name: /Wishlist/ }))
       expect(painted()).toEqual({ Japan: DEFAULT_THEME.visited })
       await userEvent.click(within(sidePanel()!).getByRole('switch', { name: /Wishlist/ }))
@@ -1682,16 +1692,15 @@ describe('App', () => {
   describe('day and night', () => {
     const night = () => sceneObjects.has(nightLayer.object)
 
-    it('is off until switched on, in Explore or in the Design tab', async () => {
+    it("is off until switched on, under Explore's layers button", async () => {
       render(<App />)
       expect(night()).toBe(false)
       await openLayers()
-      await userEvent.click(screen.getByRole('switch', { name: /Day and night/ }))
+      const dayAndNight = screen.getByRole('switch', { name: /Day and night/ })
+      await userEvent.click(dayAndNight)
       expect(night()).toBe(true)
-      await userEvent.click(screen.getByRole('button', { name: 'Design' }))
-      const inDesign = within(sidePanel()!).getByRole('switch', { name: /Day and night/ })
-      expect(inDesign).toBeChecked()
-      await userEvent.click(inDesign)
+      expect(dayAndNight).toBeChecked()
+      await userEvent.click(dayAndNight)
       expect(night()).toBe(false)
     })
 
@@ -1747,7 +1756,7 @@ describe('App', () => {
 
     it('repaints the globe in the chosen design', async () => {
       render(<App />)
-      await userEvent.click(screen.getByRole('button', { name: 'Design' }))
+      await openLayers()
       await userEvent.click(screen.getByRole('button', { name: /Night/ }))
       expect(new Set(Object.values(lastColors()))).toEqual(new Set([NIGHT.land]))
       expect(layer.setBorders).toHaveBeenLastCalledWith(NIGHT.border, NIGHT.borderOpacity)
@@ -1755,7 +1764,7 @@ describe('App', () => {
 
     it('colors neighbors differently in the political design', async () => {
       render(<App />)
-      await userEvent.click(screen.getByRole('button', { name: 'Design' }))
+      await openLayers()
       await userEvent.click(screen.getByRole('button', { name: /Political/ }))
       const colors = lastColors()
       expect(colors.Denmark).not.toBe(colors.Germany)
@@ -1765,7 +1774,7 @@ describe('App', () => {
     it('shows the Earth from space in the realistic design: plain land not painted, your places see-through', async () => {
       localStorage.setItem('countries-app.visited', JSON.stringify(['Denmark']))
       render(<App />)
-      await userEvent.click(screen.getByRole('button', { name: 'Design' }))
+      await openLayers()
       await userEvent.click(screen.getByRole('button', { name: /^Realistic/ }))
       const lastPaint = (name: string) => layer.paint.mock.calls.filter(([c]) => c.properties.name === name).at(-1)!.slice(1)
       expect(lastPaint('Denmark')).toEqual([REALISTIC.visited, REALISTIC.imagery!.tint])
@@ -1781,7 +1790,7 @@ describe('App', () => {
 
     it('keeps the chosen design after a reload', async () => {
       const first = render(<App />)
-      await userEvent.click(screen.getByRole('button', { name: 'Design' }))
+      await openLayers()
       await userEvent.click(screen.getByRole('button', { name: /Night/ }))
       first.unmount()
       layer.paint.mockClear()

@@ -5,9 +5,7 @@ import { countries, tinyPlaces, type CountryFeature } from './countries'
 import { citiesLabel, citiesOf, countryOfCity, type City } from './data/cities'
 import { findRegionAt, hasRegions, regionsLabel, regionsOf, type RegionFeature } from './data/regions'
 import CountryPanel from './CountryPanel'
-import DesignPanel from './design/DesignPanel'
 import ExplorePanel from './explore/ExplorePanel'
-import LayerList from './explore/LayerList'
 import { useSettings } from './explore/useSettings'
 import GamesPanel from './games/GamesPanel'
 import { GAMES, type Difficulty, type GameId, type RoundGameId } from './games/games'
@@ -888,7 +886,10 @@ export default function App({ compareOnOpen = false }: { compareOnOpen?: boolean
   return (
     <div
       // Previewing the screensaver: just the globe, as the screensaver shows it
-      className={previewing ? 'app screensaver' : `app${view ? ' panel-open' : ''}${selected ? ' country-open' : ''}`}
+      // Explore is buttons in a corner, not a sheet: the globe stays where it is
+      className={
+        previewing ? 'app screensaver' : `app${view && view !== 'explore' ? ' panel-open' : ''}${selected ? ' country-open' : ''}`
+      }
       // The page behind the globe, with a glow drawn in CSS
       style={{ '--scene': theme.background } as CSSProperties}
     >
@@ -979,15 +980,18 @@ export default function App({ compareOnOpen = false }: { compareOnOpen?: boolean
         )}
       </div>
 
-      {view && (
+      {view === 'explore' && (
+        <ExplorePanel
+          settings={settings}
+          onChange={changeSettings}
+          theme={theme}
+          onThemeChange={setTheme}
+          onFind={showCountry}
+          cities={cities}
+        />
+      )}
+      {view && view !== 'explore' && (
         <SidePanel title={VIEWS.find((v) => v.id === view)!.label} onClose={() => changeView(null)}>
-          {view === 'explore' && (
-            <ExplorePanel
-              onFind={showCountry}
-              cities={cities}
-              compact={!isPhone()}
-            />
-          )}
           {view === 'visited' && (
             <VisitedTab
               view={visitedView}
@@ -1063,16 +1067,6 @@ export default function App({ compareOnOpen = false }: { compareOnOpen?: boolean
                 />
               }
             />
-          )}
-          {view === 'design' && (
-            <>
-              <Card label="Style">
-                <DesignPanel theme={theme} onChange={setTheme} />
-              </Card>
-              <Card label="Layers">
-                <LayerList settings={settings} onChange={changeSettings} />
-              </Card>
-            </>
           )}
           {view === 'more' && (
             <>

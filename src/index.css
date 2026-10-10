@@ -887,13 +887,27 @@ input[type='checkbox'] {
   opacity: 0.35;
 }
 
-/* Explore: a magnifying glass, opening the search */
+/* Explore: a magnifying glass and a layers button in the corner, opening the search, and the designs and layers */
 .explore-tools {
+  position: fixed;
+  z-index: 2;
+  top: calc(var(--topbar-height) + 24px);
+  right: var(--gutter);
+  width: var(--column-width);
   display: grid;
   justify-items: end;
   gap: 10px;
   /* Only the buttons and what they open take clicks, not the empty column around them */
   pointer-events: none;
+}
+
+/* The designs and layers, under the buttons, scrolling if they're taller than the room left */
+.explore-tools > .card {
+  width: 100%;
+  max-height: calc(100vh - var(--topbar-height) - 24px - 112px - 108px);
+  overflow-y: auto;
+  scrollbar-width: thin;
+  animation: slide-in 0.18s ease-out;
 }
 
 .explore-tools > *,
@@ -2507,7 +2521,7 @@ code {
   .country-name {
     font-size: 38px;
   }
-  /* Five tabs leave the name room */
+  /* The tabs leave the name room */
   .tab {
     padding: 9px 14px;
     font-size: 14px;
@@ -2522,7 +2536,7 @@ code {
   }
 }
 
-/* The name beside the logo needs the room the five tabs take */
+/* The name beside the logo needs the room the tabs take */
 @media (max-width: 1000px) {
   .brand-text {
     display: none;
@@ -2586,7 +2600,7 @@ code {
     border-radius: 0;
     background: var(--panel-strong);
   }
-  /* Each tab an equal share of the bar, so five fit on the narrowest phones */
+  /* Each tab an equal share of the bar, so they fit on the narrowest phones */
   /* Its symbol over its name, in the middle */
   .tab {
     flex: 1 1 0;
@@ -3147,5 +3161,24 @@ code {
   }
   .achievement-title {
     font-size: 14px;
+  }
+}
+
+/* Phones: Explore's buttons in the top corner, over the globe, rather than in a sheet */
+@media (max-width: 640px) {
+  .explore-tools {
+    top: calc(var(--topbar-height) + 12px);
+    left: var(--gutter);
+    width: auto;
+    gap: 8px;
+  }
+  .tool-button {
+    width: 42px;
+    height: 42px;
+  }
+  /* Solid as a sheet, so the globe doesn't show through the layers */
+  .explore-tools > .card {
+    max-height: calc(100dvh - var(--topbar-height) - var(--tab-bar-height) - 12px - 100px - 16px);
+    background: var(--panel-strong);
   }
 }

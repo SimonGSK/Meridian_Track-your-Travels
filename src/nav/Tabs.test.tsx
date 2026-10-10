@@ -4,10 +4,10 @@ import userEvent from '@testing-library/user-event'
 import Tabs from './Tabs'
 
 describe('Tabs', () => {
-  it('has Explore, Visited, Games and Design', () => {
+  it('has Explore, Visited, Games and More', () => {
     render(<Tabs view={null} onChange={() => {}} />)
     const nav = screen.getByRole('navigation', { name: 'Main' })
-    expect(nav).toHaveTextContent(/Explore.*Visited.*Games.*Design/)
+    expect(nav).toHaveTextContent(/^Explore\s*Visited\s*Games\s*More$/)
   })
 
   it('opens a view', async () => {
@@ -19,10 +19,10 @@ describe('Tabs', () => {
 
   it('marks the open view, which stays open when clicked again', async () => {
     const onChange = vi.fn()
-    render(<Tabs view="design" onChange={onChange} />)
-    expect(screen.getByRole('button', { name: 'Design' })).toHaveAttribute('aria-expanded', 'true')
+    render(<Tabs view="more" onChange={onChange} />)
+    expect(screen.getByRole('button', { name: 'More' })).toHaveAttribute('aria-expanded', 'true')
     expect(screen.getByRole('button', { name: 'Games' })).toHaveAttribute('aria-expanded', 'false')
-    await userEvent.click(screen.getByRole('button', { name: 'Design' }))
-    expect(onChange).toHaveBeenCalledWith('design')
+    await userEvent.click(screen.getByRole('button', { name: 'More' }))
+    expect(onChange).toHaveBeenCalledWith('more')
   })
 })
