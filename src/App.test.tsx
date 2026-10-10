@@ -172,6 +172,11 @@ const sidePanel = () => document.getElementById('side-panel')
 const openContinent = (continent: string) => userEvent.click(within(sidePanel()!).getByRole('button', { name: continent }))
 /** The Design tab, with the designs and the layers */
 const openLayers = () => userEvent.click(screen.getByRole('button', { name: 'Design' }))
+/** Opens one of the small cards in the More tab */
+const openMore = async (name: string) => {
+  await userEvent.click(screen.getByRole('button', { name: 'More' }))
+  await userEvent.click(within(sidePanel()!).getByRole('button', { name }))
+}
 /** Names of countries currently raised on the globe */
 const raised = () => [...sceneObjects].flatMap((o) => ('raised' in o ? [o.raised as string] : []))
 const flag = () => screen.queryByRole('img', { name: /^Flag of/ })
@@ -199,7 +204,7 @@ describe('App', () => {
 
   it("keeps password managers off every text box: none of them is a login", async () => {
     render(<App />)
-    for (const tab of ['Visited', 'Games', 'Settings']) {
+    for (const tab of ['Visited', 'Games', 'More']) {
       await userEvent.click(screen.getByRole('button', { name: tab }))
       for (const box of document.querySelectorAll('input[type="text"], input[type="search"], input:not([type])')) {
         if ((box as HTMLInputElement).readOnly) continue
@@ -405,17 +410,23 @@ describe('App', () => {
       expect(within(sidePanel()!).getByRole('switch', { name: /City pins/ })).toBeChecked()
     })
 
-    it('has the backup, the app and the screensaver in the Settings tab, and only the design and layers in Design', async () => {
+    it('has the achievements, comparing and the settings in the More tab, and only the design and layers in Design', async () => {
       render(<App />)
-      await userEvent.click(screen.getByRole('button', { name: 'Settings' }))
-      expect(sidePanel()).toHaveAccessibleName('Settings')
+      await userEvent.click(screen.getByRole('button', { name: 'More' }))
+      expect(sidePanel()).toHaveAccessibleName('More')
       const panel = within(sidePanel()!)
+      await userEvent.click(panel.getByRole('button', { name: 'Achievements' }))
+      expect(panel.getByRole('region', { name: 'Achievements' })).toHaveTextContent('First stamp')
+      await userEvent.click(panel.getByRole('button', { name: '← Back' }))
+      await userEvent.click(panel.getByRole('button', { name: 'Compare with a friend' }))
+      expect(panel.getByRole('textbox', { name: "Your friend's link" })).toBeInTheDocument()
+      await userEvent.click(panel.getByRole('button', { name: '← Back' }))
       await userEvent.click(panel.getByRole('button', { name: 'Backup' }))
       expect(panel.getByRole('button', { name: 'Download backup' })).toBeInTheDocument()
-      await userEvent.click(panel.getByRole('button', { name: '← All settings' }))
+      await userEvent.click(panel.getByRole('button', { name: '← Back' }))
       await userEvent.click(panel.getByRole('button', { name: 'App' }))
       expect(panel.getByRole('region', { name: 'App' })).toHaveTextContent('works without internet')
-      await userEvent.click(panel.getByRole('button', { name: '← All settings' }))
+      await userEvent.click(panel.getByRole('button', { name: '← Back' }))
       await userEvent.click(panel.getByRole('button', { name: 'Screensaver' }))
       expect(panel.getByRole('region', { name: /Screensaver/ })).toBeInTheDocument()
       await userEvent.click(screen.getByRole('button', { name: 'Design' }))
@@ -423,13 +434,22 @@ describe('App', () => {
       expect(within(sidePanel()!).queryByRole('region', { name: /Backup/ })).not.toBeInTheDocument()
     })
 
-    it('opens Settings to the list again after another tab', async () => {
+    it('has just your countries, flights and years in the Visited tab', async () => {
       render(<App />)
-      await userEvent.click(screen.getByRole('button', { name: 'Settings' }))
-      await userEvent.click(within(sidePanel()!).getByRole('button', { name: 'Backup' }))
+      await userEvent.click(screen.getByRole('button', { name: 'Visited' }))
+      expect(within(sidePanel()!).getAllByRole('tab').map((tab) => tab.getAttribute('aria-label'))).toEqual([
+        'Countries',
+        'Flights',
+        'Years',
+      ])
+    })
+
+    it('opens More to the list again after another tab', async () => {
+      render(<App />)
+      await openMore('Backup')
       await userEvent.click(screen.getByRole('button', { name: 'Design' }))
-      await userEvent.click(screen.getByRole('button', { name: 'Settings' }))
-      expect(within(sidePanel()!).getByRole('list')).toHaveTextContent('Backup')
+      await userEvent.click(screen.getByRole('button', { name: 'More' }))
+      expect(within(sidePanel()!).getByRole('list', { name: 'Settings' })).toHaveTextContent('Backup')
       expect(within(sidePanel()!).queryByRole('button', { name: 'Download backup' })).not.toBeInTheDocument()
     })
 
@@ -444,8 +464,7 @@ describe('App', () => {
 
   describe("the screensaver's preview", () => {
     const openPreview = async () => {
-      await userEvent.click(screen.getByRole('button', { name: 'Settings' }))
-      await userEvent.click(screen.getByRole('button', { name: 'Screensaver' }))
+      await openMore('Screensaver')
       await userEvent.click(screen.getByRole('button', { name: 'Preview' }))
     }
 
@@ -460,17 +479,17 @@ describe('App', () => {
       expect(screen.getByRole('button', { name: /^Exit preview/ })).toHaveClass('shown')
     })
 
-    it('goes back to Settings, as it was, with the button or Escape, and closes nothing', async () => {
+    it('goes back to More, as it was, with the button or Escape, and closes nothing', async () => {
       const close = vi.spyOn(window, 'close')
       render(<App />)
       await openPreview()
       await userEvent.click(screen.getByRole('button', { name: /^Exit preview/ }))
-      expect(sidePanel()).toHaveAccessibleName('Settings')
+      expect(sidePanel()).toHaveAccessibleName('More')
       expect(screen.getByRole('region', { name: 'Screensaver' })).toBeInTheDocument()
 
       await userEvent.click(screen.getByRole('button', { name: 'Preview' }))
       fireEvent.keyDown(window, { key: 'Escape' })
-      expect(sidePanel()).toHaveAccessibleName('Settings') // Escape left the preview, not the panel
+      expect(sidePanel()).toHaveAccessibleName('More') // Escape left the preview, not the panel
       expect(close).not.toHaveBeenCalled()
     })
   })
@@ -675,8 +694,7 @@ describe('App', () => {
       const { shareLink } = await import('./visited/friend')
       render(<App />)
       expect(painted()).toMatchObject({ Brazil: DEFAULT_THEME.wishlist })
-      await userEvent.click(screen.getByRole('button', { name: 'Visited' }))
-      await userEvent.click(screen.getByRole('tab', { name: 'Compare with a friend' }))
+      await openMore('Compare with a friend')
       await userEvent.type(
         screen.getByRole('textbox', { name: "Your friend's link" }),
         shareLink('Anna', ['Denmark', 'Japan'], 'https://m.test/'),
@@ -695,8 +713,7 @@ describe('App', () => {
     it("opens on the comparison when a friend's link was opened", () => {
       localStorage.setItem('countries-app.friend', JSON.stringify({ name: 'Anna', places: ['Japan'] }))
       render(<App compareOnOpen />)
-      expect(sidePanel()).toHaveAccessibleName('Visited')
-      expect(screen.getByRole('tab', { name: 'Compare with a friend' })).toHaveAttribute('aria-selected', 'true')
+      expect(sidePanel()).toHaveAccessibleName('More')
       expect(screen.getByRole('region', { name: 'Compare' })).toHaveTextContent('with Anna')
       expect(painted()).toMatchObject({ Japan: DEFAULT_THEME.wishlist, Denmark: DEFAULT_THEME.visited })
       expect(key()).toBeInTheDocument()
@@ -705,15 +722,14 @@ describe('App', () => {
     it('takes a place off your wishlist from the comparison, as well as putting one on', async () => {
       localStorage.setItem('countries-app.friend', JSON.stringify({ name: 'Anna', places: ['Brazil', 'Japan'] }))
       render(<App />)
-      await userEvent.click(screen.getByRole('button', { name: 'Visited' }))
-      await userEvent.click(screen.getByRole('tab', { name: 'Compare with a friend' }))
+      await openMore('Compare with a friend')
       await userEvent.click(screen.getByRole('button', { name: 'Take Brazil off your wishlist' }))
       expect(JSON.parse(localStorage.getItem('countries-app.wishlist')!)).toEqual([])
       await userEvent.click(screen.getByRole('button', { name: 'Add Japan to your wishlist' }))
       expect(JSON.parse(localStorage.getItem('countries-app.wishlist')!)).toEqual(['Japan'])
     })
 
-    it('shows only countries while the Compare tab is open, and your friend only there', async () => {
+    it('shows only countries while comparing is open, and your friend only there', async () => {
       const copenhagen = (await loadCities()).find((c) => c.name === 'Copenhagen' && c.place === 'DK')!
       await loadAirports()
       localStorage.setItem('countries-app.visited', JSON.stringify(['Denmark', 'France', 'United States']))
@@ -742,9 +758,8 @@ describe('App', () => {
       await waitFor(() => expect(flights()).toEqual(['CPH-CDG']))
       yoursShown()
 
-      // The Compare tab shows just countries, with Anna switched off as well
-      await userEvent.click(screen.getByRole('button', { name: 'Visited' }))
-      await userEvent.click(screen.getByRole('tab', { name: 'Compare with a friend' }))
+      // Comparing shows just countries, with Anna switched off as well
+      await openMore('Compare with a friend')
       expect(states()).toEqual([])
       expect(pins()).toEqual([])
       expect(flights()).toEqual([])
@@ -758,14 +773,14 @@ describe('App', () => {
       expect(painted().Japan).toBe(DEFAULT_THEME.wishlist)
       expect(key()).toBeInTheDocument()
 
-      // Another tab, or another panel, puts Anna away, though she stays switched on for the Compare tab
-      await userEvent.click(screen.getByRole('tab', { name: 'Flights' }))
+      // Going back, or another tab, puts Anna away, though she stays switched on for comparing
+      await userEvent.click(screen.getByRole('button', { name: '← Back' }))
       yoursShown()
-      await userEvent.click(screen.getByRole('tab', { name: 'Compare with a friend' }))
+      await userEvent.click(within(sidePanel()!).getByRole('button', { name: 'Compare with a friend' }))
       expect(painted().Japan).toBe(DEFAULT_THEME.wishlist)
       await userEvent.click(screen.getByRole('button', { name: 'Explore' }))
       yoursShown()
-      await userEvent.click(screen.getByRole('button', { name: 'Visited' }))
+      await openMore('Compare with a friend')
       expect(painted().Japan).toBe(DEFAULT_THEME.wishlist)
       fireEvent.keyDown(window, { key: 'Escape' })
       expect(sidePanel()).not.toBeInTheDocument()
@@ -885,8 +900,7 @@ describe('App', () => {
     it('puts back a friend removed', async () => {
       localStorage.setItem('countries-app.friend', JSON.stringify({ name: 'Anna', places: ['Japan'] }))
       render(<App />)
-      await userEvent.click(screen.getByRole('button', { name: 'Visited' }))
-      await userEvent.click(screen.getByRole('tab', { name: 'Compare with a friend' }))
+      await openMore('Compare with a friend')
       await userEvent.click(screen.getByRole('button', { name: 'Remove Anna' }))
       expect(saved('friend')).toBeNull()
       await userEvent.click(screen.getByRole('button', { name: 'Undo' }))
@@ -1055,7 +1069,8 @@ describe('App', () => {
 
       await userEvent.click(note()!)
       expect(note()).not.toBeInTheDocument()
-      expect(screen.getByRole('tab', { name: 'Achievements' })).toHaveAttribute('aria-selected', 'true')
+      expect(sidePanel()).toHaveAccessibleName('More')
+      expect(screen.getByRole('region', { name: 'Achievements' })).toBeInTheDocument()
       expect(screen.getByText('First stamp', { selector: '.achievement-title' }).closest('li')).toHaveClass('earned')
     })
 
@@ -1064,8 +1079,7 @@ describe('App', () => {
       render(<App />)
       await loaded()
       expect(note()).not.toBeInTheDocument()
-      await userEvent.click(screen.getByRole('button', { name: 'Visited' }))
-      await userEvent.click(screen.getByRole('tab', { name: 'Achievements' }))
+      await openMore('Achievements')
       expect(within(sidePanel()!).getByText(new RegExp(`^2 / ${ACHIEVEMENTS.length}$`))).toBeInTheDocument()
       expect(screen.getByText('Scandinavia', { selector: '.achievement-title' }).closest('li')).toHaveClass('earned')
     })
@@ -1073,8 +1087,7 @@ describe('App', () => {
     it('counts states toward their achievements', async () => {
       localStorage.setItem('countries-app.visited-regions', JSON.stringify(['US-CA', 'US-NY']))
       render(<App />)
-      await userEvent.click(screen.getByRole('button', { name: 'Visited' }))
-      await userEvent.click(screen.getByRole('tab', { name: 'Achievements' }))
+      await openMore('Achievements')
       expect(screen.getByText('Road trip', { selector: '.achievement-title' }).closest('li')).toHaveTextContent('2 of 10')
     })
   })

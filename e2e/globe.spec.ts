@@ -297,9 +297,9 @@ test.describe('screensaver', () => {
 })
 
 test.describe('screensaver preview on a phone', { tag: '@touch' }, () => {
-  test('shows its way out on a tap, and the button goes back to Settings', async ({ page }) => {
+  test('shows its way out on a tap, and the button goes back to More', async ({ page }) => {
     await openGlobe(page)
-    await page.getByRole('button', { name: 'Settings' }).tap()
+    await page.getByRole('button', { name: 'More', exact: true }).tap()
     await page.getByRole('button', { name: 'Screensaver' }).tap()
     await page.getByRole('button', { name: 'Preview' }).tap()
     await expect(page.getByRole('navigation', { name: 'Main' })).toBeHidden()
@@ -316,9 +316,9 @@ test.describe('screensaver preview on a phone', { tag: '@touch' }, () => {
 })
 
 test.describe('screensaver preview', () => {
-  test('opened from Settings, shows just the globe with a way out, and Escape goes back', async ({ page }) => {
+  test('opened from More, shows just the globe with a way out, and Escape goes back', async ({ page }) => {
     const { errors } = await openGlobe(page)
-    await page.getByRole('button', { name: 'Settings', exact: true }).click()
+    await page.getByRole('button', { name: 'More', exact: true }).click()
     await page.getByRole('button', { name: 'Screensaver', exact: true }).click()
     await page.getByRole('button', { name: 'Preview' }).click()
     await expect(page.getByRole('navigation', { name: 'Main' })).toBeHidden()
@@ -388,7 +388,7 @@ test.describe('achievements', () => {
     await expect(note).toContainText('Scandinavia')
 
     await note.click()
-    await expect(page.getByRole('tab', { name: 'Achievements' })).toHaveAttribute('aria-selected', 'true')
+    await expect(page.getByRole('region', { name: 'Achievements' })).toBeVisible()
     const achievement = (title: string) => page.locator('li.achievement', { has: page.getByText(title, { exact: true }) })
     await expect(achievement('Scandinavia')).toHaveClass(/earned/)
     await expect(achievement('The Nordics')).toContainText('3 of 5')
@@ -421,7 +421,6 @@ test.describe('comparing with a friend', () => {
     const code = Buffer.from(JSON.stringify({ v: 1, name: 'Anna', places: ['Japan', 'Peru'] })).toString('base64url')
     await page.goto(`/#compare=${code}`)
     await expect(page.getByTestId('globe')).toHaveAttribute('aria-busy', 'false')
-    await expect(page.getByRole('tab', { name: 'Compare with a friend' })).toHaveAttribute('aria-selected', 'true')
     await expect(page.getByRole('region', { name: 'Compare' })).toContainText('with Anna')
     await expect(page.getByRole('list', { name: 'Only Anna' })).toContainText('Japan')
     await expect(page.getByRole('figure', { name: 'Compare' })).toBeVisible()
@@ -507,7 +506,7 @@ test.describe('settings', () => {
     }
     await expect(page.getByText('2 visited')).toBeVisible()
 
-    await page.getByRole('button', { name: 'Settings', exact: true }).click()
+    await page.getByRole('button', { name: 'More', exact: true }).click()
     await page.getByRole('button', { name: 'Backup', exact: true }).click()
     await expect(page.getByText('In this browser: 2 places.')).toBeVisible()
     const [download] = await Promise.all([
@@ -522,7 +521,7 @@ test.describe('settings', () => {
     await page.reload()
     await expect(page.getByText('0 visited')).toBeVisible()
 
-    await page.getByRole('button', { name: 'Settings', exact: true }).click()
+    await page.getByRole('button', { name: 'More', exact: true }).click()
     await page.getByRole('button', { name: 'Backup', exact: true }).click()
     await page.getByLabel('Backup file').setInputFiles(file)
     await expect(page.getByRole('alertdialog')).toContainText('2 places')
@@ -723,9 +722,9 @@ test.describe('games', () => {
     await page.getByRole('button', { name: /Higher or lower/ }).click()
     await page.getByRole('button', { name: /^Population/ }).click()
     const over = page.getByText('in a row')
-    // Always "more": right about half the time, so the run soon ends
+    // Always "more": right about half the time, so the run soon ends. The game's button, not the More tab's
     for (let i = 0; i < 40 && !(await over.isVisible()); i++) {
-      await page.getByRole('button', { name: 'More', exact: true }).click()
+      await page.locator('#side-panel').getByRole('button', { name: 'More', exact: true }).click()
       const next = page.getByRole('button', { name: 'Next', exact: true })
       if (await next.isVisible()) await next.click()
     }
