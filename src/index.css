@@ -1038,6 +1038,77 @@ code {
   font-size: 12px;
 }
 
+/* Settings: a small card for each, which opens to all of it */
+.settings-list {
+  flex: none;
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.settings-option {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--card);
+  backdrop-filter: blur(12px);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
+}
+
+.settings-option:hover {
+  border-color: var(--line-strong);
+}
+
+.settings-icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.settings-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.settings-text strong {
+  display: block;
+  font-size: 14.5px;
+  font-weight: 600;
+}
+
+.settings-text .muted {
+  display: block;
+  font-size: 12.5px;
+  line-height: 1.4;
+}
+
+/* The arrow in */
+.settings-option > svg {
+  flex: none;
+  color: var(--text-muted);
+}
+
+/* Back to all of them, above an opened one */
+.settings-back {
+  display: block;
+  margin: -6px 0 4px;
+}
+
 /* Settings: the backup */
 .backup .muted:first-of-type {
   margin-top: 0;

@@ -300,6 +300,7 @@ test.describe('screensaver preview on a phone', { tag: '@touch' }, () => {
   test('shows its way out on a tap, and the button goes back to Settings', async ({ page }) => {
     await openGlobe(page)
     await page.getByRole('button', { name: 'Settings' }).tap()
+    await page.getByRole('button', { name: 'Screensaver' }).tap()
     await page.getByRole('button', { name: 'Preview' }).tap()
     await expect(page.getByRole('navigation', { name: 'Main' })).toBeHidden()
     const exit = page.getByRole('button', { name: 'Exit preview' }) // no Esc on a phone
@@ -318,6 +319,7 @@ test.describe('screensaver preview', () => {
   test('opened from Settings, shows just the globe with a way out, and Escape goes back', async ({ page }) => {
     const { errors } = await openGlobe(page)
     await page.getByRole('button', { name: 'Settings', exact: true }).click()
+    await page.getByRole('button', { name: 'Screensaver', exact: true }).click()
     await page.getByRole('button', { name: 'Preview' }).click()
     await expect(page.getByRole('navigation', { name: 'Main' })).toBeHidden()
     const exit = page.getByRole('button', { name: /^Exit preview/ })
@@ -506,6 +508,7 @@ test.describe('settings', () => {
     await expect(page.getByText('2 visited')).toBeVisible()
 
     await page.getByRole('button', { name: 'Settings', exact: true }).click()
+    await page.getByRole('button', { name: 'Backup', exact: true }).click()
     await expect(page.getByText('In this browser: 2 places.')).toBeVisible()
     const [download] = await Promise.all([
       page.waitForEvent('download'),
@@ -520,6 +523,7 @@ test.describe('settings', () => {
     await expect(page.getByText('0 visited')).toBeVisible()
 
     await page.getByRole('button', { name: 'Settings', exact: true }).click()
+    await page.getByRole('button', { name: 'Backup', exact: true }).click()
     await page.getByLabel('Backup file').setInputFiles(file)
     await expect(page.getByRole('alertdialog')).toContainText('2 places')
     await page.getByRole('button', { name: 'Replace with this backup' }).click()

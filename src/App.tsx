@@ -35,10 +35,8 @@ import { VIEWS, type ViewId } from './nav/views'
 import SidePanel from './nav/SidePanel'
 import Card from './ui/Card'
 import { isScreensaver } from './screensaver'
-import ScreensaverCard from './design/ScreensaverCard'
 import PreviewExit from './design/PreviewExit'
-import BackupCard from './settings/BackupCard'
-import AppCard from './settings/AppCard'
+import SettingsPanel, { type SettingId } from './settings/SettingsPanel'
 import VisitedPanel from './visited/VisitedPanel'
 import { useVisited } from './visited/useVisited'
 import { useVisitedRegions } from './visited/useVisitedRegions'
@@ -146,6 +144,8 @@ export default function App({ compareOnOpen = false }: { compareOnOpen?: boolean
   const [view, setView] = useState<ViewId | null>(() => (compareOnOpen ? 'visited' : isPhone() ? null : 'explore'))
   /** The game whose setup is open in the Games tab */
   const [chosenGame, setChosenGame] = useState<GameId | null>(null)
+  /** The setting opened in the Settings tab, kept while the screensaver is previewed from it */
+  const [openSetting, setOpenSetting] = useState<SettingId | null>(null)
   const { visited, add: addVisited, remove: removeVisited } = useVisited()
   const { wishlist: wished, add: addWish, remove: removeWish } = useWishlist()
   // A friend to compare with, shown on the globe until switched off (at once, when their link was opened)
@@ -812,6 +812,7 @@ export default function App({ compareOnOpen = false }: { compareOnOpen?: boolean
       quitGame()
       setChosenGame(null)
     }
+    if (next !== 'settings') setOpenSetting(null)
     setView(next)
     if (next === 'visited' && visitedView === 'years' && !showsGame(game)) showYear(review)
   }
@@ -1097,9 +1098,7 @@ export default function App({ compareOnOpen = false }: { compareOnOpen?: boolean
           )}
           {view === 'settings' && (
             <>
-              <BackupCard />
-              <AppCard />
-              <ScreensaverCard onPreview={startPreview} />
+              <SettingsPanel open={openSetting} onOpen={setOpenSetting} onPreview={startPreview} />
             </>
           )}
           {view === 'games' && (
